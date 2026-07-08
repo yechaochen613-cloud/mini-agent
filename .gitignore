@@ -1,0 +1,15 @@
+# 密钥：千万别提交！
+.env
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 运行时数据
+notes.json
+memory.json
+
+# 本地虚拟环境
+venv/
+.venv/

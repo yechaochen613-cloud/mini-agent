@@ -1,0 +1,19 @@
+{
+  "name": "Mini Agent · 智能体对话",
+  "short_name": "Mini Agent",
+  "description": "会自己调工具的中文智能体",
+  "start_url": "/ui",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

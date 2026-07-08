@@ -1,0 +1,11 @@
+# 部署用依赖（已锁定版本，保证云端与你本地跑通的一致）
+# 本地开发若想升级，先在本机 pip install 验证后再改这里。
+fastapi==0.139.0
+uvicorn[standard]==0.50.2
+openai==2.44.0
+python-dotenv==1.2.2
+httpx==0.28.1
+langgraph==1.2.8
+langchain-openai==1.3.3
+langchain-core==1.4.8
+langgraph-checkpoint==4.1.1
