@@ -23,6 +23,9 @@
 #   self.steps  （可观测性，记录本轮调过的工具）
 
 import json
+import os
+import sys
+import asyncio
 from typing import Annotated, TypedDict, Optional
 from pydantic import Field, create_model
 
@@ -83,6 +86,78 @@ for _s in TOOL_SCHEMAS:
     ))
 
 
+# ===== 可选的 MCP 工具接入（让 Agent 成为 MCP 客户端，即插即用社区/自建的 MCP server） =====
+# 配置写在 mcp_servers.json（结构与 Claude Desktop 的 mcpServers 一致）。
+# 没装 langchain-mcp-adapters 或没有配置文件时，自动降级为"只用本地工具"，不影响原有功能。
+_AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _load_mcp_config():
+    """读取 mcp_servers.json，返回 {server_name: {command/args | url/transport}}。"""
+    path = os.path.join(_AGENT_DIR, "mcp_servers.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except Exception as e:
+        print(f"[MCP] 读取配置失败，跳过: {e}")
+        return None
+    servers = raw.get("mcpServers", raw) if isinstance(raw, dict) else None
+    if not servers:
+        return None
+    norm = {}
+    for name, s in servers.items():
+        s = dict(s)
+        if "url" in s:
+            s.setdefault("transport", "streamable_http")
+        else:
+            s["transport"] = "stdio"
+            # 让 stdio server 用和 Agent 同一个 Python 解释器（避免找不到 mcp 包）
+            if s.get("command") in (None, "python", "python3"):
+                s["command"] = sys.executable
+        norm[name] = s
+    return norm
+
+
+def load_mcp_tools():
+    """连接配置的 MCP server，返回 (langchain工具列表, client)。失败返回 ([], None)。"""
+    cfg = _load_mcp_config()
+    if not cfg:
+        return [], None
+    try:
+        from langchain_mcp_adapters.client import MultiServerMCPClient
+    except ImportError:
+        print("[MCP] 未安装 langchain-mcp-adapters，已跳过 MCP 工具加载。")
+        return [], None
+    try:
+        client = MultiServerMCPClient(cfg)
+        tools = asyncio.run(client.get_tools())
+        names = [t.name for t in tools]
+        print(f"[MCP] 已连接，加载 {len(tools)} 个工具: {names}")
+        return tools, client
+    except Exception as e:
+        print(f"[MCP] 连接/加载失败（已忽略，只用本地工具）: {e}")
+        return [], None
+
+
+def _mcp_tool_to_schema(tool):
+    """把一个 langchain MCP 工具转成 OpenAI function schema，用于 system 提示里列出工具。"""
+    try:
+        from langchain_core.utils.function_calling import convert_to_openai_tool
+        return convert_to_openai_tool(tool)
+    except Exception:
+        params = getattr(tool, "args", {}) or {"type": "object", "properties": {}}
+        return {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description or "",
+                "parameters": params,
+            },
+        }
+
+
 class Agent:
     def __init__(self, api_key, base_url=None, model="gpt-4o-mini", mock=False):
         self.mock = mock
@@ -92,6 +167,14 @@ class Agent:
         # 注意：对话历史现在交给 LangGraph 的 checkpointer（按 thread_id 管理），
         #       不再用 self.sessions 自己维护；服务重启仍然会丢（MemorySaver 在内存里）。
 
+        # ---- 加载可选 MCP 工具，和本地工具合并（mock 模式不连 MCP，避免白起子进程） ----
+        mcp_tools, mcp_client = ([], None) if mock else load_mcp_tools()
+        self._mcp_client = mcp_client            # 保持引用，防止底层会话被回收
+        self.mcp_tool_names = [t.name for t in mcp_tools]
+        all_tools = list(_LG_TOOLS) + mcp_tools
+        # 合并后的"工具清单"，用于 system 提示里列出（本地 + MCP 一目了然）
+        self.tool_schemas = list(TOOL_SCHEMAS) + [_mcp_tool_to_schema(t) for t in mcp_tools]
+
         if not mock:
             llm = ChatOpenAI(
                 model=model,
@@ -99,7 +182,7 @@ class Agent:
                 base_url=base_url,
                 temperature=0,   # 工具调用追求确定性，temperature 设 0
             )
-            self.llm_with_tools = llm.bind_tools(_LG_TOOLS)
+            self.llm_with_tools = llm.bind_tools(all_tools)
         else:
             # MOCK 模式：不绑定真实 LLM，agent 节点改用离线"假大脑"
             self.llm_with_tools = None
@@ -211,7 +294,7 @@ class Agent:
 
         builder = StateGraph(State)
         builder.add_node("agent", agent_node)
-        builder.add_node("tools", ToolNode(_LG_TOOLS))   # 框架预置：执行工具 → 返回 ToolMessage
+        builder.add_node("tools", ToolNode(all_tools))   # 框架预置：执行工具 → 返回 ToolMessage（本地 + MCP）
         builder.add_node("review", review_node)          # 人工审核节点
         builder.add_edge(START, "agent")                 # 入口：先走推理
         builder.add_conditional_edges("agent", route_from_agent)
@@ -237,6 +320,12 @@ class Agent:
                 "\n\n以下是你之前记住的、可能与当前对话相关的信息，请善加利用：\n"
                 + mem_ctx
             )
+        if self.tool_schemas:
+            tools_desc = "\n".join(
+                f"- {s['function']['name']}: {s['function'].get('description', '')}"
+                for s in self.tool_schemas
+            )
+            system_content += "\n\n你当前可用的工具：\n" + tools_desc
         return system_content
 
     def reset_session(self, session_id):
@@ -264,12 +353,15 @@ class Agent:
         try:
             if review_decision is not None:
                 # 人类已经答复 -> 用 Command(resume=...) 唤醒被 interrupt 暂停的图
-                result = self.app.invoke(Command(resume=review_decision), config=config)
+                # 用 ainvoke：MCP 工具是异步的，必须跑在事件循环里才能被 await
+                result = asyncio.run(
+                    self.app.ainvoke(Command(resume=review_decision), config=config))
             else:
-                result = self.app.invoke(
-                    {"messages": [HumanMessage(content=user_input)]},
-                    config=config,
-                )
+                result = asyncio.run(
+                    self.app.ainvoke(
+                        {"messages": [HumanMessage(content=user_input)]},
+                        config=config,
+                    ))
         except GraphRecursionError:
             return {"reply": "（已达到最大步数，停止循环）", "steps": self.steps,
                     "needs_review": False, "review": None}

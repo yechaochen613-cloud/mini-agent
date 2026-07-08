@@ -80,3 +80,22 @@ git push -u origin main
 ```
 
 （`.env`、`notes.json`、`memory.json`、`__pycache__` 都已被 `.gitignore` 忽略，不会进仓库。）
+
+---
+
+## 接入 MCP 工具（让 Agent 即插即用社区/自建工具）
+
+本项目已内置 **MCP 客户端**能力：Agent 启动时读取 `mcp_servers.json`，把里面配置的 MCP server 提供的工具自动合并进工具箱，和本地 6 个工具一起被大模型调用。无需改 `agent_langgraph.py` 的代码。
+
+- `mcp_servers.json` —— 与 Claude Desktop 同款格式。示例（`demo` 是演示 server，`demo_mcp_server.py` 用 FastMCP 暴露 `reverse_text` / `get_server_time` 两个工具）：
+  ```json
+  {
+    "mcpServers": {
+      "demo": { "command": "python", "args": ["demo_mcp_server.py"], "transport": "stdio" }
+    }
+  }
+  ```
+- **加自己的工具**：用 `mcp` 包写个 `@mcp.tool()` 函数（参考 `demo_mcp_server.py`），在 `mcp_servers.json` 里加一项即可。stdio 模式会自动用和 Agent 相同的 Python 解释器；远程 server 用 `"url": "...", "transport": "streamable_http"`。
+- **没有配置 / 没装包也不报错**：缺 `mcp_servers.json` 或未安装 `langchain-mcp-adapters` 时，自动降级为"只用本地工具"。
+- **验证是否生效**：`GET /tools` 会列出当前已加载的全部工具（本地 + MCP）。
+- **注意**：`mcp_servers.json` 若包含密钥，别提交到公开仓库（演示版无密钥，可提交）。

@@ -90,6 +90,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/tools")
+def tools():
+    """列出当前已加载的工具（本地 + 通过 MCP 接入的），方便排查 MCP 是否生效。"""
+    return {"tools": [s["function"]["name"] for s in agent.tool_schemas]}
+
+
 @app.get("/")
 def root():
     # 直接把用户带到网页界面，/docs 仍是接口文档

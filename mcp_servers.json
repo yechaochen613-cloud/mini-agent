@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "demo": {
+      "command": "python",
+      "args": ["demo_mcp_server.py"],
+      "transport": "stdio"
+    }
+  }
+}
