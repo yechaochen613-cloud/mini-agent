@@ -23,10 +23,10 @@ import datetime
 # 这样百万字级文档在离线/MOCK 环境下也能秒级解析与检索，不会因为逐个 chunk 调网络 embedding
 # 而卡死（真实环境下若要更强语义，可把 _doc_vec 换成 memory.embed 的批量调用）。
 from memory import _cosine
+from storage import DATA_DIR, UPLOAD_DIR
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-DOCS_FILE = os.path.join(BASE_DIR, "documents.json")
+DOCS_FILE = os.path.join(DATA_DIR, "documents.json")
 
 
 def _doc_vec(text):
@@ -510,7 +510,7 @@ def ingest_file(path):
         "size": size,
         "chars": len(text),
         "uploaded_at": datetime.datetime.now().isoformat(timespec="seconds"),
-        "path": os.path.relpath(path, BASE_DIR),
+        "path": os.path.abspath(path),
         "full_text": text,
         "structure": structure,
         "tables": tables,

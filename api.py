@@ -29,6 +29,7 @@ from documents import (
     search_documents, compare_documents,
 )
 import chat_history as history
+from storage import UPLOAD_DIR
 
 # 阶段 4 引入：用 LangGraph 重写 Agent Loop（行为/接口与原手写版 agent.py 完全一致）
 # 想回退到手写版，把这行改回 `from agent import Agent` 即可。
@@ -152,8 +153,8 @@ async def upload(files: list[UploadFile] = File(None), url: str = Form(None)):
                 continue
             # 用安全文件名保存到 uploads/
             safe = re.sub(r"[^A-Za-z0-9._\-\u4e00-\u9fff]", "_", f.filename)
-            dest = os.path.join("uploads", safe)
-            os.makedirs("uploads", exist_ok=True)
+            dest = os.path.join(UPLOAD_DIR, safe)
+            os.makedirs(UPLOAD_DIR, exist_ok=True)
             with open(dest, "wb") as out:
                 shutil.copyfileobj(f.file, out)
             results.append(await run_in_threadpool(ingest_file, dest))

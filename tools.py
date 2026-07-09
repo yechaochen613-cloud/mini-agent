@@ -9,8 +9,10 @@ import httpx
 from urllib.parse import quote
 from memory import add_memory, search_memory
 
-# 笔记存到项目目录下的 notes.json
-NOTES_FILE = os.path.join(os.path.dirname(__file__), "notes.json")
+from storage import DATA_DIR
+
+# 笔记持久化到统一数据目录（挂 Render Disk 后不丢）
+NOTES_FILE = os.path.join(DATA_DIR, "notes.json")
 
 
 def calculator(expression: str) -> str:

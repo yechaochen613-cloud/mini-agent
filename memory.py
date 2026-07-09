@@ -26,7 +26,9 @@ from dotenv import load_dotenv
 
 load_dotenv()  # 确保能读到 EMBEDDING_* 配置
 
-MEMORY_FILE = os.path.join(os.path.dirname(__file__), "memory.json")
+from storage import DATA_DIR
+
+MEMORY_FILE = os.path.join(DATA_DIR, "memory.json")
 MAX_MEMORIES = 300  # 上限，防止无限增长
 
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "zhipu")  # zhipu | openai | keyword

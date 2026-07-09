@@ -6,7 +6,11 @@ __pycache__/
 *.pyc
 *.pyo
 
-# 运行时数据
+# 运行时数据（持久化到 data/ 或挂载盘，不入库）
+data/
+*.db
+*.db-wal
+*.db-shm
 notes.json
 memory.json
 documents.json
