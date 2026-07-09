@@ -93,8 +93,13 @@ _AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def _load_mcp_config():
-    """读取 mcp_servers.json，返回 {server_name: {command/args | url/transport}}。"""
-    path = os.path.join(_AGENT_DIR, "mcp_servers.json")
+    """读取 MCP server 配置文件，返回 {server_name: {command/args | url/transport}}。
+    默认读 mcp_servers.json；可用环境变量 MCP_SERVERS_FILE 覆盖（填相对/绝对路径），
+    方便演示"把本地工具也通过 MCP 加载"（路线 B 反向整合）而不动默认配置。"""
+    fname = os.getenv("MCP_SERVERS_FILE", "mcp_servers.json")
+    if not os.path.isabs(fname):
+        fname = os.path.join(_AGENT_DIR, fname)
+    path = fname
     if not os.path.exists(path):
         return None
     try:
@@ -171,9 +176,22 @@ class Agent:
         mcp_tools, mcp_client = ([], None) if mock else load_mcp_tools()
         self._mcp_client = mcp_client            # 保持引用，防止底层会话被回收
         self.mcp_tool_names = [t.name for t in mcp_tools]
-        all_tools = list(_LG_TOOLS) + mcp_tools
-        # 合并后的"工具清单"，用于 system 提示里列出（本地 + MCP 一目了然）
-        self.tool_schemas = list(TOOL_SCHEMAS) + [_mcp_tool_to_schema(t) for t in mcp_tools]
+        # 合并工具时按 name 去重：同名工具以 MCP 版优先（证明"本地工具 MCP 化"后仍可用，
+        # 调用会走 stdio 协议）；若 MCP 加载失败（返回 []），则自然退回本地 import 版。
+        merged = {t.name: t for t in _LG_TOOLS}
+        for t in mcp_tools:
+            merged[t.name] = t
+        all_tools = list(merged.values())
+        # 合并后的"工具清单"，用于 system 提示里列出（本地 + MCP 一目了然，按名去重）
+        seen = set()
+        merged_schemas = []
+        for s in list(TOOL_SCHEMAS) + [_mcp_tool_to_schema(t) for t in mcp_tools]:
+            n = s["function"]["name"]
+            if n in seen:
+                continue
+            seen.add(n)
+            merged_schemas.append(s)
+        self.tool_schemas = merged_schemas
 
         if not mock:
             llm = ChatOpenAI(

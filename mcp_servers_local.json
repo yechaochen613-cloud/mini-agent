@@ -1,10 +1,5 @@
 {
   "mcpServers": {
-    "demo": {
-      "command": "python",
-      "args": ["demo_mcp_server.py"],
-      "transport": "stdio"
-    },
     "local-tools": {
       "command": "python",
       "args": ["mcp_server.py"],
