@@ -269,14 +269,14 @@
   .review .rnote { margin-top: 8px; font-size: 12px; color: var(--text-dim); }
   .composer.disabled { opacity: 0.5; pointer-events: none; }
 
-  /* ===== 文档理解：右侧抽屉 ===== */
-  .doc-toggle {
+  /* ===== 历史对话：左侧抽屉触发按钮 ===== */
+  .hist-toggle {
     border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text);
     border-radius: 11px; padding: 8px 12px; cursor: pointer; font-family: inherit;
     font-size: 13px; font-weight: 600; transition: transform .2s, background .2s;
   }
-  .doc-toggle:hover { transform: translateY(-1px); }
-  .doc-toggle.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border-color: transparent; }
+  .hist-toggle:hover { transform: translateY(-1px); }
+  .hist-toggle.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border-color: transparent; }
 
   .drawer-backdrop {
     position: fixed; inset: 0; background: rgba(2,6,23,.5);
@@ -291,6 +291,52 @@
     display: flex; flex-direction: column; padding: 16px; gap: 12px; overflow-y: auto;
   }
   .drawer.open { transform: translateX(0); }
+  /* 历史抽屉从左侧滑出 */
+  .drawer.left {
+    right: auto; left: 0; transform: translateX(-100%);
+    border-left: none; border-right: 1px solid var(--glass-border);
+    box-shadow: 20px 0 60px rgba(0,0,0,.35);
+  }
+  .drawer.left.open { transform: translateX(0); }
+
+  /* ===== 附件面板（内嵌在对话框里，点 📎 展开） ===== */
+  .attach-btn {
+    flex: 0 0 auto; border: 1px solid var(--glass-border); background: var(--step-bg);
+    color: var(--text); cursor: pointer; font-size: 18px; line-height: 1;
+    width: 42px; height: 42px; border-radius: 12px; transition: all .2s ease;
+    display: grid; place-items: center;
+  }
+  .attach-btn:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .attach-btn.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border-color: transparent; }
+  .attach-panel {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 18px; padding: 14px; backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 12px;
+    max-height: 46vh; overflow-y: auto;
+  }
+  .attach-panel[hidden] { display: none; }
+  .attach-head { display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; font-weight: 700; }
+  .attach-head .drawer-close { position: static; }
+
+  /* ===== 历史列表 ===== */
+  .hist-list { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+  .hist-card {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: all .18s ease;
+  }
+  .hist-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .hist-card .hc-main { flex: 1; min-width: 0; }
+  .hist-card .hc-title { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-card .hc-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .hist-card .hc-del {
+    flex: 0 0 auto; border: none; background: var(--step-bg); color: var(--text-dim);
+    width: 26px; height: 26px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: color .2s;
+  }
+  .hist-card .hc-del:hover { color: #ef4444; }
   .drawer-head { display: flex; align-items: center; justify-content: space-between; }
   .drawer-head h2 { font-size: 16px; font-weight: 700; }
   .drawer-close { border: none; background: var(--step-bg); color: var(--text); width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 14px; }
@@ -378,7 +424,7 @@
         </div>
       </div>
       <div class="actions">
-        <button class="doc-toggle" id="docToggle" title="文档理解">📄 文档</button>
+        <button class="hist-toggle" id="histToggle" title="历史对话">🕘 历史</button>
         <button class="new-chat" id="newChat" title="开启新对话">＋ 新对话</button>
         <div class="theme-switch" id="themeSwitch">
           <button data-theme="light">☀ 浅色</button>
@@ -391,46 +437,56 @@
     <main class="chat" id="chat"></main>
 
     <div class="composer">
+      <button class="attach-btn" id="attachBtn" title="上传文档">📎</button>
       <textarea id="input" rows="1" placeholder="试试：我叫小明，喜欢喝咖啡（我会记住）· 明天北京天气如何 · 你还记得我叫什么吗？"></textarea>
       <button class="send" id="send">发送</button>
+    </div>
+    <div class="attach-panel" id="attachPanel" hidden>
+      <div class="attach-head">
+        <span>📎 文档上传与理解</span>
+        <button class="drawer-close" id="attachClose" title="收起">✕</button>
+      </div>
+
+      <div class="upload-zone" id="uploadZone">
+        <p>拖拽文件到此处，或</p>
+        <button class="up-btn" id="pickFile">选择文件</button>
+        <input type="file" id="fileInput" multiple hidden
+               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.html,.htm,.md,.txt,.json,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff">
+        <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / 网页 / Markdown / 文本 / JSON / 图片</p>
+        <div class="url-row">
+          <input type="text" id="urlInput" placeholder="或粘贴网页 URL…">
+          <button class="up-btn" id="urlBtn" style="margin-top:0">抓取</button>
+        </div>
+        <div class="up-progress" id="upProgress"></div>
+      </div>
+
+      <div class="doc-search">
+        <input type="text" id="docSearchInput" placeholder="跨文档检索，如『违约责任』">
+        <button class="up-btn" id="docSearchBtn" style="margin-top:0">检索</button>
+      </div>
+
+      <div class="compare-bar" id="compareBar" hidden>
+        <span>比对：<b id="cmpA"></b> ↔ <b id="cmpB"></b></span>
+        <button id="compareRun">开始比对</button>
+        <button id="compareClear">清除</button>
+      </div>
+
+      <div class="doc-list" id="docList">
+        <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
+      </div>
     </div>
     <p class="hint">回车发送 · Shift+回车换行 · 智能体会自己决定调用哪些工具</p>
   </div>
 
-  <!-- 文档理解抽屉（右侧） -->
-  <div class="drawer-backdrop" id="drawerBackdrop"></div>
-  <aside class="drawer" id="drawer">
+  <!-- 历史对话抽屉（左侧） -->
+  <div class="drawer-backdrop" id="histBackdrop"></div>
+  <aside class="drawer left" id="histDrawer">
     <div class="drawer-head">
-      <h2>📄 文档理解</h2>
-      <button class="drawer-close" id="drawerClose">✕</button>
+      <h2>🕘 历史对话</h2>
+      <button class="drawer-close" id="histClose">✕</button>
     </div>
-
-    <div class="upload-zone" id="uploadZone">
-      <p>拖拽文件到此处，或</p>
-      <button class="up-btn" id="pickFile">选择文件</button>
-      <input type="file" id="fileInput" multiple hidden
-             accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.html,.htm,.md,.txt,.json,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff">
-      <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / 网页 / Markdown / 文本 / JSON / 图片</p>
-      <div class="url-row">
-        <input type="text" id="urlInput" placeholder="或粘贴网页 URL…">
-        <button class="up-btn" id="urlBtn" style="margin-top:0">抓取</button>
-      </div>
-      <div class="up-progress" id="upProgress"></div>
-    </div>
-
-    <div class="doc-search">
-      <input type="text" id="docSearchInput" placeholder="跨文档检索，如『违约责任』">
-      <button class="up-btn" id="docSearchBtn" style="margin-top:0">检索</button>
-    </div>
-
-    <div class="compare-bar" id="compareBar" hidden>
-      <span>比对：<b id="cmpA"></b> ↔ <b id="cmpB"></b></span>
-      <button id="compareRun">开始比对</button>
-      <button id="compareClear">清除</button>
-    </div>
-
-    <div class="doc-list" id="docList">
-      <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
+    <div class="hist-list" id="histList">
+      <div class="empty-hint">还没有历史对话</div>
     </div>
   </aside>
 
@@ -571,6 +627,7 @@
       } else {
         removeTyping();
         addMessage('bot', data.reply || '（没有返回内容）', data.steps);
+        loadConversations();   // 刷新历史列表（标题/时间会更新）
       }
     } catch (err) {
       removeTyping();
@@ -651,14 +708,12 @@
     }
   }
 
-  // 开启新对话：清空本地会话 ID + 聊天界面（并尽力通知服务端释放历史）
+  // 开启新对话：旧会话保留在历史里（清掉 LangGraph 内存），再新建一个会话
   async function newChat() {
     const oldId = sessionId;
-    sessionId = null;
-    localStorage.removeItem('mini_agent_sid');
     awaitingReview = false;
     setInputEnabled(true);
-    chat.innerHTML = '';
+    // 旧会话保留在历史记录；只清空 LangGraph 的上下文
     if (oldId) {
       try {
         await fetch(`${API_BASE}/reset`, {
@@ -666,10 +721,18 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: oldId }),
         });
-      } catch (e) { /* 释放失败不影响前端开新对话 */ }
+      } catch (e) { /* 忽略 */ }
     }
-    // 重新显示开场白
-    addMessage('bot', '已开启新对话 🌟 刚才的上下文已清空，我们重新开始吧～');
+    // 新建一个会话记录（会出现在历史列表里）
+    try {
+      const r = await fetch(`${API_BASE}/conversations?title=${encodeURIComponent('新对话')}`, { method: 'POST' });
+      const c = await r.json();
+      sessionId = c.id;
+      localStorage.setItem('mini_agent_sid', c.id);
+    } catch (e) { sessionId = null; localStorage.removeItem('mini_agent_sid'); }
+    chat.innerHTML = '';
+    await loadConversations();
+    addMessage('bot', OPENING_TEXT);
   }
 
   sendBtn.addEventListener('click', send);
@@ -683,18 +746,97 @@
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
-  // ===== 文档理解抽屉逻辑 =====
-  const drawer = document.getElementById('drawer');
-  const drawerBackdrop = document.getElementById('drawerBackdrop');
-  const docToggle = document.getElementById('docToggle');
+  // ===== 附件面板（文档上传，内嵌在对话框里） =====
   let docs = [];                 // 当前文档列表（结构化摘要）
   let cmp = { a: null, b: null };// 比对选择
+  const attachPanel = document.getElementById('attachPanel');
+  const attachBtn = document.getElementById('attachBtn');
+  function toggleAttach(force) {
+    const open = force === undefined ? attachPanel.hidden : force;
+    attachPanel.hidden = !open;
+    attachBtn.classList.toggle('active', open);
+    if (open) loadDocs();
+  }
+  attachBtn.addEventListener('click', () => toggleAttach());
+  document.getElementById('attachClose').addEventListener('click', () => toggleAttach(false));
 
-  function openDrawer() { drawer.classList.add('open'); drawerBackdrop.classList.add('open'); docToggle.classList.add('active'); loadDocs(); }
-  function closeDrawer() { drawer.classList.remove('open'); drawerBackdrop.classList.remove('open'); docToggle.classList.remove('active'); }
-  docToggle.addEventListener('click', () => drawer.classList.contains('open') ? closeDrawer() : openDrawer());
-  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
-  drawerBackdrop.addEventListener('click', closeDrawer);
+  // ===== 历史对话抽屉（左侧） =====
+  const histDrawer = document.getElementById('histDrawer');
+  const histBackdrop = document.getElementById('histBackdrop');
+  const histToggle = document.getElementById('histToggle');
+  function openHistory() { histDrawer.classList.add('open'); histBackdrop.classList.add('open'); loadConversations(); }
+  function closeHistory() { histDrawer.classList.remove('open'); histBackdrop.classList.remove('open'); }
+  histToggle.addEventListener('click', () => histDrawer.classList.contains('open') ? closeHistory() : openHistory());
+  document.getElementById('histClose').addEventListener('click', closeHistory);
+  histBackdrop.addEventListener('click', closeHistory);
+
+  // 拉取历史列表并渲染
+  async function loadConversations() {
+    try {
+      const r = await fetch(`${API_BASE}/conversations`);
+      const data = await r.json();
+      renderHistory(data.conversations || []);
+      return data.conversations || [];
+    } catch (e) { return []; }
+  }
+  function renderHistory(list) {
+    const el = document.getElementById('histList');
+    if (!list.length) { el.innerHTML = '<div class="empty-hint">还没有历史对话</div>'; return; }
+    el.innerHTML = list.map(c => `
+      <div class="hist-card" data-id="${escapeHtml(c.id)}">
+        <div class="hc-main">
+          <div class="hc-title">${escapeHtml(c.title || '新对话')}</div>
+          <div class="hc-meta">${escapeHtml(c.updated_fmt || '')} · ${c.msg_count} 条消息</div>
+        </div>
+        <button class="hc-del" data-id="${escapeHtml(c.id)}" title="删除">🗑</button>
+      </div>`).join('');
+    el.querySelectorAll('.hist-card').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('.hc-del')) return;
+        loadConversation(card.dataset.id);
+      });
+    });
+    el.querySelectorAll('.hc-del').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!confirm('确定删除这条历史对话？')) return;
+        try {
+          await fetch(`${API_BASE}/conversations/${btn.dataset.id}`, { method: 'DELETE' });
+          if (sessionId === btn.dataset.id) {
+            sessionId = null; localStorage.removeItem('mini_agent_sid');
+          }
+          await loadConversations();
+        } catch (err) { alert('删除失败：' + err.message); }
+      });
+    });
+  }
+  // 回看某次历史会话：把它的消息渲染回聊天区
+  async function loadConversation(sid) {
+    try {
+      const r = await fetch(`${API_BASE}/conversations/${sid}`);
+      const c = await r.json();
+      sessionId = sid;
+      localStorage.setItem('mini_agent_sid', sid);
+      chat.innerHTML = '';
+      (c.messages || []).forEach(m => addMessage(m.role, m.text, m.steps));
+      closeHistory();
+      input.focus();
+    } catch (e) { alert('加载失败：' + e.message); }
+  }
+  // 初始化：确保有一个当前会话（已存在则复用，否则新建），用于落历史
+  async function ensureCurrent() {
+    const sid = localStorage.getItem('mini_agent_sid');
+    if (sid) {
+      const list = await loadConversations();
+      if (list.find(c => c.id === sid)) { sessionId = sid; return; }
+    }
+    try {
+      const r = await fetch(`${API_BASE}/conversations?title=${encodeURIComponent('新对话')}`, { method: 'POST' });
+      const c = await r.json();
+      sessionId = c.id;
+      localStorage.setItem('mini_agent_sid', c.id);
+    } catch (e) { sessionId = null; }
+  }
 
   function renderDocs() {
     const list = document.getElementById('docList');
@@ -857,8 +999,15 @@
     } catch (e) { prog.textContent = '⚠️ 抓取失败：' + e.message; }
   });
 
-  // 开场白
-  addMessage('bot', '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📄 文档理解：点右上角「📄 文档」上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：我还能即插即用地调用标准 MCP server 提供的工具（如演示用的 reverse_text / get_server_time，配置见 mcp_servers.json）\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认，你点通过或拒绝后才执行。\n试试看吧～');
+  // 开场白（固定文案，不写入历史）
+  const OPENING_TEXT = '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📎 上传文档：点输入框左边的 📎 上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：我还能即插即用地调用标准 MCP server 提供的工具（如演示用的 reverse_text / get_server_time，配置见 mcp_servers.json）\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认，你点通过或拒绝后才执行。\n· 🕘 点左上角「🕘 历史」可以查看和切换历史对话。\n试试看吧～';
+
+  // 初始化：确保有当前会话 + 渲染历史列表 + 显示开场白
+  (async function init() {
+    await ensureCurrent();
+    await loadConversations();
+    addMessage('bot', OPENING_TEXT);
+  })();
 </script>
 </body>
 </html>

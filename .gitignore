@@ -10,6 +10,7 @@ __pycache__/
 notes.json
 memory.json
 documents.json
+conversations.json
 uploads/
 
 # 本地虚拟环境

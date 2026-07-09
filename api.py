@@ -28,6 +28,7 @@ from documents import (
     get_document, read_document, extract_tables, extract_clauses,
     search_documents, compare_documents,
 )
+import chat_history as history
 
 # 阶段 4 引入：用 LangGraph 重写 Agent Loop（行为/接口与原手写版 agent.py 完全一致）
 # 想回退到手写版，把这行改回 `from agent import Agent` 即可。
@@ -236,8 +237,11 @@ def chat(req: ChatRequest):
             session_id, user_input=None, max_steps=req.max_steps,
             review_decision=req.review_decision,
         )
+        reply = result["reply"]
+        # 审核通过后，把最终回复落进历史（用户消息在上一轮已存）
+        history.append_message(session_id, "bot", reply or "", result.get("steps", []))
         return ChatResponse(
-            reply=result["reply"], steps=result["steps"], session_id=session_id,
+            reply=reply, steps=result["steps"], session_id=session_id,
             needs_review=result.get("needs_review", False), review=result.get("review"),
         )
 
@@ -252,17 +256,53 @@ def chat(req: ChatRequest):
     # 没带 session_id 就新建一个；前端应把它存起来，后续请求原样带回，实现多轮上下文
     session_id = session_id or str(uuid.uuid4())
     result = agent.run_trace(session_id, req.message, max_steps=req.max_steps)
+    reply = result["reply"]
+    steps = result["steps"]
+    # 持久化到历史记录：用户消息一定存；若需要人工审批，bot 回复先不存
+    # （审批通过后会走情况 A 再存最终回复，避免存一条空的占位）
+    title = (req.message or "").strip()[:20] or None
+    history.append_message(session_id, "user", req.message or "", title=title)
+    if not result.get("needs_review"):
+        history.append_message(session_id, "bot", reply or "", steps)
     return ChatResponse(
-        reply=result["reply"], steps=result["steps"], session_id=session_id,
+        reply=reply, steps=steps, session_id=session_id,
         needs_review=result.get("needs_review", False), review=result.get("review"),
     )
 
 
 @app.post("/reset")
 def reset(req: ResetRequest):
-    """清空某个会话的历史，相当于"开启新对话"。"""
+    """清空某个会话的 LangGraph 上下文（不影响历史记录，历史由 chat_history 管理）。"""
     agent.reset_session(req.session_id)
     return {"status": "ok", "session_id": req.session_id}
+
+
+# ===== 历史对话记录相关路由 =====
+@app.get("/conversations")
+def conversations():
+    """列出所有历史会话（按最近更新倒序）。"""
+    return {"conversations": history.list_conversations()}
+
+
+@app.get("/conversations/{sid}")
+def conversation(sid: str):
+    """获取某次会话的完整内容（含全部消息），用于回看。"""
+    c = history.get_conversation(sid)
+    if not c:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    return c
+
+
+@app.post("/conversations")
+def new_conversation(title: str = "新对话"):
+    """新建一个空会话（会出现在历史列表里）。"""
+    return history.create_conversation(title=title)
+
+
+@app.delete("/conversations/{sid}")
+def del_conversation(sid: str):
+    """删除一条历史会话。"""
+    return history.delete_conversation(sid)
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量
