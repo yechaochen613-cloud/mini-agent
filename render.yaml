@@ -14,7 +14,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11"
       - key: MOCK
-        value: "false"
+        value: "true"
       # 以下三个是密钥：务必在 Render 后台 Environment 里手动填（sync:false 表示不从仓库读取）
       - key: OPENAI_API_KEY
         sync: false
