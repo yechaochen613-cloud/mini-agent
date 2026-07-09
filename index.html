@@ -594,7 +594,7 @@
       <nav class="side-nav">
         <button class="nav-item" id="newChat"><span class="ni-ic">＋</span> 新建对话</button>
         <div class="nav-item"><span class="ni-ic">🤖</span> Agent</div>
-        <div class="nav-item"><span class="ni-ic">🔌</span> 连接器</div>
+        <div class="nav-item" id="connNav"><span class="ni-ic">🔌</span> 连接器</div>
         <div class="nav-item"><span class="ni-ic">⏰</span> 定时任务</div>
         <div class="nav-item"><span class="ni-ic">📚</span> 库</div>
       </nav>
@@ -1312,8 +1312,8 @@
     connOverlay.classList.remove('open'); connPanel.classList.remove('open'); }
   connOverlay.addEventListener('click', closeConnectors);
   document.getElementById('connClose').addEventListener('click', closeConnectors);
-  // 侧边栏「连接器」入口
-  document.querySelector('.nav-item:last-of-type').addEventListener('click', openConnectors);
+  // 侧边栏「连接器」入口（精确绑定，避免 :last-of-type 选错元素）
+  document.getElementById('connNav').addEventListener('click', openConnectors);
 
   async function loadConnectors() {
     try {
