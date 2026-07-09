@@ -85,7 +85,15 @@
     box-shadow: 0 6px 20px rgba(99,102,241,0.4);
   }
   .brand h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
-  .brand p { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .brand p { font-size: 12px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.6px; }
+  /* ===== Cyber bot logo 微动效 ===== */
+  .brand .logo { overflow: hidden; }
+  .cyber-bot { display: block; }
+  .cb-pulse { animation: cbPulse 2.6s ease-in-out infinite; }
+  .cb-eye { animation: cbBlink 4s ease-in-out infinite; }
+  .cb-eye:nth-of-type(2) { animation-delay: 0.18s; }
+  @keyframes cbPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.32; } }
+  @keyframes cbBlink { 0%,90%,100% { opacity: 1; } 94% { opacity: 0.2; } }
 
   /* ===== 主题切换（三态分段控件） ===== */
   .theme-switch {
@@ -260,19 +268,117 @@
   .review.done .rbtns, .review.done .rfooter { opacity: 0.4; pointer-events: none; }
   .review .rnote { margin-top: 8px; font-size: 12px; color: var(--text-dim); }
   .composer.disabled { opacity: 0.5; pointer-events: none; }
+
+  /* ===== 文档理解：右侧抽屉 ===== */
+  .doc-toggle {
+    border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text);
+    border-radius: 11px; padding: 8px 12px; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 600; transition: transform .2s, background .2s;
+  }
+  .doc-toggle:hover { transform: translateY(-1px); }
+  .doc-toggle.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border-color: transparent; }
+
+  .drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(2,6,23,.5);
+    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 40;
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100vh; width: 384px; max-width: 92vw;
+    background: var(--bg); border-left: 1px solid var(--glass-border);
+    box-shadow: -20px 0 60px rgba(0,0,0,.35); z-index: 50;
+    transform: translateX(100%); transition: transform .3s cubic-bezier(.16,1,.3,1);
+    display: flex; flex-direction: column; padding: 16px; gap: 12px; overflow-y: auto;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; }
+  .drawer-head h2 { font-size: 16px; font-weight: 700; }
+  .drawer-close { border: none; background: var(--step-bg); color: var(--text); width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 14px; }
+
+  .upload-zone {
+    border: 1.5px dashed var(--glass-border); border-radius: 14px; padding: 14px;
+    text-align: center; background: var(--glass-bg); transition: all .2s;
+  }
+  .upload-zone.drag { border-color: var(--accent); background: rgba(99,102,241,.12); }
+  .upload-zone p { font-size: 12.5px; color: var(--text-dim); margin: 2px 0; }
+  .up-btn { margin-top: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 700;
+    padding: 8px 16px; border-radius: 10px; color:#fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .up-hint { font-size: 11px !important; margin-top: 6px !important; }
+  .url-row { display: flex; gap: 6px; margin-top: 10px; }
+  .url-row input { flex: 1; }
+  .up-progress { font-size: 12px; color: var(--accent-2); margin-top: 8px; white-space: pre-wrap; text-align: left; }
+
+  .doc-search { display: flex; gap: 6px; }
+  .doc-search input { flex: 1; }
+  input, textarea {
+    background: var(--step-bg); border: 1px solid var(--glass-border); color: var(--text);
+    border-radius: 10px; padding: 9px 11px; font-family: inherit; font-size: 13px; outline: none;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); }
+
+  .compare-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 10px; padding: 8px; }
+  .compare-bar b { color: var(--accent-2); }
+  .compare-bar button { border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700;
+    padding: 6px 10px; border-radius: 8px; color:#fff; }
+  .compare-bar #compareRun { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .compare-bar #compareClear { background: var(--step-bg); color: var(--text); border: 1px solid var(--glass-border); }
+
+  .doc-list { display: flex; flex-direction: column; gap: 10px; }
+  .doc-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 14px; padding: 12px; }
+  .doc-card .dc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .doc-card .dc-name { font-weight: 700; font-size: 13.5px; word-break: break-all; }
+  .type-badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; color:#fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); white-space: nowrap; }
+  .doc-card .dc-meta { font-size: 11.5px; color: var(--text-dim); margin-top: 5px; }
+  .doc-card .dc-note { font-size: 11px; color: #fbbf24; margin-top: 4px; }
+  .doc-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .doc-actions button { border: 1px solid var(--glass-border); background: var(--step-bg); color: var(--text);
+    cursor: pointer; font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 9px; border-radius: 8px; transition: all .18s; }
+  .doc-actions button:hover { border-color: var(--accent); color: var(--accent-2); }
+  .doc-actions button.sel { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; border-color: transparent; }
+  .empty-hint { font-size: 12.5px; color: var(--text-dim); text-align:center; padding: 10px; }
 </style>
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <div class="logo">🤖</div>
+        <div class="logo">
+          <svg class="cyber-bot" viewBox="0 0 64 64" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="赛博智能体">
+            <defs>
+              <linearGradient id="cbStroke" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#22d3ee"/>
+                <stop offset="0.5" stop-color="#a855f7"/>
+                <stop offset="1" stop-color="#ec4899"/>
+              </linearGradient>
+              <radialGradient id="cbEye" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0" stop-color="#67e8f9"/>
+                <stop offset="1" stop-color="#06b6d4"/>
+              </radialGradient>
+              <filter id="cbGlow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="1.6" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <line x1="32" y1="7" x2="32" y2="14" stroke="url(#cbStroke)" stroke-width="2.4" stroke-linecap="round"/>
+            <circle class="cb-pulse" cx="32" cy="5" r="3.2" fill="#22d3ee" filter="url(#cbGlow)"/>
+            <rect x="11" y="26" width="4" height="10" rx="2" fill="url(#cbStroke)"/>
+            <rect x="49" y="26" width="4" height="10" rx="2" fill="url(#cbStroke)"/>
+            <path d="M15 17 Q15 13 19 13 H45 Q49 13 49 17 V39 Q49 45 43 45 H21 Q15 45 15 39 Z" fill="rgba(255,255,255,0.06)" stroke="url(#cbStroke)" stroke-width="2.4" stroke-linejoin="round"/>
+            <rect x="20" y="20" width="24" height="15" rx="7.5" fill="#0a0f1f" stroke="url(#cbStroke)" stroke-width="1.6"/>
+            <circle class="cb-eye" cx="27" cy="27.5" r="3.1" fill="url(#cbEye)" filter="url(#cbGlow)"/>
+            <circle class="cb-eye" cx="37" cy="27.5" r="3.1" fill="url(#cbEye)" filter="url(#cbGlow)"/>
+            <line x1="25" y1="39" x2="39" y2="39" stroke="url(#cbStroke)" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+          </svg>
+        </div>
         <div>
           <h1>Mini Agent</h1>
-          <p>会自己调工具的中文智能体</p>
+          <p>the future</p>
         </div>
       </div>
       <div class="actions">
+        <button class="doc-toggle" id="docToggle" title="文档理解">📄 文档</button>
         <button class="new-chat" id="newChat" title="开启新对话">＋ 新对话</button>
         <div class="theme-switch" id="themeSwitch">
           <button data-theme="light">☀ 浅色</button>
@@ -290,6 +396,43 @@
     </div>
     <p class="hint">回车发送 · Shift+回车换行 · 智能体会自己决定调用哪些工具</p>
   </div>
+
+  <!-- 文档理解抽屉（右侧） -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h2>📄 文档理解</h2>
+      <button class="drawer-close" id="drawerClose">✕</button>
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+      <p>拖拽文件到此处，或</p>
+      <button class="up-btn" id="pickFile">选择文件</button>
+      <input type="file" id="fileInput" multiple hidden
+             accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.html,.htm,.md,.txt,.json,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff">
+      <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / 网页 / Markdown / 文本 / JSON / 图片</p>
+      <div class="url-row">
+        <input type="text" id="urlInput" placeholder="或粘贴网页 URL…">
+        <button class="up-btn" id="urlBtn" style="margin-top:0">抓取</button>
+      </div>
+      <div class="up-progress" id="upProgress"></div>
+    </div>
+
+    <div class="doc-search">
+      <input type="text" id="docSearchInput" placeholder="跨文档检索，如『违约责任』">
+      <button class="up-btn" id="docSearchBtn" style="margin-top:0">检索</button>
+    </div>
+
+    <div class="compare-bar" id="compareBar" hidden>
+      <span>比对：<b id="cmpA"></b> ↔ <b id="cmpB"></b></span>
+      <button id="compareRun">开始比对</button>
+      <button id="compareClear">清除</button>
+    </div>
+
+    <div class="doc-list" id="docList">
+      <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
+    </div>
+  </aside>
 
 <script>
   // ===== PWA：注册 Service Worker（让页面可"安装"成 App、离线秒开） =====
@@ -540,8 +683,182 @@
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
+  // ===== 文档理解抽屉逻辑 =====
+  const drawer = document.getElementById('drawer');
+  const drawerBackdrop = document.getElementById('drawerBackdrop');
+  const docToggle = document.getElementById('docToggle');
+  let docs = [];                 // 当前文档列表（结构化摘要）
+  let cmp = { a: null, b: null };// 比对选择
+
+  function openDrawer() { drawer.classList.add('open'); drawerBackdrop.classList.add('open'); docToggle.classList.add('active'); loadDocs(); }
+  function closeDrawer() { drawer.classList.remove('open'); drawerBackdrop.classList.remove('open'); docToggle.classList.remove('active'); }
+  docToggle.addEventListener('click', () => drawer.classList.contains('open') ? closeDrawer() : openDrawer());
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  drawerBackdrop.addEventListener('click', closeDrawer);
+
+  function renderDocs() {
+    const list = document.getElementById('docList');
+    if (!docs.length) {
+      list.innerHTML = '<div class="empty-hint">还没有文档，先上传一个试试 👆</div>';
+      return;
+    }
+    list.innerHTML = docs.map(d => {
+      const note = d.notes ? `<div class="dc-note">⚠ ${escapeHtml(d.notes)}</div>` : '';
+      const selA = cmp.a === d.id ? 'sel' : '';
+      const selB = cmp.b === d.id ? 'sel' : '';
+      return `<div class="doc-card" data-id="${d.id}">
+        <div class="dc-head"><span class="type-badge">${escapeHtml(d.type)}</span>${d.ocr ? '<span class="type-badge">OCR</span>' : ''}<span class="dc-name">${escapeHtml(d.name)}</span></div>
+        <div class="dc-meta">${d.chars} 字 · 表格 ${d.tables} · 分块 ${d.chunks} · 条款 ${d.clauses} · 标题 ${d.headings}</div>
+        ${note}
+        <div class="doc-actions">
+          <button data-act="text">读全文</button>
+          <button data-act="tables">表格</button>
+          <button data-act="clauses">条款</button>
+          <button data-act="search">检索此文档</button>
+          <button data-act="cmpA" class="${selA}">选为 A</button>
+          <button data-act="cmpB" class="${selB}">选为 B</button>
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.doc-card').forEach(card => {
+      const id = card.dataset.id;
+      card.querySelectorAll('.doc-actions button').forEach(btn =>
+        btn.addEventListener('click', () => onDocAction(btn.dataset.act, id)));
+    });
+  }
+
+  async function loadDocs() {
+    try {
+      const r = await fetch(`${API_BASE}/documents`);
+      const data = await r.json();
+      docs = data.documents || [];
+      renderDocs();
+    } catch (e) { /* 忽略：抽屉还没打开时不影响聊天 */ }
+  }
+
+  async function onDocAction(act, id) {
+    if (act === 'cmpA') { cmp.a = id; renderDocs(); updateCompareBar(); return; }
+    if (act === 'cmpB') { cmp.b = id; renderDocs(); updateCompareBar(); return; }
+    if (act === 'search') {
+      const q = prompt('要在这篇文档里检索什么关键词？');
+      if (q) runSearch(q);
+      return;
+    }
+    let url, label;
+    if (act === 'text') { url = `${API_BASE}/documents/${id}/text?max_chars=4000`; label = '读全文'; }
+    else if (act === 'tables') { url = `${API_BASE}/documents/${id}/tables`; label = '提取表格'; }
+    else if (act === 'clauses') { url = `${API_BASE}/documents/${id}/clauses`; label = '提取条款'; }
+    try {
+      showTyping();
+      const r = await fetch(url);
+      const data = await r.json();
+      removeTyping();
+      let text;
+      if (act === 'tables') text = fmtTables(data.tables || []);
+      else text = data.text || JSON.stringify(data, null, 2);
+      addMessage('bot', `【${label}】《${(docs.find(d => d.id === id) || {}).name || id}》\n${text}`);
+    } catch (e) {
+      removeTyping();
+      addMessage('bot', '⚠️ 操作失败：' + e.message);
+    }
+  }
+
+  function fmtTables(tables) {
+    if (!tables.length) return '（未检测到表格）';
+    return tables.map((t, i) => {
+      const cap = t.caption || ('表 ' + (i + 1));
+      const head = '| ' + (t.headers || []).join(' | ') + ' |';
+      const sep = '| ' + (t.headers || []).map(() => '---').join(' | ') + ' |';
+      const rows = (t.rows || []).slice(0, 30).map(r => '| ' + r.join(' | ') + ' |').join('\n');
+      return `▍${cap}\n${head}\n${sep}\n${rows}`;
+    }).join('\n\n');
+  }
+
+  async function runSearch(q) {
+    try {
+      showTyping();
+      const r = await fetch(`${API_BASE}/documents/search`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, top_k: 5 }),
+      });
+      const data = await r.json();
+      removeTyping();
+      addMessage('bot', `【跨文档检索：${q}】\n${data.result}`);
+    } catch (e) { removeTyping(); addMessage('bot', '⚠️ 检索失败：' + e.message); }
+  }
+
+  document.getElementById('docSearchBtn').addEventListener('click', () => {
+    const q = document.getElementById('docSearchInput').value.trim();
+    if (q) runSearch(q);
+  });
+  document.getElementById('docSearchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) runSearch(q); }
+  });
+
+  function updateCompareBar() {
+    const bar = document.getElementById('compareBar');
+    const a = docs.find(d => d.id === cmp.a), b = docs.find(d => d.id === cmp.b);
+    if (a && b) {
+      bar.hidden = false;
+      document.getElementById('cmpA').textContent = a.name;
+      document.getElementById('cmpB').textContent = b.name;
+    } else bar.hidden = true;
+  }
+  document.getElementById('compareRun').addEventListener('click', async () => {
+    if (!cmp.a || !cmp.b) return;
+    try {
+      showTyping();
+      const r = await fetch(`${API_BASE}/documents/compare`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ a: cmp.a, b: cmp.b }),
+      });
+      const data = await r.json();
+      removeTyping();
+      addMessage('bot', `【跨文档比对】\n${data.result}`);
+    } catch (e) { removeTyping(); addMessage('bot', '⚠️ 比对失败：' + e.message); }
+  });
+  document.getElementById('compareClear').addEventListener('click', () => {
+    cmp = { a: null, b: null }; renderDocs(); updateCompareBar();
+  });
+
+  // 上传（文件 + 拖拽 + 网页 URL）
+  const fileInput = document.getElementById('fileInput');
+  document.getElementById('pickFile').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => uploadFiles(fileInput.files));
+  const uploadZone = document.getElementById('uploadZone');
+  ['dragenter', 'dragover'].forEach(ev => uploadZone.addEventListener(ev, e => { e.preventDefault(); uploadZone.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(ev => uploadZone.addEventListener(ev, e => { e.preventDefault(); uploadZone.classList.remove('drag'); }));
+  uploadZone.addEventListener('drop', e => { if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files); });
+
+  async function uploadFiles(files) {
+    if (!files || !files.length) return;
+    const prog = document.getElementById('upProgress');
+    prog.textContent = '上传解析中…';
+    const fd = new FormData();
+    for (const f of files) fd.append('files', f);
+    try {
+      const r = await fetch(`${API_BASE}/upload`, { method: 'POST', body: fd });
+      const data = await r.json();
+      prog.textContent = (data.docs || []).map(d => d.error ? `⚠ ${d.error}` : `✓ ${d.name}（${d.chars} 字 · 表格 ${d.tables} · 分块 ${d.chunks}）`).join('\n');
+      await loadDocs();
+    } catch (e) { prog.textContent = '⚠️ 上传失败：' + e.message; }
+  }
+  document.getElementById('urlBtn').addEventListener('click', async () => {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    const prog = document.getElementById('upProgress');
+    prog.textContent = '抓取网页中…';
+    const fd = new FormData(); fd.append('url', url);
+    try {
+      const r = await fetch(`${API_BASE}/upload`, { method: 'POST', body: fd });
+      const data = await r.json();
+      prog.textContent = (data.docs || []).map(d => d.error ? `⚠ ${d.error}` : `✓ ${d.name}（${d.chars} 字）`).join('\n');
+      await loadDocs();
+    } catch (e) { prog.textContent = '⚠️ 抓取失败：' + e.message; }
+  });
+
   // 开场白
-  addMessage('bot', '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 🔌 MCP 工具：我还能即插即用地调用标准 MCP server 提供的工具（如演示用的 reverse_text / get_server_time，配置见 mcp_servers.json）\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认，你点通过或拒绝后才执行。\n试试看吧～');
+  addMessage('bot', '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📄 文档理解：点右上角「📄 文档」上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：我还能即插即用地调用标准 MCP server 提供的工具（如演示用的 reverse_text / get_server_time，配置见 mcp_servers.json）\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认，你点通过或拒绝后才执行。\n试试看吧～');
 </script>
 </body>
 </html>

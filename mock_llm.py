@@ -77,6 +77,14 @@ def mock_respond(messages):
                                                      arguments=json.dumps({"city": "北京"})))
         ])
 
+    # 规则 5.5：文档相关（上传/表格/条款/比对/跨文档）→ 列出已上传文档与 id
+    if any(k in text for k in ["文档", "表格", "条款", "比对", "对比", "跨文档"]):
+        return SimpleNamespace(content="", tool_calls=[
+            SimpleNamespace(id="call_doc",
+                            function=SimpleNamespace(name="list_uploaded_documents",
+                                                     arguments="{}"))
+        ])
+
     # 规则 6：联网搜索
     if "搜索" in text or "查一下" in text or "搜" in text or "百科" in text:
         return SimpleNamespace(content="", tool_calls=[

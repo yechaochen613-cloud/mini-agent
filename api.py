@@ -13,12 +13,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import File, UploadFile, Form
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import re
 import time
 import uuid
+import shutil
 from collections import deque
+from documents import (
+    ingest_file, ingest_url, list_documents, list_document_summaries,
+    get_document, read_document, extract_tables, extract_clauses,
+    search_documents, compare_documents,
+)
 
 # 阶段 4 引入：用 LangGraph 重写 Agent Loop（行为/接口与原手写版 agent.py 完全一致）
 # 想回退到手写版，把这行改回 `from agent import Agent` 即可。
@@ -125,6 +134,91 @@ def sw():
 def icon():
     return FileResponse(os.path.join(BASE_DIR, "icon.svg"),
                         media_type="image/svg+xml")
+
+
+# ===== 文档上传与理解相关路由 =====
+
+@app.post("/upload")
+async def upload(files: list[UploadFile] = File(None), url: str = Form(None)):
+    """上传文档（支持多文件）+ 可选网页 URL。自动解析/切块/建索引，返回每篇摘要。
+    解析/切块/建索引是 CPU 重活，放进线程池跑，避免阻塞事件循环（大文档也不卡其他请求）。"""
+    results = []
+    if url:
+        results.append(await run_in_threadpool(ingest_url, url))
+    if files:
+        for f in files:
+            if not f or not f.filename:
+                continue
+            # 用安全文件名保存到 uploads/
+            safe = re.sub(r"[^A-Za-z0-9._\-\u4e00-\u9fff]", "_", f.filename)
+            dest = os.path.join("uploads", safe)
+            os.makedirs("uploads", exist_ok=True)
+            with open(dest, "wb") as out:
+                shutil.copyfileobj(f.file, out)
+            results.append(await run_in_threadpool(ingest_file, dest))
+    if not results:
+        raise HTTPException(status_code=400, detail="请至少提供一个文件或 URL")
+    return {"uploaded": len(results), "docs": results}
+
+
+@app.get("/documents")
+def documents():
+    """列出所有已上传文档的结构化摘要。"""
+    return {"documents": list_document_summaries()}
+
+
+@app.get("/documents/{doc_id}")
+def document_detail(doc_id: str):
+    doc = get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    # 不返回完整全文，避免响应过大；全文用 /chat 或 read_document 工具获取
+    return {
+        "id": doc["id"], "name": doc["name"], "type": doc["type"],
+        "chars": doc["chars"], "tables": len(doc["tables"]),
+        "chunks": len(doc["chunks"]), "clauses": len(doc["clauses"]),
+        "headings": len(doc["structure"]), "notes": doc.get("notes", ""),
+        "structure": doc["structure"][:200],
+    }
+
+
+@app.get("/documents/{doc_id}/tables")
+def document_tables(doc_id: str):
+    doc = get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {"tables": doc["tables"]}
+
+
+@app.get("/documents/{doc_id}/text")
+def document_text(doc_id: str, max_chars: int = 4000):
+    doc = get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {"text": read_document(doc_id, max_chars=max_chars)}
+
+
+@app.get("/documents/{doc_id}/clauses")
+def document_clauses(doc_id: str, keyword: str = ""):
+    doc = get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {"text": extract_clauses(doc_id, keyword=keyword or None)}
+
+
+@app.post("/documents/search")
+def document_search(req: dict):
+    query = req.get("query", "")
+    top_k = int(req.get("top_k", 5))
+    return {"result": search_documents(query, top_k=top_k)}
+
+
+@app.post("/documents/compare")
+def document_compare(req: dict):
+    a = req.get("a", "")
+    b = req.get("b", "")
+    topic = req.get("topic")
+    return {"result": compare_documents(a, b, topic=topic)}
 
 
 @app.post("/chat", response_model=ChatResponse)

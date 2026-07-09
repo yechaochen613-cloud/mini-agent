@@ -1,7 +1,7 @@
 {
   "name": "Mini Agent · 智能体对话",
   "short_name": "Mini Agent",
-  "description": "会自己调工具的中文智能体",
+  "description": "the future",
   "start_url": "/ui",
   "scope": "/",
   "display": "standalone",

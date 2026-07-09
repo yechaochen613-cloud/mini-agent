@@ -158,6 +158,48 @@ def search_memory_tool(query: str) -> str:
     return search_memory(query)
 
 
+# ===== 文档理解工具（多格式解析 + 跨文档检索/比对） =====
+# 重逻辑都在 documents.py，这里只做"给模型看的函数签名 + 字符串返回"的薄封装。
+from documents import (
+    list_documents as _list_documents,
+    search_documents as _search_documents,
+    read_document as _read_document,
+    extract_tables as _extract_tables,
+    extract_clauses as _extract_clauses,
+    compare_documents as _compare_documents,
+)
+
+
+def list_uploaded_documents() -> str:
+    """列出当前已上传的文档（名称、类型、字数、表格数、分块数、条款数）。上传文档后用它查看每篇的 id。"""
+    return _list_documents()
+
+
+def search_uploaded_documents(query: str, top_k: int = 5) -> str:
+    """跨所有已上传文档做语义/关键词检索，返回最相关片段、来源文档与相关度。适合『在文档里找…』『某条款在哪』。"""
+    return _search_documents(query, top_k=top_k)
+
+
+def read_document(doc_id: str, max_chars: int = 4000) -> str:
+    """读取某篇文档的正文（默认前 4000 字，长文档会提示用检索定位）。doc_id 来自 list_uploaded_documents。"""
+    return _read_document(doc_id, max_chars=max_chars)
+
+
+def extract_document_tables(doc_id: str) -> str:
+    """提取某篇文档里的所有表格（表头 + 数据），以可读格式返回。doc_id 来自 list_uploaded_documents。"""
+    return _extract_tables(doc_id)
+
+
+def extract_document_clauses(doc_id: str, keyword: str = "") -> str:
+    """提取某篇文档里的条款（第X条 / Article X / 多级编号等）。可传 keyword 过滤，例如只关心『保密』『赔偿』。"""
+    return _extract_clauses(doc_id, keyword=keyword or None)
+
+
+def compare_two_documents(a: str, b: str, topic: str = "") -> str:
+    """跨文档关联比对与交叉验证：找出两篇文档最相似的片段（重叠/一致候选），并扫描数值差异。a、b 为文档 id；topic 可选，用于聚焦主题。"""
+    return _compare_documents(a, b, topic=topic or None)
+
+
 # 用名字查函数，Agent Loop 调工具时就靠这个字典
 TOOL_FUNCTIONS = {
     "calculator": calculator,
@@ -168,6 +210,12 @@ TOOL_FUNCTIONS = {
     "web_search": web_search,
     "save_memory": save_memory,
     "search_memory": search_memory_tool,
+    "list_uploaded_documents": list_uploaded_documents,
+    "search_uploaded_documents": search_uploaded_documents,
+    "read_document": read_document,
+    "extract_document_tables": extract_document_tables,
+    "extract_document_clauses": extract_document_clauses,
+    "compare_two_documents": compare_two_documents,
 }
 
 # 给大模型看的"工具清单"（OpenAI 兼容格式）
@@ -271,6 +319,89 @@ TOOL_SCHEMAS = [
                     "query": {"type": "string", "description": "要回忆的内容关键词，例如『我叫什么』『我的偏好』"}
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_uploaded_documents",
+            "description": "列出当前已上传的文档（名称、类型、字数、表格数、分块数、条款数）。上传文档后先用它拿到每篇的 id，再调用其它文档工具。",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_uploaded_documents",
+            "description": "跨所有已上传文档做语义/关键词检索，返回最相关片段、来源文档与相关度。适合『在文档里找某内容』『某条款在哪篇』。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "检索内容，例如『违约责任』『交付时间』"},
+                    "top_k": {"type": "integer", "description": "返回最相关片段数，默认 5"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_document",
+            "description": "读取某篇文档的正文（默认前 4000 字，长文档会提示用检索定位）。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {"type": "string", "description": "文档 id（来自 list_uploaded_documents）"},
+                    "max_chars": {"type": "integer", "description": "最多读取字数，默认 4000"}
+                },
+                "required": ["doc_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "extract_document_tables",
+            "description": "提取某篇文档里的所有表格（表头 + 数据），以可读格式返回。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {"type": "string", "description": "文档 id（来自 list_uploaded_documents）"}
+                },
+                "required": ["doc_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "extract_document_clauses",
+            "description": "提取某篇文档里的条款（第X条 / Article X / 多级编号等）。可传 keyword 过滤，例如只关心『保密』『赔偿』。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {"type": "string", "description": "文档 id（来自 list_uploaded_documents）"},
+                    "keyword": {"type": "string", "description": "可选关键词过滤，例如『保密』『赔偿』"}
+                },
+                "required": ["doc_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_two_documents",
+            "description": "跨文档关联比对与交叉验证：找出两篇文档最相似的片段（重叠/一致候选），并扫描数值差异。a、b 为文档 id；topic 可选，用于聚焦主题。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "a": {"type": "string", "description": "文档 A 的 id"},
+                    "b": {"type": "string", "description": "文档 B 的 id"},
+                    "topic": {"type": "string", "description": "可选，聚焦主题，例如『交付时间』"}
+                },
+                "required": ["a", "b"],
             },
         },
     },
