@@ -29,7 +29,8 @@ from documents import (
     search_documents, compare_documents,
 )
 import chat_history as history
-from storage import UPLOAD_DIR
+from storage import UPLOAD_DIR, DATA_DIR
+import connectors
 
 # 阶段 4 引入：用 LangGraph 重写 Agent Loop（行为/接口与原手写版 agent.py 完全一致）
 # 想回退到手写版，把这行改回 `from agent import Agent` 即可。
@@ -390,6 +391,66 @@ def export_conversation(sid: str, format: str = "md"):
     md = "\n".join(lines)
     return Response(content=md, media_type="text/markdown; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="conversation_{sid}.md"'})
+
+
+# ===== 连接器（Connectors）面板 API — 参考 Manus =====
+@app.get("/connectors")
+def list_connectors():
+    """列出全部连接器及其连接状态。"""
+    return {"connectors": connectors.list_connectors()}
+
+
+@app.get("/connectors/{conn_id}")
+def get_connector(conn_id: str):
+    """获取单个连接器详情与状态。"""
+    c = connectors.get_connector(conn_id)
+    if not c:
+        raise HTTPException(status_code=404, detail=f"连接器不存在: {conn_id}")
+    return c
+
+
+class ConnectRequest(BaseModel):
+    config: dict | None = None   # 连接所需配置（如 GitHub token、Gmail credentials）
+
+
+@app.post("/connectors/{conn_id}/connect")
+def connect_connector(conn_id: str, req: ConnectRequest = ConnectRequest()):
+    """连接一个连接器（可能需要附带配置）。"""
+    result = connectors.connect_connector(conn_id, config=req.config)
+    if not result.pop("ok", True):
+        raise HTTPException(status_code=400, detail=result.get("message", "连接失败"))
+    return result
+
+
+@app.post("/connectors/{conn_id}/disconnect")
+def disconnect_connector(conn_id: str):
+    """断开一个连接器。"""
+    result = connectors.disconnect_connector(conn_id)
+    if not result.pop("ok", True):
+        raise HTTPException(status_code=400, detail=result.get("message", "断开失败"))
+    return result
+
+
+# ── 各连接器的能力调用端点 ──
+@app.post("/connectors/github/action")
+def github_action(req: dict):
+    action = req.get("action", "search_repos")
+    params = req.get("params", {})
+    return connectors.github_action(action, params)
+
+
+@app.post("/connectors/calendar/action")
+def calendar_action(req: dict):
+    action = req.get("action", "list_events")
+    params = req.get("params", {})
+    return connectors.calendar_action(action, params)
+
+
+@app.post("/connectors/notion/action")
+def notion_action(req: dict):
+    action = req.get("action", "list")
+    params = req.get("params", {})
+    return connectors.notion_action(action, params)
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量

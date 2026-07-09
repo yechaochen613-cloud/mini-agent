@@ -454,6 +454,79 @@
   .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 12.5px; font-weight: 600; padding: 9px 16px; border-radius: var(--r-pill); box-shadow: var(--shadow-md); z-index: 90; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
+  /* ===== 连接器面板（参考 Manus） ===== */
+  .conn-overlay {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(12,12,14,.45); backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .28s var(--ease);
+  }
+  .conn-overlay.open { opacity: 1; pointer-events: auto; }
+  .conn-panel {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 56;
+    background: var(--bg-elev); border-top-left-radius: 24px; border-top-right-radius: 24px;
+    border: 1px solid var(--border); border-bottom: none;
+    box-shadow: 0 -16px 48px rgba(28,27,25,.18);
+    max-height: 82vh; display: flex; flex-direction: column;
+    transform: translateY(100%); transition: transform .38s var(--ease-expo);
+  }
+  .conn-panel.open { transform: translateY(0); }
+  .conn-head {
+    padding: 22px 24px 16px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border); min-width: 0; flex-shrink: 0;
+  }
+  .conn-head-left { min-width: 0; flex: 1; }
+  .conn-head h2 { font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 3px; }
+  .conn-head p { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conn-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 16px; }
+  .conn-nav-btn {
+    border: 1px solid var(--border); background: var(--surface); width: 34px; height: 34px;
+    border-radius: 50%; cursor: pointer; font-size: 15px; display: grid; place-items: center;
+    transition: all .18s var(--ease); color: var(--text-dim);
+  }
+  .conn-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .conn-view-all { font-size: 13px; font-weight: 700; color: var(--accent); cursor: pointer; white-space: nowrap; text-decoration: none; }
+  .conn-view-all:hover { text-decoration: underline; }
+  .conn-close {
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+    width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 16px;
+    display: grid; place-items: center; transition: all .18s var(--ease);
+  }
+  .conn-close:hover { border-color: var(--accent); color: var(--accent); }
+
+  .conn-body { flex: 1; overflow-y: auto; padding: 20px 24px 28px; }
+  .conn-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+  }
+  @media (max-width: 680px) { .conn-grid { grid-template-columns: 1fr; } }
+
+  .conn-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 18px 17px; display: flex; gap: 14px; align-items: flex-start;
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .conn-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+  .conn-card.connected { border-color: var(--success-border); background: var(--success-bg); }
+
+  .conn-icon {
+    flex: 0 0 46px; width: 46px; height: 46px; border-radius: 13px;
+    display: grid; place-items: center; font-size: 23px;
+  }
+  .conn-info { flex: 1; min-width: 0; }
+  .conn-name { font-weight: 700; font-size: 14.5px; margin-bottom: 3px; }
+  .conn-desc { font-size: 12.2px; color: var(--text-dim); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .conn-action {
+    flex: 0 0 auto; align-self: center; border: none; background: transparent; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 50%; font-size: 18px;
+    display: grid; place-items: center; transition: all .2s var(--ease);
+    color: var(--text-faint); border: 1.5px solid var(--border-strong);
+  }
+  .conn-action:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.08); }
+  .conn-card.connected .conn-action {
+    color: var(--success); border-color: var(--success-border); background: var(--surface);
+  }
+
   /* ===== 响应式 ===== */
   @media (max-width: 900px) {
     .sidebar {
@@ -521,7 +594,7 @@
       <nav class="side-nav">
         <button class="nav-item" id="newChat"><span class="ni-ic">＋</span> 新建对话</button>
         <div class="nav-item"><span class="ni-ic">🤖</span> Agent</div>
-        <div class="nav-item"><span class="ni-ic">🔌</span> 插件</div>
+        <div class="nav-item"><span class="ni-ic">🔌</span> 连接器</div>
         <div class="nav-item"><span class="ni-ic">⏰</span> 定时任务</div>
         <div class="nav-item"><span class="ni-ic">📚</span> 库</div>
       </nav>
@@ -628,6 +701,27 @@
   </div>
 
   <div class="drawer-backdrop" id="histBackdrop"></div>
+
+  <!-- 连接器面板（参考 Manus） -->
+  <div class="conn-overlay" id="connOverlay"></div>
+  <div class="conn-panel" id="connPanel">
+    <div class="conn-head">
+      <div class="conn-head-left">
+        <h2>连接器</h2>
+        <p>连接应用程序和 API 以共享您的上下文。</p>
+      </div>
+      <div class="conn-head-right">
+        <button class="conn-nav-btn" id="connPrev" title="上一页" aria-label="上一页">‹</button>
+        <a href="#" class="conn-view-all" id="connViewAll">查看全部</a>
+        <button class="conn-nav-btn" id="connNext" title="下一页" aria-label="下一页">›</button>
+        <button class="conn-close" id="connClose" title="关闭">✕</button>
+      </div>
+    </div>
+    <div class="conn-body">
+      <div class="conn-grid" id="connGrid"><!-- JS 动态渲染 --></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script>
@@ -1186,6 +1280,133 @@
     </div></div>`;
     chat.appendChild(wrap); chat.scrollTop = chat.scrollHeight;
   }
+
+  // ===== 🔌 连接器面板（参考 Manus） =====
+  const connOverlay = document.getElementById('connOverlay');
+  const connPanel = document.getElementById('connPanel');
+  const connGrid = document.getElementById('connGrid');
+  let connectorsData = [];
+  let connPage = 0;
+  const CONN_PER_PAGE = 8;
+
+  // 图标 SVG 映射（每个品牌一个简洁内联 SVG）
+  const CONN_ICONS = {
+    browser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+    gmail:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>',
+    github:  '<svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.435.375.81 1.095.81 2.216 0 1.6-.015 2.885-.015 3.28 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>',
+    instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.51" y1="6.5" x2="17.51" y2="6.5"/></svg>',
+    workspace:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+    metaads: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    notion:  '<svg viewBox="0 0 24 24" fill="currentColor" style="width:22px;height:22px"><path d="M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zm4.5 5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM14 9.5c0-.28.22-.5.5-.5h2a.5.5 0 010 1H15v1.5a.5.5 0 01-1 0V10h-1.5a.5.5 0 010-1h1.5V7.5a.5.5 0 01.5-.5z"/></svg>',
+  };
+
+  // 品牌色背景
+  function connBgColor(color) {
+    return color ? color + '18' : 'var(--surface-2)';
+  }
+
+  function openConnectors() {
+    loadConnectors(); connOverlay.classList.add('open'); connPanel.classList.add('open'); }
+  function closeConnectors() {
+    connOverlay.classList.remove('open'); connPanel.classList.remove('open'); }
+  connOverlay.addEventListener('click', closeConnectors);
+  document.getElementById('connClose').addEventListener('click', closeConnectors);
+  // 侧边栏「连接器」入口
+  document.querySelector('.nav-item:last-of-type').addEventListener('click', openConnectors);
+
+  async function loadConnectors() {
+    try {
+      const r = await fetch(`${API_BASE}/connectors`);
+      const data = await r.json();
+      connectorsData = data.connectors || [];
+      renderConnPage();
+    } catch (e) { connGrid.innerHTML = '<div class="empty-hint">加载连接器失败</div>'; }
+  }
+
+  function renderConnPage() {
+    if (!connectorsData.length) { connGrid.innerHTML = '<div class="empty-hint">暂无可用连接器</div>'; return; }
+    const start = connPage * CONN_PER_PAGE;
+    const page = connectorsData.slice(start, start + CONN_PER_PAGE);
+    connGrid.innerHTML = page.map(c => {
+      const iconHtml = CONN_ICONS[c.id] || '🔌';
+      const connected = c.connected;
+      return `
+        <div class="conn-card ${connected ? 'connected' : ''}" data-id="${escapeHtml(c.id)}">
+          <div class="conn-icon" style="background:${connBgColor(c.color)};color:${c.color || 'var(--accent)'}">
+            ${iconHtml}
+          </div>
+          <div class="conn-info">
+            <div class="conn-name">${escapeHtml(c.name)}</div>
+            <div class="conn-desc">${escapeHtml(c.desc)}</div>
+          </div>
+          ${connected
+            ? `<button class="conn-action" title="已连接 · 点击断开" data-act="disconnect">✓</button>`
+            : `<button class="conn-action" title="点击连接" data-act="connect">＋</button>`
+          }
+        </div>`;
+    }).join('');
+
+    // 绑定卡片按钮事件
+    connGrid.querySelectorAll('.conn-card').forEach(card => {
+      card.querySelector('.conn-action').addEventListener('click', () => onConnAction(card.dataset.id));
+    });
+  }
+
+  async function onConnAction(connId) {
+    const c = connectorsData.find(x => x.id === connId);
+    if (!c) return;
+
+    if (c.connected) {
+      // 断开
+      try {
+        const r = await fetch(`${API_BASE}/connectors/${connId}/disconnect`, { method: 'POST' });
+        toast(`${c.name} 已断开`);
+        await loadConnectors();
+      } catch (e) { toast('断开失败：' + e.message); }
+      return;
+    }
+
+    // 连接 —— 需要配置的先弹输入框，否则直接 POST
+    let config = null;
+    if (connId === 'github') {
+      const token = prompt(`请输入 GitHub Personal Access Token：\n(在 github.com/settings/tokens 创建)`);
+      if (!token) return; config = { token };
+    } else if (connId === 'gmail') {
+      const key = prompt('请输入 Gmail API Key 或 OAuth 凭据（演示可随意填）：');
+      if (!key === null) return; config = { api_key: key };
+    } else if (connId === 'notion') {
+      config = {}; // Notion 复用已有 notes，无需额外配置
+    }
+
+    try {
+      showTyping(); // 复用打字指示器表示处理中
+      const body = config ? JSON.stringify({ config }) : '{}';
+      const r = await fetch(`${API_BASE}/connectors/${connId}/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      removeTyping();
+      const data = await r.json();
+      if (data.connected !== undefined) {
+        toast(`${c.name} 已连接 ✅`);
+      } else {
+        toast(data.detail || `${c.name} 连接完成`);
+      }
+      await loadConnectors();
+    } catch (e) { removeTyping(); toast('连接失败：' + e.message); }
+  }
+
+  // 导航箭头
+  document.getElementById('connPrev').addEventListener('click', () => {
+    if (connPage > 0) { connPage--; renderConnPage(); }
+  });
+  document.getElementById('connNext').addEventListener('click', () => {
+    maxPage = Math.ceil(connectorsData.length / CONN_PER_PAGE) - 1;
+    if (connPage < maxPage) { connPage++; renderConnPage(); }
+  });
+  document.getElementById('connViewAll').addEventListener('click', e => { e.preventDefault(); connPage = 0; renderConnPage(); });
 
   // ===== 开场白 =====
   const OPENING_TEXT = '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📎 上传文档：点输入框左边的 📎 上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：即插即用地调用标准 MCP server 提供的工具\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认。\n· ☰ 点左上角可收起/展开侧边栏，里面是历史对话。\n试试看吧～';
