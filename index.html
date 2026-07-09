@@ -382,6 +382,8 @@
     font-size: 16px; line-height: 1; width: 40px; height: 40px; border-radius: var(--r-md); transition: all .2s var(--ease); display: grid; place-items: center;
   }
   .mic-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .mic-btn.recording { background: var(--accent); color: var(--on-accent); border-color: transparent; animation: micPulse 1.1s ease-in-out infinite; }
+  @keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 var(--accent-soft-2); } 50% { box-shadow: 0 0 0 7px transparent; } }
 
   .send {
     flex: 0 0 auto; border: none; cursor: pointer; color: var(--on-accent); background: var(--accent); width: 40px; height: 40px; border-radius: var(--r-md);
@@ -797,7 +799,7 @@
     try {
       const resp = await fetch(`${API_BASE}/chat`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, max_steps: 5, session_id: sessionId }),
+        body: JSON.stringify({ message: text, max_steps: 5, session_id: sessionId, model: currentModel }),
       });
       const data = await resp.json();
       if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', sessionId); }
@@ -1060,19 +1062,130 @@
 
   // ===== 模型选择器 =====
   const msBtn = document.getElementById('msBtn'), msMenu = document.getElementById('msMenu');
+  let currentModel = '1.0';   // 传给后端的档位：1.0 / lite / pro
   msBtn.addEventListener('click', e => { e.stopPropagation(); msMenu.hidden = !msMenu.hidden; });
   msMenu.addEventListener('click', e => {
     const opt = e.target.closest('.ms-opt'); if (!opt) return;
     document.getElementById('msBadge').textContent = opt.dataset.badge;
     msMenu.querySelectorAll('.ms-opt').forEach(o => o.classList.toggle('active', o === opt));
-    msMenu.hidden = true; toast('已切换：' + opt.dataset.name + ' ' + opt.dataset.badge);
+    msMenu.hidden = true;
+    currentModel = opt.dataset.badge.toLowerCase();   // "1.0"/"Lite"/"Pro" -> 后端 key
+    toast('已切换：' + opt.dataset.name + ' ' + opt.dataset.badge);
   });
   document.addEventListener('click', () => { msMenu.hidden = true; });
 
-  // 装饰性按钮（无后端行为，给反馈）
-  ['upgradeBtn','shareBtn','exportBtn','moreBtn','screenBtn','micBtn'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.addEventListener('click', () => toast('该功能是演示占位，暂未接入后端'));
+  // ===== 🎤 语音输入（Web Speech API，回退到录音 + /stt） =====
+  let recognizing = false, fallbackMode = false, recognition = null;
+  function initRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return null;
+    const r = new SR();
+    r.lang = 'zh-CN'; r.interimResults = true; r.continuous = false;
+    r.onresult = e => {
+      let txt = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      input.value = txt;
+      input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+    };
+    r.onerror = e => { toast('语音识别出错：' + e.error); stopMic(); };
+    r.onend = () => { if (recognizing) stopMic(); };
+    return r;
+  }
+  function startMic() {
+    if (!recognition) recognition = initRecognition();
+    if (!recognition) { fallbackRecord(); return; }
+    recognizing = true; micBtn.classList.add('recording');
+    try { recognition.start(); } catch (_) {}
+  }
+  function stopMic() {
+    recognizing = false; micBtn.classList.remove('recording');
+    if (recognition) try { recognition.stop(); } catch (_) {}
+  }
+  async function fallbackRecord() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('当前浏览器不支持语音输入'); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      const chunks = [];
+      fallbackMode = true; micBtn.classList.add('recording');
+      mr.ondataavailable = e => chunks.push(e.data);
+      mr.onstop = async () => {
+        fallbackMode = false; micBtn.classList.remove('recording');
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        showTyping();
+        try {
+          const fd = new FormData(); fd.append('audio', blob, 'rec.webm');
+          const r = await fetch(`${API_BASE}/stt`, { method: 'POST', body: fd });
+          const d = await r.json();
+          removeTyping();
+          if (d.text) { input.value = d.text; input.focus(); } else toast('未识别到内容');
+        } catch (err) { removeTyping(); toast('语音识别失败：' + (err.message || '请检查密钥')); }
+      };
+      mr.start();
+      toast('录音中，再次点击 🎤 结束');
+      micBtn.addEventListener('click', () => mr.stop(), { once: true });
+    } catch (e) { fallbackMode = false; micBtn.classList.remove('recording'); toast('无法访问麦克风：' + e.message); }
+  }
+  micBtn.addEventListener('click', () => { if (fallbackMode) return; recognizing ? stopMic() : startMic(); });
+
+  // ===== 🖥️ 屏幕截图 -> /vision 视觉理解 =====
+  const screenBtn = document.getElementById('screenBtn');
+  screenBtn.addEventListener('click', async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { toast('当前浏览器不支持屏幕捕获'); return; }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const track = stream.getVideoTracks()[0];
+      const video = document.createElement('video');
+      video.srcObject = stream; await video.play();
+      await new Promise(r => setTimeout(r, 300));
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      stream.getTracks().forEach(t => t.stop());
+      const dataUrl = canvas.toDataURL('image/png');
+      addImageCard(dataUrl, canvas.width + '×' + canvas.height);
+      showTyping();
+      const r = await fetch(`${API_BASE}/vision`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: dataUrl, prompt: '请描述这张截图，并说明它展示的内容，以及能用它做什么。' }),
+      });
+      const d = await r.json();
+      removeTyping();
+      addMessage('bot', d.reply || '（无返回）');
+    } catch (e) { toast('截图已取消或失败：' + (e.message || '')); }
   });
+
+  // ===== 升级 / 分享 / 导出 =====
+  document.getElementById('upgradeBtn').addEventListener('click', () => toast('升级功能即将上线，敬请期待 ✨'));
+  document.getElementById('moreBtn').addEventListener('click', () => toast('更多功能开发中'));
+  document.getElementById('shareBtn').addEventListener('click', () => downloadExport('md'));
+  document.getElementById('exportBtn').addEventListener('click', () => downloadExport('json'));
+  async function downloadExport(fmt) {
+    if (!sessionId) { toast('还没有对话可导出'); return; }
+    try {
+      const r = await fetch(`${API_BASE}/conversations/${sessionId}/export?format=${fmt}`);
+      if (!r.ok) { toast('导出失败'); return; }
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `conversation.${fmt === 'json' ? 'json' : 'md'}`;
+      a.click(); URL.revokeObjectURL(a.href);
+      toast('已导出 ' + a.download);
+    } catch (e) { toast('导出失败：' + e.message); }
+  }
+
+  // 对话里展示截图缩略图卡片
+  function addImageCard(dataUrl, size) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg system';
+    wrap.innerHTML = `<div class="bubble"><div class="file-card">
+      <span class="fc-icon">🖼️</span>
+      <div class="fc-info"><div class="fc-name">屏幕截图</div><div class="fc-meta">${escapeHtml(size)}</div></div>
+      <img src="${dataUrl}" alt="截图" style="width:96px;height:auto;border-radius:8px;border:1px solid var(--border)">
+    </div></div>`;
+    chat.appendChild(wrap); chat.scrollTop = chat.scrollHeight;
+  }
 
   // ===== 开场白 =====
   const OPENING_TEXT = '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📎 上传文档：点输入框左边的 📎 上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：即插即用地调用标准 MCP server 提供的工具\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认。\n· ☰ 点左上角可收起/展开侧边栏，里面是历史对话。\n试试看吧～';

@@ -12,7 +12,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi import File, UploadFile, Form
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -74,11 +74,19 @@ agent = Agent(
     mock=os.getenv("MOCK", "false").lower() == "true",
 )
 
+# 前端模型选择器档位 -> 真实模型名（pro 可改成你账号里更强的模型；留空则用默认）
+MODEL_PRESETS = {
+    "1.0": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+    "lite": "gpt-4o-mini",
+    "pro": os.getenv("OPENAI_MODEL_PRO", "gpt-4o"),
+}
+
 
 class ChatRequest(BaseModel):
     message: str | None = None          # 正常对话内容；处理待审批操作时留空
     max_steps: int = 5
     session_id: str | None = None       # 不传则由服务端生成新会话
+    model: str | None = None            # 前端模型选择器选的档位：1.0 / lite / pro
     # 人工审核的答复：{decision:"approve_all"|"reject_all"|"custom", approved:[ids], rejected:[ids], edits:{id:args}}
     # 带上它就表示"人类已答复"，服务端会用它唤醒被中断的图。
     review_decision: dict | None = None
@@ -230,13 +238,16 @@ def chat(req: ChatRequest):
 
     session_id = req.session_id
 
+    # 前端模型档位（1.0/lite/pro）映射到真实模型名，仅非 mock 模式生效
+    model_arg = MODEL_PRESETS.get(req.model) if req.model else None
+
     # 情况 A：人类答复了某个待审批操作 -> 用 review_decision 唤醒被中断的图
     if req.review_decision is not None:
         if not session_id:
             raise HTTPException(status_code=400, detail="review_decision 必须带上 session_id")
         result = agent.run_trace(
             session_id, user_input=None, max_steps=req.max_steps,
-            review_decision=req.review_decision,
+            review_decision=req.review_decision, model=model_arg,
         )
         reply = result["reply"]
         # 审核通过后，把最终回复落进历史（用户消息在上一轮已存）
@@ -256,7 +267,7 @@ def chat(req: ChatRequest):
 
     # 没带 session_id 就新建一个；前端应把它存起来，后续请求原样带回，实现多轮上下文
     session_id = session_id or str(uuid.uuid4())
-    result = agent.run_trace(session_id, req.message, max_steps=req.max_steps)
+    result = agent.run_trace(session_id, req.message, max_steps=req.max_steps, model=model_arg)
     reply = result["reply"]
     steps = result["steps"]
     # 持久化到历史记录：用户消息一定存；若需要人工审批，bot 回复先不存
@@ -304,6 +315,81 @@ def new_conversation(title: str = "新对话"):
 def del_conversation(sid: str):
     """删除一条历史会话。"""
     return history.delete_conversation(sid)
+
+
+# ===== 视觉理解（屏幕截图） =====
+@app.post("/vision")
+async def vision(image: str = Form(...), prompt: str = Form("请描述这张图片，并说明它能用来做什么")):
+    """接收截图（base64 data URL 或纯 base64），用多模态模型理解。mock 模式返回演示文字。"""
+    import base64
+    if image.startswith("data:"):
+        _, b64 = image.split(",", 1)
+    else:
+        b64 = image
+    if agent.mock:
+        return {"reply": "（演示模式）已收到你的截图 ✅\n接入真实多模态模型后即可识别图中内容——在部署平台的 Environment 里把 OPENAI_MODEL 设为支持视觉的模型（如 gpt-4o）并填入密钥即可。"}
+    try:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import HumanMessage
+        model = os.getenv("OPENAI_MODEL_PRO", os.getenv("OPENAI_MODEL", "gpt-4o"))
+        llm = ChatOpenAI(model=model, api_key=os.getenv("OPENAI_API_KEY"),
+                         base_url=os.getenv("OPENAI_BASE_URL"), temperature=0)
+        msg = HumanMessage(content=[
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+        ])
+        resp = llm.invoke([msg])
+        return {"reply": resp.content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"视觉识别失败：{e}")
+
+
+# ===== 语音识别（STT） =====
+@app.post("/stt")
+async def stt(audio: UploadFile = File(None)):
+    """语音识别：接收音频，真实模式调 OpenAI whisper；mock 模式返回 501 提示用浏览器内置识别。"""
+    if not audio or not audio.filename:
+        raise HTTPException(status_code=400, detail="请提供音频文件")
+    if agent.mock:
+        raise HTTPException(status_code=501, detail="演示模式未启用云端语音识别，请使用浏览器内置语音输入（点击 🎤）")
+    try:
+        import openai
+        import tempfile
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"))
+        suffix = os.path.splitext(audio.filename)[1] or ".webm"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tf:
+            shutil.copyfileobj(audio.file, tf)
+            tmp = tf.name
+        with open(tmp, "rb") as f:
+            resp = client.audio.transcriptions.create(model="whisper-1", file=f)
+        os.unlink(tmp)
+        return {"text": resp.text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"语音识别失败：{e}")
+
+
+# ===== 会话导出（Markdown / JSON） =====
+@app.get("/conversations/{sid}/export")
+def export_conversation(sid: str, format: str = "md"):
+    """把某次会话导出为 Markdown 或 JSON 文件下载。"""
+    c = history.get_conversation(sid)
+    if not c:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    if format == "json":
+        data = json.dumps(c, ensure_ascii=False, indent=2)
+        return Response(content=data, media_type="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="conversation_{sid}.json"'})
+    # Markdown
+    title = (c.get("title") or "Mini Agent 对话").replace("#", "")
+    lines = [f"# {title}", f"> 导出时间：{time.strftime('%Y-%m-%d %H:%M')}", ""]
+    for m in c.get("messages", []):
+        role = "🧑 用户" if m.get("role") == "user" else ("🤖 Mini Agent" if m.get("role") == "bot" else "系统")
+        lines.append(f"## {role}")
+        lines.append(m.get("text", ""))
+        lines.append("")
+    md = "\n".join(lines)
+    return Response(content=md, media_type="text/markdown; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="conversation_{sid}.md"'})
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量

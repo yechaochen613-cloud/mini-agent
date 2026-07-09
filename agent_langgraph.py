@@ -167,6 +167,10 @@ class Agent:
     def __init__(self, api_key, base_url=None, model="gpt-4o-mini", mock=False):
         self.mock = mock
         self.model = model
+        self._api_key = api_key
+        self._base_url = base_url
+        self._model_override = None   # 单次请求可临时覆盖模型（来自前端模型选择器）
+        self._llm_cache = {}          # 按 model 名缓存已 bind tools 的 LLM，避免重复建连接
         self.steps = []        # 记录本轮调用过的工具，方便对外暴露（可观测性）
         self._pending = set()  # 哪些 session 当前正卡在"等待人类审批"
         # 注意：对话历史现在交给 LangGraph 的 checkpointer（按 thread_id 管理），
@@ -182,6 +186,7 @@ class Agent:
         for t in mcp_tools:
             merged[t.name] = t
         all_tools = list(merged.values())
+        self._all_tools = all_tools   # 供 _llm_for 按模型名重新绑定工具
         # 合并后的"工具清单"，用于 system 提示里列出（本地 + MCP 一目了然，按名去重）
         seen = set()
         merged_schemas = []
@@ -194,16 +199,10 @@ class Agent:
         self.tool_schemas = merged_schemas
 
         if not mock:
-            llm = ChatOpenAI(
-                model=model,
-                api_key=api_key,
-                base_url=base_url,
-                temperature=0,   # 工具调用追求确定性，temperature 设 0
-            )
-            self.llm_with_tools = llm.bind_tools(all_tools)
-        else:
-            # MOCK 模式：不绑定真实 LLM，agent 节点改用离线"假大脑"
-            self.llm_with_tools = None
+            # 预热默认模型的 LLM（按 model 名缓存，后续请求复用）
+            _ = self._llm_for(model)
+        # self.llm_with_tools 保留为「默认模型」引用，供 agent_node 在没覆盖时使用
+        self.llm_with_tools = self._llm_cache.get(model)
 
         # ---- 构建 LangGraph 图（online / mock 共用同一张图，只有 agent 节点内部不同） ----
         class State(TypedDict):
@@ -239,7 +238,9 @@ class Agent:
                         })
                 ai = AIMessage(content=resp.content or "", tool_calls=tool_calls)
             else:
-                ai = self.llm_with_tools.invoke(msgs)
+                # 用「覆盖模型 or 默认模型」对应的 LLM（按 model 名缓存，复用连接）
+                llm = self._llm_for(self._model_override or self.model)
+                ai = llm.invoke(msgs)
             return {"messages": [ai]}
 
         def review_node(state):
@@ -321,6 +322,18 @@ class Agent:
         # ★ 用 MemorySaver 做 checkpointer —— 这是 interrupt() 能暂停/恢复的底座
         self.app = builder.compile(checkpointer=MemorySaver())
 
+    def _llm_for(self, model_name):
+        """按 model 名返回已 bind tools 的 LLM（带缓存，复用连接）。"""
+        if model_name not in self._llm_cache:
+            llm = ChatOpenAI(
+                model=model_name,
+                api_key=self._api_key,
+                base_url=self._base_url,
+                temperature=0,
+            )
+            self._llm_cache[model_name] = llm.bind_tools(self._all_tools)
+        return self._llm_cache[model_name]
+
     def _build_system(self, user_input):
         """构建 system 提示：基础人设 + 当前问题相关的长期记忆（每轮重新计算，保证记忆新鲜）。"""
         try:
@@ -354,15 +367,17 @@ class Agent:
             pass
         self._pending.discard(session_id)
 
-    def run_trace(self, session_id, user_input=None, max_steps=5, review_decision=None):
+    def run_trace(self, session_id, user_input=None, max_steps=5, review_decision=None, model=None):
         """返回 {reply, steps} 或 {needs_review, review}。
 
         - 正常结束：{"reply": ..., "steps": [...], "needs_review": False, "review": None}
         - 需要人类审批：{"reply": "", "steps": [], "needs_review": True, "review": {...}}
         - review_decision 不为 None 时，表示人类已答复，用它唤醒（resume）被暂停的图。
+        - model：单次请求临时覆盖模型（来自前端模型选择器，如 "lite"/"pro"），仅非 mock 生效。
         """
         self.steps = []  # 每轮对话重新开始记录
         self._pending.discard(session_id)
+        self._model_override = model  # None = 用默认模型
         config = {
             "configurable": {"thread_id": session_id},
             "recursion_limit": max_steps * 3 + 5,
