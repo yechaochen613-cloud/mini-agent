@@ -20,6 +20,18 @@ def mock_respond(messages):
 
     text = (last.get("content") or "").lower()
 
+    # 规则 0：运行代码（要求"运行/执行/跑"且提到代码/python/脚本，或带 ```代码块```）。
+    # 放在最前，避免被"算术"规则抢走。优先抽取 ```python ... ``` 里的代码。
+    if (("运行" in text or "执行" in text or "跑" in text) and
+            ("代码" in text or "python" in text or "脚本" in text or "代码块" in text or "```" in text)):
+        m = re.search(r"```(?:python)?\s*(.*?)```", last.get("content", ""), re.S)
+        code = m.group(1).strip() if m else last.get("content", "").strip()
+        return SimpleNamespace(content="", tool_calls=[
+            SimpleNamespace(id="call_code",
+                            function=SimpleNamespace(name="run_code",
+                                                     arguments=json.dumps({"code": code})))
+        ])
+
     # 规则 1：问时间
     if "时间" in text or "几点" in text:
         return SimpleNamespace(content="", tool_calls=[
@@ -69,11 +81,10 @@ def mock_respond(messages):
                                                      arguments=json.dumps({"query": last.get("content")})))
         ])
 
-    # 规则 5：查天气（从用户输入中提取城市名，默认北京）
+    # 规则 5：查天气（从"XX天气"/"XX的天气"里提取城市名，默认北京兜底）
     if "天气" in text:
-        # 尝试从 "XX天气"、"XX的天气" 等模式中提取城市
-        m = re.search(r'([\u4e00-\u9fa5]{2,6})(?:的)?天气', last.get('content') or '')
-        city = m.group(1) if m else '北京'
+        m = re.search(r"([\u4e00-\u9fa5]{2,6}?)(?:的)?天气", text)
+        city = m.group(1) if m else "北京"
         return SimpleNamespace(content="", tool_calls=[
             SimpleNamespace(id="call_5",
                             function=SimpleNamespace(name="get_weather",
