@@ -500,6 +500,76 @@
   }
   @media (max-width: 680px) { .conn-grid { grid-template-columns: 1fr; } }
 
+  /* ===== 账户面板（玻璃拟态居中 modal） ===== */
+  .acc-overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(12,12,14,.5); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .25s var(--ease);
+  }
+  .acc-overlay.open { opacity: 1; pointer-events: auto; }
+  .acc-modal {
+    position: fixed; inset: 0; z-index: 61;
+    display: grid; place-items: center; padding: 20px;
+    pointer-events: none;
+  }
+  .acc-modal.open { pointer-events: auto; }
+  .acc-card {
+    width: min(420px, 100%);
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: var(--r-lg); box-shadow: 0 24px 64px rgba(28,27,25,.28);
+    padding: 26px 24px 22px; position: relative;
+    transform: translateY(12px) scale(.98); opacity: 0;
+    transition: transform .3s var(--ease-expo), opacity .3s var(--ease);
+  }
+  .acc-modal.open .acc-card { transform: translateY(0) scale(1); opacity: 1; }
+  .acc-close {
+    position: absolute; top: 16px; right: 16px;
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+    width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 15px;
+    display: grid; place-items: center; transition: all .18s var(--ease);
+  }
+  .acc-close:hover { border-color: var(--accent); color: var(--accent); }
+  .acc-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .acc-avatar {
+    width: 60px; height: 60px; border-radius: 18px; flex: 0 0 auto;
+    display: grid; place-items: center; font-size: 30px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .acc-greet { font-family: var(--font-display); font-size: 19px; font-weight: 700; }
+  .acc-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .acc-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); }
+  .acc-row-label { font-size: 13px; color: var(--text-dim); width: 72px; flex: 0 0 auto; }
+  .acc-row-val { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acc-edit {
+    border: 1px solid var(--border); background: var(--surface); color: var(--accent);
+    font-weight: 700; font-size: 13px; padding: 6px 14px; border-radius: 9px; cursor: pointer;
+    transition: all .18s var(--ease); flex: 0 0 auto;
+  }
+  .acc-edit:hover { border-color: var(--accent); }
+  .acc-edit-box { padding: 4px 0 14px; border-top: 1px solid var(--border); }
+  .acc-edit-box[hidden] { display: none; }
+  .acc-edit-box input {
+    width: 100%; box-sizing: border-box; padding: 11px 13px; border-radius: 11px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    font-size: 15px; outline: none; transition: border-color .18s var(--ease);
+  }
+  .acc-edit-box input:focus { border-color: var(--accent); }
+  .acc-edit-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+  .acc-cancel {
+    border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+    padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all .18s var(--ease);
+  }
+  .acc-cancel:hover { color: var(--text); }
+  .acc-save {
+    border: none; background: var(--accent); color: #fff;
+    padding: 8px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 14px;
+    transition: all .18s var(--ease);
+  }
+  .acc-save:hover { filter: brightness(1.07); }
+  .acc-tip { font-size: 12px; color: var(--text-dim); margin: 14px 0 0; line-height: 1.5; }
+  .user-row { cursor: pointer; }
+  .user-row:hover { color: var(--accent); }
+
   .conn-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
     padding: 18px 17px; display: flex; gap: 14px; align-items: flex-start;
@@ -608,7 +678,7 @@
 
       <div class="side-foot">
         <div class="share-card">与好友分享 <b>Mini Agent</b>，一起把重复活交给智能体 🚀</div>
-        <div class="user-row"><span class="avatar-sm">🦊</span><span>我的账户</span></div>
+        <div class="user-row" id="accountBtn" role="button" tabindex="0" title="账户设置"><span class="avatar-sm" id="sideAvatar">🦊</span><span id="sideName">我的账户</span></div>
       </div>
       <button class="icon-btn side-close" id="histClose" title="关闭">✕</button>
     </aside>
@@ -719,6 +789,45 @@
     </div>
     <div class="conn-body">
       <div class="conn-grid" id="connGrid"><!-- JS 动态渲染 --></div>
+    </div>
+  </div>
+
+  <!-- 账户面板 -->
+  <div class="acc-overlay" id="accOverlay"></div>
+  <div class="acc-modal" id="accModal" role="dialog" aria-modal="true" aria-label="账户">
+    <div class="acc-card">
+      <button class="acc-close" id="accClose" title="关闭" aria-label="关闭">✕</button>
+      <div class="acc-hero">
+        <div class="acc-avatar" id="accAvatar">🦊</div>
+        <div class="acc-hero-text">
+          <div class="acc-greet" id="accGreet">你好 👋</div>
+          <div class="acc-sub">这是你的账户信息</div>
+        </div>
+      </div>
+
+      <div class="acc-row">
+        <div class="acc-row-label">名字</div>
+        <div class="acc-row-val" id="accNameVal">未设置</div>
+        <button class="acc-edit" id="accNameEdit">编辑</button>
+      </div>
+      <div class="acc-edit-box" id="accEditBox" hidden>
+        <input type="text" id="accNameInput" maxlength="40" placeholder="输入你的名字" autocomplete="off">
+        <div class="acc-edit-actions">
+          <button class="acc-cancel" id="accCancel">取消</button>
+          <button class="acc-save" id="accSave">保存</button>
+        </div>
+      </div>
+
+      <div class="acc-row">
+        <div class="acc-row-label">账户类型</div>
+        <div class="acc-row-val">免费版</div>
+      </div>
+      <div class="acc-row">
+        <div class="acc-row-label">数据存储</div>
+        <div class="acc-row-val">本地 · 会话内</div>
+      </div>
+
+      <p class="acc-tip">名字会保存到后端，用于个性化对话与长期记忆。</p>
     </div>
   </div>
 
@@ -1407,6 +1516,90 @@
     if (connPage < maxPage) { connPage++; renderConnPage(); }
   });
   document.getElementById('connViewAll').addEventListener('click', e => { e.preventDefault(); connPage = 0; renderConnPage(); });
+
+  // ===== 账户面板 =====
+  const accOverlay   = document.getElementById('accOverlay');
+  const accModal     = document.getElementById('accModal');
+  const accNameVal   = document.getElementById('accNameVal');
+  const accNameEdit  = document.getElementById('accNameEdit');
+  const accEditBox   = document.getElementById('accEditBox');
+  const accNameInput = document.getElementById('accNameInput');
+  const accSave      = document.getElementById('accSave');
+  const accCancel    = document.getElementById('accCancel');
+  const accAvatar    = document.getElementById('accAvatar');
+  const accGreet     = document.getElementById('accGreet');
+  const sideName     = document.getElementById('sideName');
+  const sideAvatar   = document.getElementById('sideAvatar');
+
+  function openAccount() {
+    loadAccount();
+    accOverlay.classList.add('open'); accModal.classList.add('open');
+  }
+  function closeAccount() {
+    accOverlay.classList.remove('open'); accModal.classList.remove('open');
+    accEditBox.hidden = true;
+  }
+  accOverlay.addEventListener('click', closeAccount);
+  document.getElementById('accClose').addEventListener('click', closeAccount);
+  document.getElementById('accountBtn').addEventListener('click', openAccount);
+  document.getElementById('accountBtn').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAccount(); }
+  });
+
+  // 把名字同步到面板 / 侧边栏 / 头像首字母，并缓存到 localStorage
+  function applyName(name) {
+    const safe = (name && name.trim()) ? name.trim() : '';
+    accNameVal.textContent = safe || '未设置';
+    accGreet.textContent   = safe ? `你好，${safe} 👋` : '你好 👋';
+    if (sideName)   sideName.textContent   = safe || '我的账户';
+    const ini = safe ? safe[0].toUpperCase() : '🦊';
+    if (accAvatar)  accAvatar.textContent  = ini;
+    if (sideAvatar) sideAvatar.textContent = ini;
+    try { localStorage.setItem('mini_agent_name', safe); } catch (e) {}
+  }
+
+  async function loadAccount() {
+    try {
+      const r = await fetch(`${API_BASE}/account`);
+      const d = await r.json();
+      applyName(d.name || '');
+    } catch (e) { applyName(''); }
+  }
+
+  accNameEdit.addEventListener('click', () => {
+    accEditBox.hidden = false;
+    accNameInput.value = (accNameVal.textContent === '未设置') ? '' : accNameVal.textContent;
+    accNameInput.focus();
+  });
+  accCancel.addEventListener('click', () => { accEditBox.hidden = true; });
+
+  accSave.addEventListener('click', async () => {
+    const name = accNameInput.value.trim();
+    if (!name) { toast('名字不能为空'); return; }
+    try {
+      const r = await fetch(`${API_BASE}/account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        toast(err.detail || '保存失败');
+        return;
+      }
+      const d = await r.json();
+      applyName(d.name || '');
+      accEditBox.hidden = true;
+      toast('名字已保存 ✅');
+    } catch (e) { toast('保存失败：' + e.message); }
+  });
+  accNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') accSave.click(); });
+
+  // 初始化：先用本地缓存秒开，再拉后端对齐
+  (function initAccount() {
+    try { const c = localStorage.getItem('mini_agent_name'); if (c) applyName(c); } catch (e) {}
+    loadAccount();
+  })();
 
   // ===== 开场白 =====
   const OPENING_TEXT = '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📎 上传文档：点输入框左边的 📎 上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：即插即用地调用标准 MCP server 提供的工具\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认。\n· ☰ 点左上角可收起/展开侧边栏，里面是历史对话。\n试试看吧～';

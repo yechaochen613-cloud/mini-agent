@@ -18,6 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import json
 import re
 import time
 import uuid
@@ -288,6 +289,51 @@ def reset(req: ResetRequest):
     """清空某个会话的 LangGraph 上下文（不影响历史记录，历史由 chat_history 管理）。"""
     agent.reset_session(req.session_id)
     return {"status": "ok", "session_id": req.session_id}
+
+
+# ===== 账户（用户名）相关 =====
+def _account_path() -> str:
+    return os.path.join(DATA_DIR, "account.json")
+
+
+def get_account() -> dict:
+    """读取当前账户用户名；未设置返回空字符串。"""
+    p = _account_path()
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return {"name": json.load(f).get("name", "") or ""}
+        except Exception:
+            pass
+    return {"name": ""}
+
+
+def set_account(name: str) -> dict:
+    """保存用户名到 DATA_DIR/account.json（含非空 / 长度校验）。"""
+    name = (name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="名字不能为空")
+    if len(name) > 40:
+        raise HTTPException(status_code=400, detail="名字过长（最多 40 字）")
+    with open(_account_path(), "w", encoding="utf-8") as f:
+        json.dump({"name": name}, f, ensure_ascii=False)
+    return {"name": name}
+
+
+class AccountUpdate(BaseModel):
+    name: str
+
+
+@app.get("/account")
+def account_get():
+    """读取当前账户用户名。"""
+    return get_account()
+
+
+@app.post("/account")
+def account_post(body: AccountUpdate):
+    """设置 / 保存用户名（顾名思义：管理账户的名字）。"""
+    return set_account(body.name)
 
 
 # ===== 历史对话记录相关路由 =====
