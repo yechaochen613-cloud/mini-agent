@@ -187,6 +187,7 @@ class Agent:
             merged[t.name] = t
         all_tools = list(merged.values())
         self._all_tools = all_tools   # 供 _llm_for 按模型名重新绑定工具
+        self._tool_map = {t.name: t for t in all_tools}   # 供 run_stream 直接执行工具
         # 合并后的"工具清单"，用于 system 提示里列出（本地 + MCP 一目了然，按名去重）
         seen = set()
         merged_schemas = []
@@ -333,6 +334,116 @@ class Agent:
             )
             self._llm_cache[model_name] = llm.bind_tools(self._all_tools)
         return self._llm_cache[model_name]
+
+    def _exec_tool(self, name, args):
+        """直接执行一个工具（本地或 MCP），返回字符串结果。供 run_stream 流式循环调用。"""
+        t = self._tool_map.get(name)
+        if t is None:
+            return f"（未知工具：{name}）"
+        try:
+            # StructuredTool 用 .func 调原始 Python 函数（kwargs 传参）
+            return t.func(**(args or {}))
+        except TypeError:
+            # 参数结构不匹配时退而用 invoke（让框架按 args_schema 解析）
+            try:
+                return str(t.invoke(args or {}))
+            except Exception as e:
+                return f"（工具执行失败：{e}）"
+        except Exception as e:
+            return f"（工具执行失败：{e}）"
+
+    def run_stream(self, session_id, user_input=None, max_steps=5, model=None):
+        """生成器：边执行边 yield 事件 dict（供 /chat/stream SSE 输出）。
+
+        事件类型：
+          step_start {id, tool, args}
+          step_end   {id, tool, result}
+          token      {text}            # 最终回复分片（mock 一次性给出、前端打字机；real 为真实 chunk）
+          done       {reply, session_id}
+          error      {message}
+
+        说明：为了拿到逐步事件、绕开 LangGraph 的 interrupt 黑盒，这里单独写一遍 Agent Loop。
+        因此【不触发人工审批暂停】——有副作用的工具（save_note 等）在此直接执行。
+        需要审批交互时仍走 run_trace（/chat 的非流式路径）。"""
+        self.steps = []
+        self._pending.discard(session_id)
+        self._model_override = model
+        step_counter = 0
+        last_reply = ""
+
+        if self.mock:
+            from mock_llm import mock_respond
+            messages = [{"role": "user", "content": user_input}]
+            def call_llm(msgs):
+                return mock_respond(msgs)
+            def stream_final(msgs, content):
+                # mock 没有真实 token 流：一次性给出，前端用打字机呈现
+                yield {"type": "token", "text": content}
+        else:
+            from langchain_core.messages import SystemMessage, HumanMessage
+            system = self._build_system(user_input)
+            messages = [SystemMessage(content=system), HumanMessage(content=user_input)]
+            llm = self._llm_for(model or self.model)
+            def call_llm(msgs):
+                return llm.invoke(msgs)
+            def stream_final(msgs, content):
+                # real 模式：用 .stream() 拿到真实 token 流
+                try:
+                    for chunk in llm.stream(msgs):
+                        if getattr(chunk, "content", None):
+                            yield {"type": "token", "text": chunk.content}
+                except Exception:
+                    yield {"type": "token", "text": content}
+
+        try:
+            for _ in range(max_steps):
+                resp = call_llm(messages)
+
+                # 统一成 (content, tool_calls)
+                if self.mock:
+                    content = resp.content or ""
+                    tool_calls = []
+                    if getattr(resp, "tool_calls", None):
+                        for tc in resp.tool_calls:
+                            tool_calls.append({
+                                "id": tc.id,
+                                "name": tc.function.name,
+                                "args": json.loads(tc.function.arguments or "{}"),
+                            })
+                else:
+                    content = resp.content or ""
+                    tool_calls = []
+                    for tc in getattr(resp, "tool_calls", None) or []:
+                        tool_calls.append({"id": tc.id, "name": tc.name, "args": tc.args})
+                    # real 模式：把带 tool_calls 的 AIMessage 存回上下文，让下一轮能续上
+                    if tool_calls:
+                        messages.append(resp)
+
+                if not tool_calls:
+                    last_reply = content
+                    for ev in stream_final(messages, content):
+                        yield ev
+                    yield {"type": "done", "reply": content, "session_id": session_id}
+                    return
+
+                # 有工具调用 -> 逐个执行并吐事件
+                for tc in tool_calls:
+                    step_counter += 1
+                    sid = f"s{step_counter}"
+                    yield {"type": "step_start", "id": sid, "tool": tc["name"], "args": tc["args"]}
+                    result = self._exec_tool(tc["name"], tc["args"] or {})
+                    yield {"type": "step_end", "id": sid, "tool": tc["name"], "result": str(result)}
+                    self.steps.append({"tool": tc["name"], "args": tc["args"], "result": str(result)})
+                    if self.mock:
+                        messages.append({"role": "tool", "tool_call_id": tc["id"], "content": str(result)})
+                    else:
+                        from langchain_core.messages import ToolMessage
+                        messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
+
+            # 走到步数上限仍未结束
+            yield {"type": "done", "reply": last_reply or "（已达到最大步数，停止循环）", "session_id": session_id}
+        except Exception as e:
+            yield {"type": "error", "message": f"执行出错：{e}"}
 
     def _build_system(self, user_input):
         """构建 system 提示：基础人设 + 当前问题相关的长期记忆（每轮重新计算，保证记忆新鲜）。"""
