@@ -69,12 +69,15 @@ def mock_respond(messages):
                                                      arguments=json.dumps({"query": last.get("content")})))
         ])
 
-    # 规则 5：查天气（mock 里城市固定为"北京"，仅演示工具触发；真实模式会智能提取城市）
+    # 规则 5：查天气（从用户输入中提取城市名，默认北京）
     if "天气" in text:
+        # 尝试从 "XX天气"、"XX的天气" 等模式中提取城市
+        m = re.search(r'([\u4e00-\u9fa5]{2,6})(?:的)?天气', last.get('content') or '')
+        city = m.group(1) if m else '北京'
         return SimpleNamespace(content="", tool_calls=[
             SimpleNamespace(id="call_5",
                             function=SimpleNamespace(name="get_weather",
-                                                     arguments=json.dumps({"city": "北京"})))
+                                                     arguments=json.dumps({"city": city})))
         ])
 
     # 规则 5.5：文档相关（上传/表格/条款/比对/跨文档）→ 列出已上传文档与 id
