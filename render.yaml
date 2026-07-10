@@ -10,20 +10,20 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
-    # 持久盘：挂载后对话历史(SQLite)、上传文件、文档索引都落在这块盘上，
-    # 服务重启 / redeploy 数据都不丢（不挂盘则数据随容器销毁）。
-    disk:
-      name: mini-agent-data
-      mountPath: /var/data
-      sizeGB: 1
+    # 免费计划不支持持久盘（disk），数据存在容器临时文件系统内。
+    # 重启/redeploy 后聊天记录会重置。如需持久化请将 plan 改为 starter 并取消下方 disk 注释。
+    # disk:
+    #   name: mini-agent-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
       - key: MOCK
         value: "true"
-      # 告知应用数据根目录放在挂载盘内（storage.py 据此拼接 /var/data/mini-agent）
-      - key: RENDER_DISK_MOUNT_PATH
-        value: /var/data
+      # 告知应用数据根目录（免费版无挂载盘时使用默认 data/ 目录）
+      # - key: RENDER_DISK_MOUNT_PATH
+      #   value: /var/data
       # 以下三个是密钥：务必在 Render 后台 Environment 里手动填（sync:false 表示不从仓库读取）
       - key: OPENAI_API_KEY
         sync: false
