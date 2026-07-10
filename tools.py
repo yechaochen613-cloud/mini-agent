@@ -5,6 +5,9 @@
 import json
 import datetime
 import os
+import sys
+import subprocess
+import tempfile
 import httpx
 from urllib.parse import quote
 from memory import add_memory, search_memory
@@ -149,6 +152,42 @@ def web_search(query: str) -> str:
                 f"（提示：部分网络环境会限制访问维基百科；部署到开放网络后即可正常使用。）")
 
 
+# ===== 代码执行沙箱（让 Agent 能算数据、画图、生成文件，对标 Manus 的"会干活"） =====
+# 在受限子进程里跑 Python，带超时；stdout/stderr 回传。仅用于可信输入——这是学习项目，
+# 没有做完整的容器隔离，生产环境请换成 Docker/gVisor 等真沙箱。
+def run_code(code: str, timeout: int = 15) -> str:
+    """在限时子进程里执行 Python 代码，返回 stdout/stderr。适合数据计算、画图、生成文件等。"""
+    code = (code or "").strip()
+    if not code:
+        return "（没有提供代码）"
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
+            f.write(code)
+            path = f.name
+        try:
+            proc = subprocess.run(
+                [sys.executable, path],
+                capture_output=True, text=True,
+                timeout=timeout, cwd=DATA_DIR,
+                env={**os.environ, "PYTHONPATH": ""},
+            )
+        finally:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        out = (proc.stdout or "")
+        err = (proc.stderr or "")
+        if proc.returncode != 0:
+            return f"⚠ 执行出错（退出码 {proc.returncode}）：\n{(err or out)[:2000]}"
+        combined = (out + err).strip()
+        return combined[:4000] or "（代码执行成功，无输出）"
+    except subprocess.TimeoutExpired:
+        return f"⚠ 执行超时（超过 {timeout} 秒），已终止。"
+    except Exception as e:
+        return f"⚠ 执行失败：{e}"
+
+
 # ===== 长期记忆工具（让 Agent 跨对话记得用户说过的话） =====
 
 def save_memory(text: str) -> str:
@@ -206,6 +245,7 @@ def compare_two_documents(a: str, b: str, topic: str = "") -> str:
 # 用名字查函数，Agent Loop 调工具时就靠这个字典
 TOOL_FUNCTIONS = {
     "calculator": calculator,
+    "run_code": run_code,
     "get_current_time": get_current_time,
     "save_note": save_note,
     "read_notes": read_notes,
@@ -228,16 +268,31 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "calculator",
-            "description": "计算四则运算表达式，例如 '23 * 4 + 1'。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "expression": {"type": "string", "description": "数学表达式"}
+                "description": "计算四则运算表达式，例如 '23 * 4 + 1'。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "expression": {"type": "string", "description": "数学表达式"}
+                    },
+                    "required": ["expression"],
                 },
-                "required": ["expression"],
             },
         },
-    },
+        {
+            "type": "function",
+            "function": {
+                "name": "run_code",
+                "description": "在 Python 沙箱里执行代码并返回输出，用于数据计算、画图、生成文件等复杂任务。支持 numpy/pandas/matplotlib 等已安装库。传入要执行的完整代码（可放在 ```python 代码块``` 里）。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "code": {"type": "string", "description": "要执行的 Python 代码"},
+                        "timeout": {"type": "integer", "description": "超时秒数，默认 15"}
+                    },
+                    "required": ["code"],
+                },
+            },
+        },
     {
         "type": "function",
         "function": {
