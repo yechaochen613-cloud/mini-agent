@@ -12,7 +12,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi import File, UploadFile, Form
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -66,6 +66,11 @@ def _rate_ok() -> bool:
         return False
     _hits.append(now)
     return True
+
+
+def _sse(event: dict) -> str:
+    """把一个 dict 格式化成一行 SSE data（UTF-8，安全）。"""
+    return "data: " + json.dumps(event, ensure_ascii=False) + "\n\n"
 
 
 # 启动时构建一个全局 Agent 实例（复用连接，避免每次请求都重建）
@@ -278,9 +283,65 @@ def chat(req: ChatRequest):
     history.append_message(session_id, "user", req.message or "", title=title)
     if not result.get("needs_review"):
         history.append_message(session_id, "bot", reply or "", steps)
-    return ChatResponse(
-        reply=reply, steps=steps, session_id=session_id,
-        needs_review=result.get("needs_review", False), review=result.get("review"),
+        return ChatResponse(
+            reply=reply, steps=steps, session_id=session_id,
+            needs_review=result.get("needs_review", False), review=result.get("review"),
+        )
+
+
+@app.post("/chat/stream")
+def chat_stream(req: ChatRequest):
+    """流式对话（SSE）：边执行边吐事件，让前端实时呈现"执行步骤"与打字机式回复。
+    对标 Manus 的"活着的智能体"体感。历史记录在服务端落库（用户消息 + 最终回复）。"""
+    if not _rate_ok():
+        raise HTTPException(status_code=429, detail="请求太频繁，请稍后再试")
+
+    session_id = req.session_id or str(uuid.uuid4())
+    model_arg = MODEL_PRESETS.get(req.model) if req.model else None
+    title = (req.message or "").strip()[:20] or None
+
+    def event_gen():
+        final_reply = ""
+        try:
+            # 情况 A：人类答复了待审批操作 -> 走非流式 run_trace 并一次性吐出
+            if req.review_decision is not None:
+                if not session_id:
+                    yield _sse({"type": "error", "message": "review_decision 必须带 session_id"})
+                    return
+                result = agent.run_trace(
+                    session_id, user_input=None, max_steps=req.max_steps,
+                    review_decision=req.review_decision, model=model_arg,
+                )
+                final_reply = result.get("reply", "")
+                yield _sse({
+                    "type": "done", "reply": final_reply, "session_id": session_id,
+                    "steps": result.get("steps", []),
+                    "needs_review": result.get("needs_review", False),
+                    "review": result.get("review"),
+                })
+                return
+
+            # 情况 B：普通新消息 —— 先落用户消息，再流式跑 Agent
+            if req.message:
+                history.append_message(session_id, "user", req.message, title=title)
+            for ev in agent.run_stream(session_id, req.message, max_steps=req.max_steps, model=model_arg):
+                if ev.get("type") == "done":
+                    final_reply = ev.get("reply", "")
+                yield _sse(ev)
+            # 流式结束，落库最终回复（带上逐步记录）
+            if final_reply:
+                history.append_message(session_id, "bot", final_reply, agent.steps)
+        except Exception as e:
+            yield _sse({"type": "error", "message": f"流式处理出错：{e}"})
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",   # 让 Render/Nginx 不缓冲，事件即时下发
+        },
     )
 
 
