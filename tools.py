@@ -27,9 +27,10 @@ def calculator(expression: str) -> str:
 
 
 def get_current_time() -> str:
-    """返回当前的日期和时间。"""
-    now = datetime.datetime.now()
-    return now.strftime("现在是 %Y-%m-%d %H:%M:%S")
+    """返回当前的日期和时间（北京时间，Asia/Shanghai）。"""
+    from zoneinfo import ZoneInfo
+    now = datetime.datetime.now(ZoneInfo("Asia/Shanghai"))
+    return now.strftime("现在是 %Y-%m-%d %H:%M:%S（北京时间）")
 
 
 def save_note(title: str, content: str) -> str:
