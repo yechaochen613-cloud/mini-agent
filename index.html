@@ -596,6 +596,12 @@
   .conn-card.connected .conn-action {
     color: var(--success); border-color: var(--success-border); background: var(--surface);
   }
+  .conn-link {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 12px; color: var(--accent); text-decoration: none;
+    margin-top: 4px; opacity: .75; transition: all .2s;
+  }
+  .conn-link:hover { opacity: 1; text-decoration: underline; }
 
   /* ===== 响应式 ===== */
   @media (max-width: 900px) {
@@ -883,6 +889,9 @@
   }
   function escapeHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
   // 轻量 Markdown 渲染（先转义，再套结构，安全）
   function inlineMd(s) {
@@ -1571,6 +1580,10 @@
           <div class="conn-info">
             <div class="conn-name">${escapeHtml(c.name)}</div>
             <div class="conn-desc">${escapeHtml(c.desc)}</div>
+            ${c.url ? `<a class="conn-link" href="${escapeAttr(c.url)}" target="_blank" rel="noopener noreferrer" title="打开 ${escapeHtml(c.name)}" onclick="event.stopPropagation()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;vertical-align:-2px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              打开 Gmail
+            </a>` : ''}
           </div>
           ${connected
             ? `<button class="conn-action" title="已连接 · 点击断开" data-act="disconnect">✓</button>`
@@ -1725,7 +1738,7 @@
   })();
 
   // ===== 开场白 =====
-  const OPENING_TEXT = '你好！我是你的智能体助手 👋\n我会自己决定调用工具来帮你办事，现在我能：\n· 🧮 算算术　· 🕐 报时间　· 📝 记/看笔记\n· 🌤 查天气（如"北京天气怎么样"）\n· 🔍 联网搜索（如"搜索 量子计算"）\n· 🧠 长期记忆：告诉我"我叫小明，喜欢喝咖啡"，以后换对话我也能想起来\n· 📎 上传文档：点输入框左边的 📎 上传 PDF/Word/Excel/PPT/CSV/网页 等，我能自动解析、切块、提取表格/条款/层级，还能跨文档检索与比对\n· 🔌 MCP 工具：即插即用地调用标准 MCP server 提供的工具\n\n🔐 安全提示：当我要"写笔记 / 写长期记忆"这类会改变数据的操作时，会先停下问你确认。\n· ☰ 点左上角可收起/展开侧边栏，里面是历史对话。\n试试看吧～';
+  const OPENING_TEXT = '你好！我是你的智能体助手 👋\n我能为你做什么？请给我分配一个任务...';
 
   (async function init() {
     await ensureCurrent(); await loadConversations(); addMessage('bot', OPENING_TEXT);
