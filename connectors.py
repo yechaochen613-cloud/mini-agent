@@ -32,6 +32,7 @@ CONNECTORS = [
         "icon": "gmail",
         "category": "google",
         "color": "#EA4335",
+        "url": "https://mail.google.com",
     },
     {
         "id": "github",
