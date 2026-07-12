@@ -32,6 +32,9 @@ from documents import (
 import chat_history as history
 from storage import UPLOAD_DIR, DATA_DIR
 import connectors
+import memory
+import schedules
+import sub_agents
 
 # 阶段 4 引入：用 LangGraph 重写 Agent Loop（行为/接口与原手写版 agent.py 完全一致）
 # 想回退到手写版，把这行改回 `from agent import Agent` 即可。
@@ -558,6 +561,124 @@ def notion_action(req: dict):
     action = req.get("action", "list")
     params = req.get("params", {})
     return connectors.notion_action(action, params)
+
+
+# ===== 长期记忆 =====
+@app.post("/memory/clear")
+def memory_clear():
+    """清空长期记忆（主动遗忘）。"""
+    try:
+        memory.clear_memory()
+        return {"ok": True, "message": "长期记忆已清空"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== 定时任务（Schedules） =====
+class ScheduleCreate(BaseModel):
+    title: str = "定时任务"
+    prompt: str
+    recurrence: dict = {"type": "interval", "minutes": 60}
+
+
+@app.get("/schedules")
+def get_schedules():
+    return {"schedules": schedules.list_schedules()}
+
+
+@app.post("/schedules")
+def create_schedule(req: ScheduleCreate):
+    if not req.prompt or not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="prompt 不能为空")
+    item = schedules.create_schedule(req.model_dump())
+    return item
+
+
+@app.delete("/schedules/{sid}")
+def delete_schedule(sid: str):
+    ok = schedules.delete_schedule(sid)
+    if not ok:
+        raise HTTPException(status_code=404, detail="定时任务不存在")
+    return {"ok": True}
+
+
+@app.post("/schedules/{sid}/tick")
+def tick_schedule(sid: str):
+    """前端 ticker 到点触发后调用：回写 last_run 并按 recurrence 重算 next_run。"""
+    item = schedules.mark_run(sid)
+    if not item:
+        raise HTTPException(status_code=404, detail="定时任务不存在")
+    return item
+
+
+# ===== 子智能体（Sub-Agents） =====
+class SubAgentCreate(BaseModel):
+    name: str = "新子智能体"
+    role: str = ""
+    tools: list = []
+    color: str = "#a855f7"
+    icon: str = "🤖"
+
+
+class SubAgentUpdate(BaseModel):
+    name: str | None = None
+    role: str | None = None
+    tools: list | None = None
+    color: str | None = None
+    icon: str | None = None
+    enabled: bool | None = None
+
+
+class SubAgentRun(BaseModel):
+    message: str
+    session_id: str | None = None
+
+
+@app.get("/sub-agents")
+def get_sub_agents():
+    return {"sub_agents": sub_agents.list_sub_agents()}
+
+
+@app.post("/sub-agents")
+def create_sub_agent(req: SubAgentCreate):
+    if not req.name or not req.name.strip():
+        raise HTTPException(status_code=400, detail="name 不能为空")
+    item = sub_agents.create_sub_agent(req.model_dump())
+    return item
+
+
+@app.get("/sub-agents/{sid}")
+def get_sub_agent(sid: str):
+    s = sub_agents.get_sub_agent(sid)
+    if not s:
+        raise HTTPException(status_code=404, detail="子智能体不存在")
+    return s
+
+
+@app.put("/sub-agents/{sid}")
+def update_sub_agent(sid: str, req: SubAgentUpdate):
+    data = {k: v for k, v in req.model_dump().items() if v is not None}
+    item = sub_agents.update_sub_agent(sid, data)
+    if not item:
+        raise HTTPException(status_code=404, detail="子智能体不存在")
+    return item
+
+
+@app.delete("/sub-agents/{sid}")
+def delete_sub_agent(sid: str):
+    ok = sub_agents.delete_sub_agent(sid)
+    if not ok:
+        raise HTTPException(status_code=404, detail="子智能体不存在")
+    return {"ok": True}
+
+
+@app.post("/sub-agents/{sid}/run")
+def run_sub_agent(sid: str, req: SubAgentRun):
+    """直接运行一个子智能体处理 message，返回回复文本。"""
+    if not req.message or not req.message.strip():
+        raise HTTPException(status_code=400, detail="message 不能为空")
+    reply = sub_agents.run_sub_agent(sid, req.message, session_id=req.session_id)
+    return {"reply": reply, "sub_agent_id": sid}
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量
