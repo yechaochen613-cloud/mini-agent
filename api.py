@@ -77,11 +77,15 @@ def _sse(event: dict) -> str:
 
 
 # 启动时构建一个全局 Agent 实例（复用连接，避免每次请求都重建）
+_api_key = os.getenv("OPENAI_API_KEY")
+_base_url = os.getenv("OPENAI_BASE_URL")
+# 只要配置了真实密钥就强制走真模型，忽略 MOCK 开关（防 dashboard 残留 MOCK=true 导致假模式）
+_mock = os.getenv("MOCK", "false").lower() == "true" and not (_api_key and _base_url)
 agent = Agent(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_BASE_URL"),
+    api_key=_api_key,
+    base_url=_base_url,
     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-    mock=os.getenv("MOCK", "false").lower() == "true",
+    mock=_mock,
 )
 
 # 前端模型选择器档位 -> 真实模型名（pro 可改成你账号里更强的模型；留空则用默认）
