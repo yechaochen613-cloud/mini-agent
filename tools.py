@@ -242,6 +242,13 @@ def compare_two_documents(a: str, b: str, topic: str = "") -> str:
     return _compare_documents(a, b, topic=topic or None)
 
 
+def delegate_subagent(sub_agent_id: str, task: str) -> str:
+    """把当前任务委派给一个已创建的子智能体（Sub-Agent）处理。sub_agent_id 为子智能体 id（在「子智能体」面板可看到）；task 为交给它做的具体任务描述。返回子智能体的处理结果文本。适合把专业子任务（如写作、代码、研究）交给对应子智能体完成。"""
+    from sub_agents import run_sub_agent
+    mock = os.getenv("MOCK", "false").lower() == "true"
+    return run_sub_agent(sub_agent_id, task, session_id=None, mock=mock)
+
+
 # 用名字查函数，Agent Loop 调工具时就靠这个字典
 TOOL_FUNCTIONS = {
     "calculator": calculator,
@@ -259,6 +266,7 @@ TOOL_FUNCTIONS = {
     "extract_document_tables": extract_document_tables,
     "extract_document_clauses": extract_document_clauses,
     "compare_two_documents": compare_two_documents,
+    "delegate_subagent": delegate_subagent,
 }
 
 # 给大模型看的"工具清单"（OpenAI 兼容格式）
@@ -460,6 +468,21 @@ TOOL_SCHEMAS = [
                     "topic": {"type": "string", "description": "可选，聚焦主题，例如『交付时间』"}
                 },
                 "required": ["a", "b"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delegate_subagent",
+            "description": "把当前任务委派给一个已创建的子智能体（Sub-Agent）处理。适合把专业子任务（如写作、代码、研究）交给对应子智能体完成。sub_agent_id 为子智能体 id（在「子智能体」面板可看到）；task 为交给它做的具体任务描述。返回子智能体的处理结果。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sub_agent_id": {"type": "string", "description": "子智能体 id（来自「子智能体」面板列表）"},
+                    "task": {"type": "string", "description": "要交给子智能体做的具体任务描述"}
+                },
+                "required": ["sub_agent_id", "task"],
             },
         },
     },

@@ -107,6 +107,23 @@ def mock_respond(messages):
                                                      arguments=json.dumps({"query": last.get("content")})))
         ])
 
+    # 规则 7：委派给子智能体（"委派"/"子智能体"/"交给子agent"）
+    if "委派" in text or "子智能体" in text or "子 agent" in text or "子agent" in text:
+        try:
+            from sub_agents import list_sub_agents
+            subs = list_sub_agents()
+            if subs:
+                sid = subs[0]["id"]
+                return SimpleNamespace(content="", tool_calls=[
+                    SimpleNamespace(id="call_del",
+                                    function=SimpleNamespace(name="delegate_subagent",
+                                                             arguments=json.dumps({
+                                                                 "sub_agent_id": sid,
+                                                                 "task": last.get("content")})))
+                ])
+        except Exception:
+            pass
+
     # 默认：直接回答（不调工具）
     return SimpleNamespace(
         content="（这是 mock 模式，我只会按关键词触发工具。试试说：现在几点 / 计算 23*4 / 记一条笔记：买牛奶 / 看笔记）",

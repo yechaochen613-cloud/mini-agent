@@ -170,6 +170,7 @@ class Agent:
         self._api_key = api_key
         self._base_url = base_url
         self._model_override = None   # 单次请求可临时覆盖模型（来自前端模型选择器）
+        self._system_override = None  # 子智能体：临时覆盖 system 提示（注入角色提示词）
         self._llm_cache = {}          # 按 model 名缓存已 bind tools 的 LLM，避免重复建连接
         self.steps = []        # 记录本轮调用过的工具，方便对外暴露（可观测性）
         self._pending = set()  # 哪些 session 当前正卡在"等待人类审批"
@@ -446,17 +447,26 @@ class Agent:
             yield {"type": "error", "message": f"执行出错：{e}"}
 
     def _build_system(self, user_input):
-        """构建 system 提示：基础人设 + 当前问题相关的长期记忆（每轮重新计算，保证记忆新鲜）。"""
+        """构建 system 提示：基础人设 + 当前问题相关的长期记忆（每轮重新计算，保证记忆新鲜）。
+
+        - self._system_override 不为空时（子智能体场景），直接用它作为完整 system 提示，
+          但仍会追加长期记忆上下文，保证子智能体也能利用记忆。
+        """
+        if self._system_override:
+            base = self._system_override
+        else:
+            base = (
+                "你是一个乐于助人的中文助理，能调用工具完成任务。"
+                "如果用户透露了姓名、偏好、计划、重要事实等信息，请主动调用 save_memory 工具记下来，"
+                "方便以后跨对话回忆。"
+            )
+
         try:
             mem_ctx = relevant_context(user_input, top_k=5)
         except Exception:
             mem_ctx = ""
 
-        system_content = (
-            "你是一个乐于助人的中文助理，能调用工具完成任务。"
-            "如果用户透露了姓名、偏好、计划、重要事实等信息，请主动调用 save_memory 工具记下来，"
-            "方便以后跨对话回忆。"
-        )
+        system_content = base
         if mem_ctx:
             system_content += (
                 "\n\n以下是你之前记住的、可能与当前对话相关的信息，请善加利用：\n"
