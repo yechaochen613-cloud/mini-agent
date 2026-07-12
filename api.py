@@ -681,6 +681,15 @@ def run_sub_agent(sid: str, req: SubAgentRun):
     return {"reply": reply, "sub_agent_id": sid}
 
 
+# 部署版本标识（用于验证线上是否拉取到最新代码）
+DEPLOY_TAG = "2026-07-12-subagents-schedules"
+
+
+@app.get("/version")
+def version():
+    return {"deploy_tag": DEPLOY_TAG, "status": "ok"}
+
+
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量
 if __name__ == "__main__":
     import uvicorn
