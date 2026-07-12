@@ -20,7 +20,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11"
       - key: MOCK
-        value: "true"
+        value: "false"
       # 告知应用数据根目录（免费版无挂载盘时使用默认 data/ 目录）
       # - key: RENDER_DISK_MOUNT_PATH
       #   value: /var/data
