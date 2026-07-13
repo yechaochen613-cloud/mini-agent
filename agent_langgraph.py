@@ -415,7 +415,10 @@ class Agent:
                     content = resp.content or ""
                     tool_calls = []
                     for tc in getattr(resp, "tool_calls", None) or []:
-                        tool_calls.append({"id": tc.id, "name": tc.name, "args": tc.args})
+                        if isinstance(tc, dict):
+                            tool_calls.append(tc)
+                        else:
+                            tool_calls.append({"id": tc.id, "name": tc.name, "args": tc.args})
                     # real 模式：把带 tool_calls 的 AIMessage 存回上下文，让下一轮能续上
                     if tool_calls:
                         messages.append(resp)
