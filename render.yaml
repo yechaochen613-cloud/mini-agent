@@ -31,3 +31,9 @@ services:
         sync: false
       - key: OPENAI_MODEL
         sync: false
+      # GitHub OAuth（用于插件面板的 GitHub 授权连接）
+      # 需在 github.com/settings/developers 注册 OAuth App 后获取，在 Render Environment 填入
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
