@@ -994,7 +994,7 @@
     </div>
   </div>
 
-  <!-- GitHub 连接弹窗 -->
+  <!-- GitHub 连接弹窗（OAuth 跳转中 / 手动 PAT 回退） -->
   <div class="gh-overlay" id="ghOverlay"></div>
   <div class="gh-modal" id="ghModal" role="dialog" aria-modal="true" aria-label="连接 GitHub">
     <div class="gh-card">
@@ -1003,10 +1003,20 @@
         <div class="gh-avatar"><svg viewBox="0 0 24 24" width="32" height="32" fill="#171515"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg></div>
         <div class="gh-hero-text">
           <div class="gh-title">连接 GitHub</div>
-          <div class="gh-sub">输入 Personal Access Token 以授权 Mini Agent 访问你的仓库</div>
+          <div class="gh-sub" id="ghSubTitle">授权 Mini Agent 访问你的 GitHub 仓库</div>
         </div>
       </div>
-      <div class="gh-form">
+
+      <!-- 状态 A：OAuth 跳转（默认） -->
+      <div class="gh-form" id="ghOauthForm">
+        <p class="gh-hint" style="text-align:center;margin-top:8px">
+          点击下方按钮，将跳转到 GitHub 官方授权页面<br>
+          授权后自动返回，无需复制 Token 👇
+        </p>
+      </div>
+
+      <!-- 状态 B：手动 PAT 输入（回退） -->
+      <div class="gh-form" id="ghPatForm" hidden>
         <label class="gh-label" for="ghToken">Personal Access Token</label>
         <input class="gh-input" id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
         <p class="gh-hint">
@@ -1015,9 +1025,12 @@
           创建 Token，勾选 <code>repo</code> 权限即可。
         </p>
       </div>
+
       <div class="gh-actions">
         <button class="gh-cancel" id="ghCancel">取消</button>
-        <button class="gh-connect" id="ghConnect">连接</button>
+        <button class="gh-connect" id="ghConnectOAuth">🔗 前往 GitHub 授权</button>
+        <button class="gh-connect" id="ghConnectPAT" hidden style="background:#555">用 Token 连接</button>
+        <button class="gh-connect" id="ghSwitchPat" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:12px;padding:6px 14px">或手动输入 Token</button>
       </div>
       <div class="gh-status" id="ghStatus"></div>
     </div>
@@ -1837,21 +1850,32 @@
     chat.appendChild(wrap); chat.scrollTop = chat.scrollHeight;
   }
 
-  // ===== 🔗 GitHub 连接弹窗 =====
+  // ===== 🔗 GitHub 连接（OAuth 授权 + PAT 回退） =====
   const ghOverlay = document.getElementById('ghOverlay');
   const ghModal   = document.getElementById('ghModal');
   const ghToken    = document.getElementById('ghToken');
   const ghStatus   = document.getElementById('ghStatus');
+  const ghOauthForm = document.getElementById('ghOauthForm');
+  const ghPatForm  = document.getElementById('ghPatForm');
+  const ghBtnOAuth = document.getElementById('ghConnectOAuth');
+  const ghBtnPAT   = document.getElementById('ghConnectPAT');
+  const ghSwitchPat = document.getElementById('ghSwitchPat');
   let ghPendingConnId = null;
+  let ghOAuthWindow = null;
 
   function openGithubConnectModal() {
     ghPendingConnId = 'github';
     ghToken.value = '';
     ghStatus.textContent = '';
     ghStatus.className = 'gh-status';
+    // 默认显示 OAuth 模式
+    ghOauthForm.hidden = false;
+    ghPatForm.hidden = true;
+    ghBtnOAuth.hidden = false;
+    ghBtnPAT.hidden = true;
+    ghSwitchPat.hidden = false;
     ghOverlay.classList.add('open');
     ghModal.classList.add('open');
-    setTimeout(() => ghToken.focus(), 280);
   }
   function closeGithubModal() {
     ghOverlay.classList.remove('open');
@@ -1860,14 +1884,58 @@
     ghStatus.textContent = '';
     ghStatus.className = 'gh-status';
     ghPendingConnId = null;
+    if (ghOAuthWindow && !ghOAuthWindow.closed) { ghOAuthWindow.close(); ghOAuthWindow = null; }
   }
   ghOverlay.addEventListener('click', closeGithubModal);
   document.getElementById('ghClose').addEventListener('click', closeGithubModal);
   document.getElementById('ghCancel').addEventListener('click', closeGithubModal);
-  // ESC 关闭
-  ghToken.addEventListener('keydown', e => { if (e.key === 'Escape') closeGithubModal(); });
-  // 连接按钮
-  document.getElementById('ghConnect').addEventListener('click', async () => {
+
+  // OAuth：跳转到 GitHub 授权页
+  ghBtnOAuth.addEventListener('click', () => {
+    ghStatus.textContent = '⏳ 正在跳转到 GitHub 授权页面…';
+    ghStatus.className = 'gh-status';
+    // 打开新窗口进行授权（不离开当前页面）
+    ghOAuthWindow = window.open(`${API_BASE}/auth/github`, 'github-oauth', 'width=900,height=700,scrollbars=yes,resizable=yes');
+    if (!ghOAuthWindow || ghOAuthWindow.closed) {
+      // 弹窗被拦截，回退到当前窗口跳转
+      window.location.href = `${API_BASE}/auth/github`;
+    } else {
+      // 轮询检测授权窗口关闭（用户完成授权后会自动关闭并回调）
+      const poll = setInterval(() => {
+        if (!ghOAuthWindow || ghOAuthWindow.closed) {
+          clearInterval(poll);
+          ghOAuthWindow = null;
+          // 给一点时间让回调处理完
+          setTimeout(async () => {
+            try {
+              const r = await fetch(`${API_BASE}/connectors/github`);
+              const data = await r.json();
+              if (data.connected) {
+                ghStatus.innerHTML = `<span class="ok">✅ GitHub 已连接（@${data.config?.login || ''}）</span>`;
+                setTimeout(() => { closeGithubModal(); loadConnectors(); }, 1200);
+              } else {
+                ghStatus.textContent = '授权似乎未完成，请重试或使用 Token 方式';
+                ghStatus.className = 'gh-status err';
+              }
+            } catch { /* ignore */ }
+          }, 800);
+        }
+      }, 600);
+    }
+  });
+
+  // 切换到 PAT 手动输入模式
+  ghSwitchPat.addEventListener('click', () => {
+    ghOauthForm.hidden = true;
+    ghPatForm.hidden = false;
+    ghBtnOAuth.hidden = true;
+    ghBtnPAT.hidden = false;
+    ghSwitchPat.hidden = true;
+    setTimeout(() => ghToken.focus(), 280);
+  });
+
+  // PAT 模式：手动 Token 连接
+  ghBtnPAT.addEventListener('click', async () => {
     const token = ghToken.value.trim();
     if (!token || token.length < 10) { ghStatus.textContent = '请输入有效的 Token'; ghStatus.className = 'gh-status err'; return; }
     ghStatus.textContent = '⏳ 正在验证…';
@@ -1877,7 +1945,7 @@
       const r = await fetch(`${API_BASE}/connectors/github/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: { token } }),
+        body: JSON.stringify({ config: { token, auth_method: 'pat' } }),
       });
       removeTyping();
       const data = await r.json();
@@ -1894,8 +1962,23 @@
       ghStatus.className = 'gh-status err';
     }
   });
-  // Enter 键触发连接
-  ghToken.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('ghConnect').click(); });
+
+  // Enter 键触发 PAT 连接
+  ghToken.addEventListener('keydown', e => { if (e.key === 'Enter') ghBtnPAT.click(); });
+
+  // 页面加载时检测 hash：GitHub OAuth 回调成功标记
+  function checkGithubCallback() {
+    const h = location.hash;
+    if (h.startsWith('#github-connected=')) {
+      const login = decodeURIComponent(h.split('=')[1] || '');
+      toast(`✅ GitHub 已连接 (@${login})`);
+      history.replaceState(null, '', location.pathname); // 清除 hash
+      loadConnectors(); // 刷新插件面板状态
+    }
+  }
+  window.addEventListener('hashchange', checkGithubCallback);
+  // 也检查当前 URL（首次加载可能直接带 hash）
+  checkGithubCallback();
 
   // ===== 🧩 插件面板（参考 Manus） =====
   const connOverlay = document.getElementById('connOverlay');
