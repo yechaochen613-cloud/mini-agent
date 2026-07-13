@@ -883,7 +883,6 @@
 
           <div class="composer">
             <button class="attach-btn" id="addBtn" title="添加" aria-label="添加">＋</button>
-            <button class="attach-btn" id="attachBtn" title="上传文档" aria-label="上传文档">📎</button>
             <textarea id="input" rows="1" placeholder="向 Mini Agent 发送消息…" aria-label="输入消息"></textarea>
             <button class="mic-btn" id="micBtn" title="语音输入" aria-label="语音输入"><svg class="mic-ico" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect class="bar bar1" x="3" y="7" width="2.6" height="6" rx="1.3"/><rect class="bar bar2" x="8.7" y="4" width="2.6" height="12" rx="1.3"/><rect class="bar bar3" x="14.4" y="6" width="2.6" height="8" rx="1.3"/></svg></button>
             <button class="send" id="send" title="发送" aria-label="发送">
@@ -1431,13 +1430,11 @@
   // ===== 附件面板 =====
   let docs = []; let cmp = { a: null, b: null };
   const attachPanel = document.getElementById('attachPanel');
-  const attachBtn = document.getElementById('attachBtn');
   function toggleAttach(force) {
     const open = force === undefined ? attachPanel.hidden : force;
-    attachPanel.hidden = !open; attachBtn.classList.toggle('active', open);
+    attachPanel.hidden = !open;
     if (open) loadDocs();
   }
-  attachBtn.addEventListener('click', () => toggleAttach());
   document.getElementById('addBtn').addEventListener('click', () => toggleAttach());
   document.getElementById('attachClose').addEventListener('click', () => toggleAttach(false));
 
