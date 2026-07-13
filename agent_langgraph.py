@@ -338,6 +338,7 @@ class Agent:
 
     def _exec_tool(self, name, args):
         """直接执行一个工具（本地或 MCP），返回字符串结果。供 run_stream 流式循环调用。"""
+        import asyncio
         t = self._tool_map.get(name)
         if t is None:
             return f"（未知工具：{name}）"
@@ -345,9 +346,9 @@ class Agent:
             # StructuredTool 用 .func 调原始 Python 函数（kwargs 传参）
             return t.func(**(args or {}))
         except TypeError:
-            # 参数结构不匹配时退而用 invoke（让框架按 args_schema 解析）
+            # 参数结构不匹配时退而用 ainvoke（StructuredTool 只支持异步）
             try:
-                return str(t.invoke(args or {}))
+                return str(asyncio.run(t.ainvoke(args or {})))
             except Exception as e:
                 return f"（工具执行失败：{e}）"
         except Exception as e:
