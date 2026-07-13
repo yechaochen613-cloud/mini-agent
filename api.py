@@ -10,7 +10,7 @@
 #        -H "Content-Type: application/json" \
 #        -d '{"message": "帮我算 99*3，再记一条笔记：今天用 FastAPI 包了 Agent"}'
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi import File, UploadFile, Form
@@ -686,7 +686,122 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-12-subagents-schedules"
+DEPLOY_TAG = "2026-07-13-github-oauth"
+
+
+# ===== GitHub OAuth 授权流程 =====
+import urllib.parse
+import secrets
+
+# 从环境变量读取（需在 Render 后台或 .env 中配置）
+_GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+_GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+# 回调地址：自动根据请求根 URL 拼接，也可通过环境变量覆盖
+_GITHUB_CALLBACK_OVERRIDE = os.getenv("GITHUB_CALLBACK_URL", "")
+
+
+def _github_callback_url(request) -> str:
+    """构建 GitHub OAuth 回调 URL。"""
+    if _GITHUB_CALLBACK_OVERRIDE:
+        return _GITHUB_CALLBACK_OVERRIDE
+    # 从请求头推断根 URL
+    host = request.headers.get("host", "")
+    proto = request.headers.get("x-forwarded-proto", "https")
+    return f"{proto}://{host}/auth/github/callback"
+
+
+@app.get("/auth/github")
+def github_auth_redirect(request: Request):
+    """
+    第一步：重定向到 GitHub OAuth 授权页面。
+    用户在这里会看到和 Manus Connector 一样的官方授权界面：
+      - App 名称、权限列表
+      - 「授权」/「取消」按钮
+    """
+    if not _GITHUB_CLIENT_ID:
+        raise HTTPException(
+            status_code=501,
+            detail="未配置 GITHUB_CLIENT_ID。请先在 GitHub 注册一个 OAuth App，"
+                   "然后在 Render Environment 中填入 Client ID 和 Secret。",
+        )
+
+    # 生成随机 state 防 CSRF
+    state = secrets.token_urlsafe(32)
+    # 存到内存（单实例够用；多实例需用 Redis/DB）
+    _oauth_states[state] = time.time()
+
+    params = urllib.parse.urlencode({
+        "client_id": _GITHUB_CLIENT_ID,
+        "redirect_uri": _github_callback_url(request),
+        "scope": "repo read:org user:email",
+        "state": state,
+    })
+    return RedirectResponse(url=f"https://github.com/login/oauth/authorize?{params}")
+
+
+# 内存存储 state → 时间戳（防 CSRF，5 分钟过期）
+_oauth_states: dict[str, float] = {}
+
+
+@app.get("/auth/github/callback")
+async def github_auth_callback(code: str, state: str, request: Request):
+    """
+    第二步：GitHub 授权后回调。
+    用 code 换 access token → 存入 connectors DB → 重定向回前端。
+    """
+    # 校验 state
+    issued_at = _oauth_states.pop(state, None)
+    if issued_at is None:
+        raise HTTPException(status_code=400, detail="无效的 state 参数（可能已过期或被篡改）")
+    if time.time() - issued_at > 300:
+        raise HTTPException(status_code=400, detail="授权已超时，请重新连接")
+
+    if not code:
+        raise HTTPException(status_code=400, detail="GitHub 未返回授权码")
+
+    # 用 code 换 access token
+    import httpx
+    token_url = "https://github.com/login/oauth/access_token"
+    data = {
+        "client_id": _GITHUB_CLIENT_ID,
+        "client_secret": _GITHUB_CLIENT_SECRET,
+        "code": code,
+        "redirect_uri": _github_callback_url(request),
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(token_url, data=data, headers={"Accept": "application/json"}, timeout=15)
+            resp.raise_for_status()
+            token_data = resp.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"GitHub Token 交换失败: {e}")
+
+    if "access_token" not in token_data:
+        error_desc = token_data.get("error_description", token_data.get("error", "未知错误"))
+        raise HTTPException(status_code=400, detail=f"GitHub 授权失败: {error_desc}")
+
+    access_token = token_data["access_token"]
+
+    # 获取用户信息（用于显示连接的是谁）
+    async with httpx.AsyncClient() as client:
+        user_resp = await client.get(
+            "https://api.github.com/user",
+            headers={"Authorization": f"token {access_token}", "Accept": "application/vnd.github.v3+json"},
+            timeout=10,
+        )
+        user_data = user_resp.json()
+
+    github_login = user_data.get("login", "unknown")
+
+    # 存入 connectors DB
+    connectors.connect_connector("github", config={
+        "token": access_token,
+        "login": github_login,
+        "auth_method": "oauth",
+    })
+
+    # 重定向回前端，带 hash 标记让 JS 知道连接成功
+    return RedirectResponse(url=f"/ui#github-connected={github_login}")
 
 
 @app.get("/version")
