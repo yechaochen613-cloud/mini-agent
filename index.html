@@ -462,7 +462,7 @@
   .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 12.5px; font-weight: 600; padding: 9px 16px; border-radius: var(--r-pill); box-shadow: var(--shadow-md); z-index: 90; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
-  /* ===== 连接器面板（参考 Manus） ===== */
+  /* ===== 插件面板（参考 Manus） ===== */
   .conn-overlay {
     position: fixed; inset: 0; z-index: 55;
     background: rgba(12,12,14,.45); backdrop-filter: blur(3px);
@@ -577,6 +577,80 @@
   .acc-tip { font-size: 12px; color: var(--text-dim); margin: 14px 0 0; line-height: 1.5; }
   .user-row { cursor: pointer; }
   .user-row:hover { color: var(--accent); }
+
+  /* ===== GitHub 连接弹窗 ===== */
+  .gh-overlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: rgba(12,12,14,.5); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .25s var(--ease);
+  }
+  .gh-overlay.open { opacity: 1; pointer-events: auto; }
+  .gh-modal {
+    position: fixed; inset: 0; z-index: 71;
+    display: grid; place-items: center; padding: 20px;
+    pointer-events: none;
+  }
+  .gh-modal.open { pointer-events: auto; }
+  .gh-card {
+    width: min(440px, 100%);
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: var(--r-lg); box-shadow: 0 24px 64px rgba(28,27,25,.28);
+    padding: 28px 26px 24px; position: relative;
+    transform: translateY(12px) scale(.98); opacity: 0;
+    transition: transform .3s var(--ease-expo), opacity .3s var(--ease);
+  }
+  .gh-modal.open .gh-card { transform: translateY(0) scale(1); opacity: 1; }
+  .gh-close {
+    position: absolute; top: 16px; right: 16px;
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+    width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 15px;
+    display: grid; place-items: center; transition: all .18s var(--ease);
+  }
+  .gh-close:hover { border-color: var(--accent); color: var(--accent); }
+  .gh-hero { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .gh-avatar {
+    width: 56px; height: 56px; border-radius: 15px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    background: #f0f2f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    .gh-avatar { background: #21262d; }
+  }
+  .gh-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; }
+  .gh-sub { font-size: 13px; color: var(--text-dim); margin-top: 3px; line-height: 1.5; }
+  .gh-form { margin-bottom: 18px; }
+  .gh-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .gh-input {
+    width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
+    font-size: 15px; outline: none; transition: border-color .18s var(--ease), box-shadow .18s var(--ease);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .gh-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+  .gh-input::placeholder { color: var(--text-faint); }
+  .gh-hint { font-size: 12.5px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
+  .gh-hint code {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 5px; font-size: 11.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .gh-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .gh-cancel {
+    border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+    padding: 9px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600;
+    transition: all .18s var(--ease);
+  }
+  .gh-cancel:hover { color: var(--text); border-color: var(--text-dim); }
+  .gh-connect {
+    border: none; background: #171515; color: #fff;
+    padding: 9px 24px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 14px;
+    transition: all .18s var(--ease); display: flex; align-items: center; gap: 7px;
+  }
+  .gh-connect:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .gh-connect:active { transform: translateY(0); }
+  .gh-status { text-align: center; font-size: 13px; margin-top: 12px; min-height: 20px; }
+  .gh-status.ok { color: var(--success); }
+  .gh-status.err { color: #e53e3e; }
 
   .conn-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
@@ -793,7 +867,7 @@
       <nav class="side-nav">
         <button class="nav-item" id="newChat"><span class="ni-ic">＋</span> 新建对话</button>
         <div class="nav-item" id="agentNav"><span class="ni-ic">🤖</span> Agent</div>
-        <div class="nav-item" id="connNav"><span class="ni-ic">🔌</span> 连接器</div>
+        <div class="nav-item" id="connNav"><span class="ni-ic">🧩</span> 插件</div>
         <div class="nav-item" id="schedNav"><span class="ni-ic">⏰</span> 定时任务</div>
         <div class="nav-item" id="libNav"><span class="ni-ic">📚</span> 库</div>
         <div class="nav-item" id="subNav"><span class="ni-ic">🧩</span> 子智能体</div>
@@ -900,13 +974,13 @@
 
   <div class="drawer-backdrop" id="histBackdrop"></div>
 
-  <!-- 连接器面板（参考 Manus） -->
+  <!-- 插件面板（参考 Manus） -->
   <div class="conn-overlay" id="connOverlay"></div>
   <div class="conn-panel" id="connPanel">
     <div class="conn-head">
       <div class="conn-head-left">
-        <h2>连接器</h2>
-        <p>连接应用程序和 API 以共享您的上下文。</p>
+        <h2>插件</h2>
+        <p>连接应用程序和 API，扩展智能体的能力。</p>
       </div>
       <div class="conn-head-right">
         <button class="conn-nav-btn" id="connPrev" title="上一页" aria-label="上一页">‹</button>
@@ -917,6 +991,35 @@
     </div>
     <div class="conn-body">
       <div class="conn-grid" id="connGrid"><!-- JS 动态渲染 --></div>
+    </div>
+  </div>
+
+  <!-- GitHub 连接弹窗 -->
+  <div class="gh-overlay" id="ghOverlay"></div>
+  <div class="gh-modal" id="ghModal" role="dialog" aria-modal="true" aria-label="连接 GitHub">
+    <div class="gh-card">
+      <button class="gh-close" id="ghClose" title="关闭" aria-label="关闭">✕</button>
+      <div class="gh-hero">
+        <div class="gh-avatar"><svg viewBox="0 0 24 24" width="32" height="32" fill="#171515"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg></div>
+        <div class="gh-hero-text">
+          <div class="gh-title">连接 GitHub</div>
+          <div class="gh-sub">输入 Personal Access Token 以授权 Mini Agent 访问你的仓库</div>
+        </div>
+      </div>
+      <div class="gh-form">
+        <label class="gh-label" for="ghToken">Personal Access Token</label>
+        <input class="gh-input" id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+        <p class="gh-hint">
+          在
+          <a href="https://github.com/settings/tokens/new?scopes=repo,read:org&description=Mini%20Agent" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;font-weight:700">github.com/settings/tokens/new</a>
+          创建 Token，勾选 <code>repo</code> 权限即可。
+        </p>
+      </div>
+      <div class="gh-actions">
+        <button class="gh-cancel" id="ghCancel">取消</button>
+        <button class="gh-connect" id="ghConnect">连接</button>
+      </div>
+      <div class="gh-status" id="ghStatus"></div>
     </div>
   </div>
 
@@ -1734,7 +1837,67 @@
     chat.appendChild(wrap); chat.scrollTop = chat.scrollHeight;
   }
 
-  // ===== 🔌 连接器面板（参考 Manus） =====
+  // ===== 🔗 GitHub 连接弹窗 =====
+  const ghOverlay = document.getElementById('ghOverlay');
+  const ghModal   = document.getElementById('ghModal');
+  const ghToken    = document.getElementById('ghToken');
+  const ghStatus   = document.getElementById('ghStatus');
+  let ghPendingConnId = null;
+
+  function openGithubConnectModal() {
+    ghPendingConnId = 'github';
+    ghToken.value = '';
+    ghStatus.textContent = '';
+    ghStatus.className = 'gh-status';
+    ghOverlay.classList.add('open');
+    ghModal.classList.add('open');
+    setTimeout(() => ghToken.focus(), 280);
+  }
+  function closeGithubModal() {
+    ghOverlay.classList.remove('open');
+    ghModal.classList.remove('open');
+    ghToken.value = '';
+    ghStatus.textContent = '';
+    ghStatus.className = 'gh-status';
+    ghPendingConnId = null;
+  }
+  ghOverlay.addEventListener('click', closeGithubModal);
+  document.getElementById('ghClose').addEventListener('click', closeGithubModal);
+  document.getElementById('ghCancel').addEventListener('click', closeGithubModal);
+  // ESC 关闭
+  ghToken.addEventListener('keydown', e => { if (e.key === 'Escape') closeGithubModal(); });
+  // 连接按钮
+  document.getElementById('ghConnect').addEventListener('click', async () => {
+    const token = ghToken.value.trim();
+    if (!token || token.length < 10) { ghStatus.textContent = '请输入有效的 Token'; ghStatus.className = 'gh-status err'; return; }
+    ghStatus.textContent = '⏳ 正在验证…';
+    ghStatus.className = 'gh-status';
+    try {
+      showTyping();
+      const r = await fetch(`${API_BASE}/connectors/github/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: { token } }),
+      });
+      removeTyping();
+      const data = await r.json();
+      if (data.connected) {
+        ghStatus.innerHTML = '<span class="ok">✅ GitHub 连接成功！</span>';
+        setTimeout(() => { closeGithubModal(); loadConnectors(); }, 1000);
+      } else {
+        ghStatus.textContent = data.message || data.detail || '连接失败';
+        ghStatus.className = 'gh-status err';
+      }
+    } catch (e) {
+      removeTyping();
+      ghStatus.textContent = '连接失败：' + e.message;
+      ghStatus.className = 'gh-status err';
+    }
+  });
+  // Enter 键触发连接
+  ghToken.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('ghConnect').click(); });
+
+  // ===== 🧩 插件面板（参考 Manus） =====
   const connOverlay = document.getElementById('connOverlay');
   const connPanel = document.getElementById('connPanel');
   const connGrid = document.getElementById('connGrid');
@@ -1765,7 +1928,7 @@
     connOverlay.classList.remove('open'); connPanel.classList.remove('open'); }
   connOverlay.addEventListener('click', closeConnectors);
   document.getElementById('connClose').addEventListener('click', closeConnectors);
-  // 侧边栏「连接器」入口（精确绑定，避免 :last-of-type 选错元素）
+  // 侧边栏「插件」入口（精确绑定，避免 :last-of-type 选错元素）
   document.getElementById('connNav').addEventListener('click', openConnectors);
 
   async function loadConnectors() {
@@ -1774,11 +1937,11 @@
       const data = await r.json();
       connectorsData = data.connectors || [];
       renderConnPage();
-    } catch (e) { connGrid.innerHTML = '<div class="empty-hint">加载连接器失败</div>'; }
+    } catch (e) { connGrid.innerHTML = '<div class="empty-hint">加载插件失败</div>'; }
   }
 
   function renderConnPage() {
-    if (!connectorsData.length) { connGrid.innerHTML = '<div class="empty-hint">暂无可用连接器</div>'; return; }
+    if (!connectorsData.length) { connGrid.innerHTML = '<div class="empty-hint">暂无可用插件</div>'; return; }
     const start = connPage * CONN_PER_PAGE;
     const page = connectorsData.slice(start, start + CONN_PER_PAGE);
     connGrid.innerHTML = page.map(c => {
@@ -1794,7 +1957,7 @@
             <div class="conn-desc">${escapeHtml(c.desc)}</div>
             ${c.url ? `<a class="conn-link" href="${escapeAttr(c.url)}" target="_blank" rel="noopener noreferrer" title="打开 ${escapeHtml(c.name)}" onclick="event.stopPropagation()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;vertical-align:-2px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              打开 Gmail
+              打开${escapeHtml(c.name)}
             </a>` : ''}
           </div>
           ${connected
@@ -1827,9 +1990,9 @@
     // 连接 —— 需要配置的先弹输入框，否则直接 POST
     let config = null;
     if (connId === 'github') {
-      const token = prompt(`请输入 GitHub Personal Access Token：\n(在 github.com/settings/tokens 创建)`);
-      if (!token) return; config = { token };
-    } else if (connId === 'gmail') {
+      // 打开 GitHub 连接弹窗（替代 prompt）
+      openGithubConnectModal();
+      return;
       const key = prompt('请输入 Gmail API Key 或 OAuth 凭据（演示可随意填）：');
       if (!key === null) return; config = { api_key: key };
     } else if (connId === 'notion') {
