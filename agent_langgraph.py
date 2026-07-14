@@ -44,11 +44,26 @@ from langchain_core.tools import StructuredTool
 from tools import TOOL_FUNCTIONS, TOOL_SCHEMAS
 from memory import relevant_context
 
+# ===== 家教模式（TUTOR_MODE）：开启后把系统人设切换为 K12 私教 =====
+# 提示词放在 prompts/tutor.md，启动时一次性读取缓存。
+_TUTOR_MODE = os.getenv("TUTOR_MODE", "false").lower() in ("1", "true", "yes", "on")
+_TUTOR_PROMPT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts", "tutor.md")
+_TUTOR_PROMPT = ""
+if _TUTOR_MODE:
+    try:
+        with open(_TUTOR_PROMPT_PATH, "r", encoding="utf-8") as _f:
+            _TUTOR_PROMPT = _f.read().strip()
+        print(f"[Tutor] 家教模式已开启，加载提示词 {len(_TUTOR_PROMPT)} 字")
+    except Exception as _e:
+        print(f"[Tutor] 加载提示词失败，回退通用模式: {_e}")
+        _TUTOR_MODE = False
+
 
 # ===== 哪些工具需要"人类审批"后才能执行（有副作用 / 会写入持久化数据） =====
 # 计算、查时间、查天气、联网搜索、读笔记、回忆记忆 —— 都是只读/无副作用，自动放行。
 # 写笔记、写长期记忆 —— 会改变外部状态，先问人类一声。
-HUMAN_APPROVAL_TOOLS = {"save_note", "save_memory"}
+# 家教模式下，save_memory 自动放行（私教需要无感记下学生学情，频繁弹审批会打断教学）。
+HUMAN_APPROVAL_TOOLS = ({"save_note"} if _TUTOR_MODE else {"save_note", "save_memory"})
 
 
 # ---------------- 把现有工具的 JSON Schema 转换成 LangChain 需要的 pydantic 模型 ----------------
@@ -458,6 +473,8 @@ class Agent:
         """
         if self._system_override:
             base = self._system_override
+        elif _TUTOR_MODE:
+            base = _TUTOR_PROMPT
         else:
             base = (
                 "你是一个乐于助人的中文助理，能调用工具完成任务。"
