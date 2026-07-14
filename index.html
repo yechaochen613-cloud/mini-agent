@@ -280,7 +280,7 @@
     box-shadow: 0 0 0 1px rgba(99,102,241,0.25), 0 4px 14px rgba(99,102,241,0.35);
   }
   .msg.bot .avatar .bot-glyph {
-    font-size: 17px; line-height: 1;
+    display: grid; place-items: center;
     animation: thinkFloat 2.4s ease-in-out infinite;
   }
   .msg.bot .avatar .signal-ring {
@@ -851,10 +851,10 @@
     display: inline-flex; align-items: center; justify-content: center;
     width: 26px; height: 26px; border-radius: 50%;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    font-size: 15px; line-height: 1;
     margin-right: 6px; vertical-align: middle;
     box-shadow: 0 2px 8px rgba(99,102,241,0.35);
     animation: thinkFloat 2.4s ease-in-out infinite;
+    overflow: hidden;
   }
   @keyframes pulse { 0%,100%{ opacity:.35; transform:scale(.8);} 50%{ opacity:1; transform:scale(1.25);} }
   /* ===== 通用模态框（升级 / 快捷键） ===== */
@@ -1492,9 +1492,21 @@
     return wrap;
   }
 
-  // 常驻 bot 头像：冥想图标 + 信号波纹
+  // 常驻 bot 头像：卡通老师 + 信号波纹
   function botAvatarHTML() {
-    return '<span class="signal-ring"></span><span class="signal-ring"></span><span class="bot-glyph">🧘</span>';
+    return '<span class="signal-ring"></span><span class="signal-ring"></span><span class="bot-glyph">' +
+      '<svg viewBox="0 0 100 100" width="20" height="20" xmlns="http://www.w3.org/2000/svg">' +
+        '<defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs>' +
+        '<circle cx="50" cy="50" r="46" fill="#fef3c7"/>' +
+        '<ellipse cx="50" cy="38" rx="34" ry="30" fill="#4b5563"/>' + // 头发
+        '<path d="M22 42 Q50 58 78 42" fill="#4b5563"/>' + // 刘海
+        '<circle cx="50" cy="56" r="28" fill="#fde68a"/>' + // 脸
+        '<circle cx="39" cy="53" r="5.5" fill="#1f2937"/><circle cx="61" cy="53" r="5.5" fill="#1f2937"/>' + // 眼睛
+        '<rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' + // 左镜框
+        '<rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' + // 右镜框
+        '<line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/>' + // 鼻梁架
+        '<path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/>' + // 微笑嘴
+      '</svg></span>';
   }
 
   // 文档内联卡片（参考 Manus：文件直接出现在对话里）
@@ -1525,7 +1537,7 @@
                <div class="signal-ring"></div>
                <div class="signal-ring"></div>
                <div class="signal-ring"></div>
-               <span class="think-icon">🧘</span>
+               <span class="think-icon"><svg viewBox="0 0 100 100" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#fef3c7"/><ellipse cx="50" cy="38" rx="34" ry="30" fill="#4b5563"/><path d="M22 42 Q50 58 78 42" fill="#4b5563"/><circle cx="50" cy="56" r="28" fill="#fde68a"/><circle cx="39" cy="53" r="5.5" fill="#1f2937"/><circle cx="61" cy="53" r="5.5" fill="#1f2937"/><rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/><rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/><line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/><path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/></svg></span>
              </div>
              <div class="think-text">
                <div class="think-label">
@@ -1582,7 +1594,15 @@
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble"><div class="md"></div></div>
       <div class="steps-block live">
-        <div class="steps-head"><span class="think-head-icon">🧘</span><span>正在思考中...</span><span class="step-count" style="margin-left:auto">0 / 0</span></div>
+        <div class="steps-head"><span class="think-head-icon">' +
+      '<svg viewBox="0 0 100 100" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="tg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs>' +
+      '<circle cx="50" cy="50" r="46" fill="#fef3c7"/><ellipse cx="50" cy="38" rx="34" ry="30" fill="#4b5563"/>' +
+      '<path d="M22 42 Q50 58 78 42" fill="#4b5563"/><circle cx="50" cy="56" r="28" fill="#fde68a"/>' +
+      '<circle cx="39" cy="53" r="5.5" fill="#1f2937"/><circle cx="61" cy="53" r="5.5" fill="#1f2937"/>' +
+      '<rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' +
+      '<rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' +
+      '<line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/>' +
+      '<path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>正在思考中...</span><span class="step-count" style="margin-left:auto">0 / 0</span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
