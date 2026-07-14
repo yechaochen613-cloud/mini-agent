@@ -756,7 +756,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-14-postgres-persist"
+DEPLOY_TAG = "2026-07-14-tutor-phase2"
 
 
 # ===== GitHub OAuth 授权流程 =====
