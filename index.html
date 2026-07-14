@@ -1890,38 +1890,37 @@
   document.getElementById('ghClose').addEventListener('click', closeGithubModal);
   document.getElementById('ghCancel').addEventListener('click', closeGithubModal);
 
-  // OAuth：跳转到 GitHub 授权页
-  ghBtnOAuth.addEventListener('click', () => {
-    ghStatus.textContent = '⏳ 正在跳转到 GitHub 授权页面…';
-    ghStatus.className = 'gh-status';
-    // 打开新窗口进行授权（不离开当前页面）
-    ghOAuthWindow = window.open(`${API_BASE}/auth/github`, 'github-oauth', 'width=900,height=700,scrollbars=yes,resizable=yes');
-    if (!ghOAuthWindow || ghOAuthWindow.closed) {
-      // 弹窗被拦截，回退到当前窗口跳转
-      window.location.href = `${API_BASE}/auth/github`;
-    } else {
-      // 轮询检测授权窗口关闭（用户完成授权后会自动关闭并回调）
-      const poll = setInterval(() => {
-        if (!ghOAuthWindow || ghOAuthWindow.closed) {
+  // OAuth：主页面轮询检测 GitHub 是否已连接（回调会把 token 写入 DB）
+  function startGithubOAuthPoll() {
+    const deadline = Date.now() + 5 * 60 * 1000; // 最多等 5 分钟
+    const poll = setInterval(async () => {
+      if (Date.now() > deadline) { clearInterval(poll); return; }
+      try {
+        const r = await fetch(`${API_BASE}/connectors/github`);
+        const data = await r.json();
+        if (data.connected) {
           clearInterval(poll);
-          ghOAuthWindow = null;
-          // 给一点时间让回调处理完
-          setTimeout(async () => {
-            try {
-              const r = await fetch(`${API_BASE}/connectors/github`);
-              const data = await r.json();
-              if (data.connected) {
-                ghStatus.innerHTML = `<span class="ok">✅ GitHub 已连接（@${data.config?.login || ''}）</span>`;
-                setTimeout(() => { closeGithubModal(); loadConnectors(); }, 1200);
-              } else {
-                ghStatus.textContent = '授权似乎未完成，请重试或使用 Token 方式';
-                ghStatus.className = 'gh-status err';
-              }
-            } catch { /* ignore */ }
-          }, 800);
+          toast(`✅ GitHub 已连接 (@${data.config?.login || ''})`);
+          loadConnectors();
         }
-      }, 600);
+      } catch { /* ignore，下一轮重试 */ }
+    }, 2000);
+  }
+
+  // OAuth：跳转到 GitHub 授权页（开新标签页，主页面轮询检测连接状态）
+  ghBtnOAuth.addEventListener('click', () => {
+    const url = `${API_BASE}/auth/github`;
+    // 先关掉当前弹窗，避免卡在"正在跳转"状态
+    closeGithubModal();
+    // 开新标签页去 GitHub 官方授权页（可靠、可见，不会被小弹窗遮挡/拦截）
+    const w = window.open(url, '_blank');
+    if (!w) {
+      // 极端情况：新标签被浏览器拦截，退回到当前页直接跳转
+      window.location.href = url;
+      return;
     }
+    toast('已在新标签页打开 GitHub 授权页，请完成授权后自动连接 👉');
+    startGithubOAuthPoll();
   });
 
   // 切换到 PAT 手动输入模式
@@ -1974,6 +1973,10 @@
       toast(`✅ GitHub 已连接 (@${login})`);
       history.replaceState(null, '', location.pathname); // 清除 hash
       loadConnectors(); // 刷新插件面板状态
+      // 若本页是授权完成后回弹的标签页（由主页面 window.open 打开），自动关闭
+      if (window.opener) {
+        setTimeout(() => { try { window.close(); } catch (e) {} }, 1500);
+      }
     }
   }
   window.addEventListener('hashchange', checkGithubCallback);
