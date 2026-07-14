@@ -686,7 +686,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-13-github-oauth"
+DEPLOY_TAG = "2026-07-14-tutor-phase1"
 
 
 # ===== GitHub OAuth 授权流程 =====
