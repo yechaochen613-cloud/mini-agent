@@ -271,6 +271,24 @@
   .msg.user { flex-direction: row-reverse; }
   .msg.user .avatar { background: var(--accent-soft); border-color: transparent; }
   .msg.user .msg-col { align-items: flex-end; }
+  /* 常驻 bot 头像：冥想 + 发出信号 */
+  .msg.bot .avatar {
+    position: relative; overflow: visible;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-color: transparent;
+    box-shadow: 0 0 0 1px rgba(99,102,241,0.25), 0 4px 14px rgba(99,102,241,0.35);
+  }
+  .msg.bot .avatar .bot-glyph {
+    font-size: 17px; line-height: 1;
+    animation: thinkFloat 2.4s ease-in-out infinite;
+  }
+  .msg.bot .avatar .signal-ring {
+    position: absolute; inset: -3px; border-radius: 50%;
+    border: 1.5px solid rgba(139,92,246,0.40);
+    animation: signalPulse 2.6s ease-out infinite;
+  }
+  .msg.bot .avatar .signal-ring:nth-child(2) { animation-delay: .9s; }
   .msg.user .bubble { background: var(--accent); color: var(--on-accent); border-color: transparent; border-bottom-right-radius: 5px; white-space: pre-wrap; word-break: break-word; }
   .msg.bot .bubble { background: var(--surface); border-bottom-left-radius: 5px; }
   .msg.system { justify-content: center; }
@@ -1430,7 +1448,7 @@
   function addMessage(role, text, steps) {
     const wrap = document.createElement('div');
     wrap.className = `msg ${role}`;
-    const avatar = role === 'user' ? '🧑' : '🤖';
+    const avatar = role === 'user' ? '🧑' : botAvatarHTML();
     let inner = `<div class="avatar">${avatar}</div><div class="msg-col">`;
     if (role === 'bot') {
       inner += `<div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>`;
@@ -1466,6 +1484,11 @@
     return wrap;
   }
 
+  // 常驻 bot 头像：冥想图标 + 信号波纹
+  function botAvatarHTML() {
+    return '<span class="signal-ring"></span><span class="signal-ring"></span><span class="bot-glyph">🧘</span>';
+  }
+
   // 文档内联卡片（参考 Manus：文件直接出现在对话里）
   function addFileCard(doc) {
     const wrap = document.createElement('div');
@@ -1483,7 +1506,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'msg bot'; wrap.id = 'typing';
     wrap.innerHTML =
-      `<div class="avatar">🤖</div>
+      `<div class="avatar">${botAvatarHTML()}</div>
        <div class="msg-col">
          <div class="msg-head">
            <span class="model-badge"><span class="mb-dot"></span>Mini Agent</span>
@@ -1547,7 +1570,7 @@
   function addStreamingMessage() {
     const wrap = document.createElement('div');
     wrap.className = 'msg bot';
-    wrap.innerHTML = `<div class="avatar">🤖</div><div class="msg-col">
+    wrap.innerHTML = `<div class="avatar">${botAvatarHTML()}</div><div class="msg-col">
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble"><div class="md"></div></div>
       <div class="steps-block live">
@@ -1688,7 +1711,7 @@
           <button class="no" data-act="${escapeHtml(a.id)}" data-mode="reject">✗ 拒绝此条</button>
         </div>
       </div>`).join('');
-    wrap.innerHTML = `<div class="avatar">🤖</div><div class="msg-col">
+    wrap.innerHTML = `<div class="avatar">${botAvatarHTML()}</div><div class="msg-col">
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble"><div class="review" id="reviewCard">
         <div class="rhead">⚠️ Agent 想执行以下操作，需要你确认</div>
