@@ -11,6 +11,12 @@ import tempfile
 import httpx
 from urllib.parse import quote
 from memory import add_memory, search_memory
+from tutor import (
+    get_profile as _get_profile,
+    update_profile as _update_profile,
+    analyze_exam_paper as _analyze_exam_paper,
+    make_study_plan as _make_study_plan,
+)
 
 from storage import DATA_DIR
 
@@ -249,6 +255,33 @@ def delegate_subagent(sub_agent_id: str, task: str) -> str:
     return run_sub_agent(sub_agent_id, task, session_id=None, mock=mock)
 
 
+# ===== 教辅工具（私人家教：学情档案 + 试卷分析 + 提升计划） =====
+
+def get_learning_profile() -> str:
+    """读取当前学生的学情档案（姓名、年级、各科掌握度、薄弱点、优势、目标）。家教对话中用它了解学生底数。"""
+    return json.dumps(_get_profile(), ensure_ascii=False)
+
+
+def update_learning_profile(profile_json: str) -> str:
+    """更新学情档案。传入 JSON 字符串，可包含：name(姓名)、grade(年级)、subjects(学科:掌握度0-100的字典)、weak_points(薄弱点列表)、strengths(优势列表)、goals(目标列表)。会自动合并去重。"""
+    try:
+        data = json.loads(profile_json)
+    except Exception as e:
+        return f"参数不是合法 JSON：{e}"
+    _update_profile(data)
+    return "已更新学情档案 ✅"
+
+
+def analyze_exam_paper(doc_id: str) -> str:
+    """分析一篇已上传的试卷/作业（doc_id 来自 list_uploaded_documents）。自动提取文字、评估各科掌握度与薄弱点、给出针对性建议，并写入学情档案。返回人类可读的分析摘要。"""
+    return _analyze_exam_paper(doc_id)
+
+
+def make_study_plan(goal: str = "", days: int = 14) -> str:
+    """基于学情档案与历史试卷，生成针对性提升计划。goal 为目标描述（可空），days 为周期天数（默认14）。返回 JSON 计划（含每日主题与任务、给家长的陪伴建议）。"""
+    return _make_study_plan(goal=goal, days=days)
+
+
 # 用名字查函数，Agent Loop 调工具时就靠这个字典
 TOOL_FUNCTIONS = {
     "calculator": calculator,
@@ -267,6 +300,10 @@ TOOL_FUNCTIONS = {
     "extract_document_clauses": extract_document_clauses,
     "compare_two_documents": compare_two_documents,
     "delegate_subagent": delegate_subagent,
+    "get_learning_profile": get_learning_profile,
+    "update_learning_profile": update_learning_profile,
+    "analyze_exam_paper": analyze_exam_paper,
+    "make_study_plan": make_study_plan,
 }
 
 # 给大模型看的"工具清单"（OpenAI 兼容格式）
@@ -483,6 +520,56 @@ TOOL_SCHEMAS = [
                     "task": {"type": "string", "description": "要交给子智能体做的具体任务描述"}
                 },
                 "required": ["sub_agent_id", "task"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_learning_profile",
+            "description": "读取当前学生的学情档案，返回姓名/年级/各科掌握度/薄弱点/优势/目标。开始辅导或想了解学生底数时调用。",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_learning_profile",
+            "description": "更新学情档案。传 JSON，可含 name(姓名)、grade(年级)、subjects(学科:掌握度0-100字典)、weak_points(薄弱点列表)、strengths(优势列表)、goals(目标列表)。自动合并去重。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "profile_json": {"type": "string", "description": "学情档案 JSON 字符串，例如 '{\"grade\":\"初二\",\"weak_points\":[\"二次函数\"],\"subjects\":{\"数学\":65}}'"}
+                },
+                "required": ["profile_json"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_exam_paper",
+            "description": "分析一篇已上传的试卷/作业（doc_id 来自 list_uploaded_documents）。自动提取文字、评估掌握度与薄弱点、给建议，并写入学情档案。返回人类可读的分析摘要。学生上传试卷后调用它。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {"type": "string", "description": "试卷文档 id（来自 list_uploaded_documents）"}
+                },
+                "required": ["doc_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "make_study_plan",
+            "description": "基于学情档案与历史试卷生成针对性提升计划。goal 为目标(可空)，days 为周期天数(默认14)。返回 JSON 计划（每日主题/任务、家长陪伴建议）。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "goal": {"type": "string", "description": "学习目标，例如『期末数学提高到85分』（可空）"},
+                    "days": {"type": "integer", "description": "计划周期天数，默认 14"}
+                },
             },
         },
     },

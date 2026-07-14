@@ -578,6 +578,76 @@ def memory_clear():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ===== 学情档案 + 试卷分析（私人家教 Phase 2） =====
+class ProfileUpdate(BaseModel):
+    name: str = ""
+    grade: str = ""
+    subjects: dict = {}
+    weak_points: list = []
+    strengths: list = []
+    goals: list = []
+
+
+class PaperAnalyze(BaseModel):
+    doc_id: str
+
+
+class PlanCreate(BaseModel):
+    goal: str = ""
+    days: int = 14
+
+
+@app.get("/profile")
+def get_profile_route():
+    """读取学情档案。"""
+    from tutor import get_profile
+    return {"profile": get_profile()}
+
+
+@app.post("/profile")
+def update_profile_route(req: ProfileUpdate):
+    """局部更新学情档案。"""
+    from tutor import update_profile
+    partial = {k: v for k, v in req.dict().items() if v not in (None, "", [], {})}
+    return {"profile": update_profile(partial)}
+
+
+@app.get("/papers")
+def list_papers_route():
+    """列出已分析的试卷（不含全文）。"""
+    from tutor import list_papers
+    return {"papers": list_papers()}
+
+
+@app.post("/analyze-paper")
+def analyze_paper_route(req: PaperAnalyze):
+    """分析一篇已上传的试卷文档，更新学情档案，返回分析摘要与分析结果。"""
+    from tutor import analyze_exam_paper, get_profile
+    try:
+        summary = analyze_exam_paper(req.doc_id)
+        # 返回结构：摘要文本 + 最新档案 + 最近一份试卷分析
+        from tutor import list_papers
+        papers = list_papers()
+        return {
+            "summary": summary,
+            "profile": get_profile(),
+            "paper": papers[0] if papers else None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"试卷分析失败：{e}")
+
+
+@app.post("/study-plan")
+def study_plan_route(req: PlanCreate):
+    """基于学情档案与历史试卷生成针对性提升计划（JSON）。"""
+    from tutor import make_study_plan
+    try:
+        plan = make_study_plan(goal=req.goal, days=req.days)
+        return {"plan": json.loads(plan) if isinstance(plan, str) else plan}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"生成计划失败：{e}")
+
+
 # ===== 定时任务（Schedules） =====
 class ScheduleCreate(BaseModel):
     title: str = "定时任务"

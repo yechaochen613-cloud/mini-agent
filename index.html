@@ -508,6 +508,44 @@
   }
   @media (max-width: 680px) { .conn-grid { grid-template-columns: 1fr; } }
 
+  /* ===== 学情档案面板（私人家教 Phase 2） ===== */
+  .pf-sec { margin-bottom: 22px; }
+  .pf-sec-title { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .pf-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pf-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; min-width: 120px; }
+  .pf-input:focus { outline: none; border-color: var(--accent); }
+  .pf-bar-row { margin-bottom: 12px; }
+  .pf-bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+  .pf-bar-label b { font-weight: 700; }
+  .pf-bar-track { height: 9px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .pf-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #fff)); transition: width .7s var(--ease); }
+  .pf-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pf-chip { font-size: 12.5px; padding: 5px 11px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .pf-chip.weak { border-color: color-mix(in srgb, #ef4444 45%, var(--border)); color: #ef4444; background: color-mix(in srgb, #ef4444 9%, var(--surface)); }
+  .pf-chip.strong { border-color: color-mix(in srgb, #22c55e 45%, var(--border)); color: #22c55e; background: color-mix(in srgb, #22c55e 9%, var(--surface)); }
+  .pf-upload { border: 1.5px dashed var(--border); border-radius: 14px; padding: 18px; text-align: center; transition: border-color .2s var(--ease); }
+  .pf-upload:hover { border-color: var(--accent); }
+  .pf-upload input { display: none; }
+  .pf-upload label { cursor: pointer; color: var(--accent); font-weight: 700; }
+  .pf-upload .pf-hint { color: var(--text-dim); font-size: 12.5px; margin-top: 8px; }
+  .pf-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .18s var(--ease); }
+  .pf-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .pf-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .pf-btn.primary:hover { filter: brightness(1.06); color: #fff; }
+  .pf-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .pf-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pf-paper { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 11px; margin-bottom: 9px; font-size: 13px; }
+  .pf-paper .pf-pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pf-paper .pf-psub { color: var(--text-dim); font-size: 12px; }
+  .pf-result { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; line-height: 1.75; white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+  .pf-plan { white-space: pre-wrap; font-size: 13.5px; line-height: 1.7; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; max-height: 340px; overflow-y: auto; }
+  .pf-plan h4 { margin: 12px 0 6px; font-size: 14px; }
+  .pf-plan .pf-day { font-weight: 700; color: var(--accent); margin-top: 10px; }
+  .pf-plan ul { margin: 4px 0 4px 18px; padding: 0; }
+  .pf-plan li { margin: 3px 0; }
+  .pf-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 18px; }
+  .pf-loading { color: var(--accent); font-size: 13px; padding: 12px 0; }
+
   /* ===== 账户面板（玻璃拟态居中 modal） ===== */
   .acc-overlay {
     position: fixed; inset: 0; z-index: 60;
@@ -868,6 +906,7 @@
         <button class="nav-item" id="newChat"><span class="ni-ic">＋</span> 新建对话</button>
         <div class="nav-item" id="agentNav"><span class="ni-ic">🤖</span> Agent</div>
         <div class="nav-item" id="connNav"><span class="ni-ic">🧩</span> 插件</div>
+        <div class="nav-item" id="profileNav"><span class="ni-ic">📊</span> 学情档案</div>
         <div class="nav-item" id="schedNav"><span class="ni-ic">⏰</span> 定时任务</div>
         <div class="nav-item" id="libNav"><span class="ni-ic">📚</span> 库</div>
         <div class="nav-item" id="subNav"><span class="ni-ic">🧩</span> 子智能体</div>
@@ -991,6 +1030,76 @@
     </div>
     <div class="conn-body">
       <div class="conn-grid" id="connGrid"><!-- JS 动态渲染 --></div>
+    </div>
+  </div>
+
+  <!-- 学情档案面板（私人家教 Phase 2） -->
+  <div class="conn-overlay" id="profileOverlay"></div>
+  <div class="conn-panel" id="profilePanel">
+    <div class="conn-head">
+      <div class="conn-head-left">
+        <h2>📊 学情档案</h2>
+        <p>掌握度、薄弱点与针对性提升计划，自动随每次辅导更新。</p>
+      </div>
+      <div class="conn-head-right">
+        <button class="conn-close" id="profileClose" title="关闭">✕</button>
+      </div>
+    </div>
+    <div class="conn-body">
+      <!-- 学生信息 -->
+      <div class="pf-sec">
+        <div class="pf-sec-title">👤 学生信息</div>
+        <div class="pf-meta">
+          <input class="pf-input" id="pfName" placeholder="姓名" />
+          <input class="pf-input" id="pfGrade" placeholder="年级，如 初二" />
+          <button class="pf-btn primary" id="pfSaveInfo">保存</button>
+        </div>
+      </div>
+
+      <!-- 各科掌握度 -->
+      <div class="pf-sec">
+        <div class="pf-sec-title">📈 各科掌握度</div>
+        <div id="pfBars"><div class="pf-empty">暂无数据，上传试卷或辅导后自动生成</div></div>
+      </div>
+
+      <!-- 薄弱点 / 优势 -->
+      <div class="pf-sec">
+        <div class="pf-sec-title">🎯 薄弱点 &amp; 优势</div>
+        <div id="pfChips"><div class="pf-empty">暂无记录</div></div>
+      </div>
+
+      <!-- 上传试卷 -->
+      <div class="pf-sec">
+        <div class="pf-sec-title">📄 上传试卷（自动分析学情）</div>
+        <div class="pf-upload">
+          <label for="pfFile">＋ 选择试卷文件（PDF / Word / 图片）</label>
+          <input type="file" id="pfFile" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.md" />
+          <div class="pf-hint">支持期中/期末试卷、作业。分析后自动更新上方掌握度与薄弱点。</div>
+        </div>
+        <div class="pf-row" style="margin-top:12px">
+          <button class="pf-btn primary" id="pfAnalyze" disabled>分析试卷</button>
+          <span id="pfAnalyzeHint" class="pf-hint"></span>
+        </div>
+        <div id="pfResult" style="margin-top:12px"></div>
+      </div>
+
+      <!-- 历史试卷 -->
+      <div class="pf-sec">
+        <div class="pf-sec-title">🗂 历史试卷（<span id="pfPaperCount">0</span> 份）</div>
+        <div id="pfPapers"><div class="pf-empty">还没有分析过的试卷</div></div>
+      </div>
+
+      <!-- 提升计划 -->
+      <div class="pf-sec">
+        <div class="pf-sec-title">🚀 针对性提升计划</div>
+        <div class="pf-row" style="margin-bottom:12px">
+          <input class="pf-input" id="pfGoal" placeholder="目标（可空），如 期末数学到85分" style="flex:1;min-width:160px" />
+          <input class="pf-input" id="pfDays" type="number" value="14" min="3" max="60" style="width:80px" />
+          <span class="pf-hint">天</span>
+          <button class="pf-btn primary" id="pfPlan">生成计划</button>
+        </div>
+        <div id="pfPlanOut"><div class="pf-empty">点「生成计划」获得可执行的复习安排</div></div>
+      </div>
     </div>
   </div>
 
@@ -2016,6 +2125,178 @@
   document.getElementById('connClose').addEventListener('click', closeConnectors);
   // 侧边栏「插件」入口（精确绑定，避免 :last-of-type 选错元素）
   document.getElementById('connNav').addEventListener('click', openConnectors);
+
+  // ===== 📊 学情档案面板（私人家教 Phase 2） =====
+  const profileOverlay = document.getElementById('profileOverlay');
+  const profilePanel = document.getElementById('profilePanel');
+  const pfBars = document.getElementById('pfBars');
+  const pfChips = document.getElementById('pfChips');
+  const pfPapers = document.getElementById('pfPapers');
+  const pfResult = document.getElementById('pfResult');
+  const pfPlanOut = document.getElementById('pfPlanOut');
+  const pfFile = document.getElementById('pfFile');
+  const pfAnalyze = document.getElementById('pfAnalyze');
+  const pfAnalyzeHint = document.getElementById('pfAnalyzeHint');
+  let _pendingDocId = null;
+
+  function openProfile() {
+    loadProfile(); loadPapers();
+    profileOverlay.classList.add('open'); profilePanel.classList.add('open');
+  }
+  function closeProfile() {
+    profileOverlay.classList.remove('open'); profilePanel.classList.remove('open');
+  }
+  profileOverlay.addEventListener('click', closeProfile);
+  document.getElementById('profileClose').addEventListener('click', closeProfile);
+  document.getElementById('profileNav').addEventListener('click', openProfile);
+
+  function renderBars(subjects) {
+    const keys = Object.keys(subjects || {});
+    if (!keys.length) {
+      pfBars.innerHTML = '<div class="pf-empty">暂无数据，上传试卷或辅导后自动生成</div>';
+      return;
+    }
+    pfBars.innerHTML = keys.map(k => {
+      const v = Math.max(0, Math.min(100, Math.round(subjects[k])));
+      return `<div class="pf-bar-row">
+        <div class="pf-bar-label"><span>${k}</span><b>${v}%</b></div>
+        <div class="pf-bar-track"><div class="pf-bar-fill" style="width:${v}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderChips(profile) {
+    const weak = (profile.weak_points || []);
+    const strong = (profile.strengths || []);
+    if (!weak.length && !strong.length) {
+      pfChips.innerHTML = '<div class="pf-empty">暂无记录</div>';
+      return;
+    }
+    let html = weak.map(w => `<span class="pf-chip weak">${w}</span>`).join('');
+    html += strong.map(s => `<span class="pf-chip strong">${s}</span>`).join('');
+    pfChips.innerHTML = html;
+  }
+
+  async function loadProfile() {
+    try {
+      const r = await fetch(`${API_BASE}/profile`);
+      const data = await r.json();
+      const p = data.profile || {};
+      document.getElementById('pfName').value = p.name || '';
+      document.getElementById('pfGrade').value = p.grade || '';
+      renderBars(p.subjects);
+      renderChips(p);
+    } catch (e) { /* 静默 */ }
+  }
+
+  async function loadPapers() {
+    try {
+      const r = await fetch(`${API_BASE}/papers`);
+      const data = await r.json();
+      const list = data.papers || [];
+      document.getElementById('pfPaperCount').textContent = list.length;
+      if (!list.length) {
+        pfPapers.innerHTML = '<div class="pf-empty">还没有分析过的试卷</div>';
+        return;
+      }
+      pfPapers.innerHTML = list.map(p => `
+        <div class="pf-paper">
+          <div style="min-width:0;flex:1">
+            <div class="pf-pname">${p.filename || '试卷'}</div>
+            <div class="pf-psub">${(p.subject || '') + (p.grade ? ' · ' + p.grade : '')} · ${p.created_at || ''}</div>
+          </div>
+          <span class="pf-chip weak" style="flex-shrink:0">${(p.weak_points || []).slice(0,2).join('、') || '—'}</span>
+        </div>`).join('');
+    } catch (e) { pfPapers.innerHTML = '<div class="pf-empty">加载失败</div>'; }
+  }
+
+  document.getElementById('pfSaveInfo').addEventListener('click', async () => {
+    const name = document.getElementById('pfName').value.trim();
+    const grade = document.getElementById('pfGrade').value.trim();
+    try {
+      await fetch(`${API_BASE}/profile`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, grade })
+      });
+      toast('已保存学生信息 ✅');
+      loadProfile();
+    } catch (e) { toast('保存失败'); }
+  });
+
+  pfFile.addEventListener('change', () => {
+    const f = pfFile.files && pfFile.files[0];
+    if (f) {
+      pfAnalyze.disabled = false;
+      pfAnalyzeHint.textContent = '已选：' + f.name;
+      _pendingDocId = null;
+    } else {
+      pfAnalyze.disabled = true;
+      pfAnalyzeHint.textContent = '';
+    }
+  });
+
+  pfAnalyze.addEventListener('click', async () => {
+    const f = pfFile.files && pfFile.files[0];
+    if (!f) return;
+    pfAnalyze.disabled = true;
+    pfResult.innerHTML = '<div class="pf-loading">⏳ 上传并分析中，请稍候（大模型阅卷中）…</div>';
+    try {
+      const fd = new FormData();
+      fd.append('files', f);
+      const up = await fetch(`${API_BASE}/upload`, { method: 'POST', body: fd });
+      const upData = await up.json();
+      const doc = upData.docs && upData.docs[0];
+      if (!doc) throw new Error('上传失败');
+      const an = await fetch(`${API_BASE}/analyze-paper`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_id: doc.id })
+      });
+      const anData = await an.json();
+      pfResult.innerHTML = `<div class="pf-result">${escapeHtml(anData.summary || '分析完成')}</div>`;
+      loadProfile(); loadPapers();
+      toast('试卷分析完成 ✅');
+    } catch (e) {
+      pfResult.innerHTML = `<div class="pf-result">⚠️ 分析失败：${e.message || e}</div>`;
+    } finally {
+      pfAnalyze.disabled = false;
+      pfFile.value = '';
+      pfAnalyzeHint.textContent = '';
+    }
+  });
+
+  document.getElementById('pfPlan').addEventListener('click', async () => {
+    const goal = document.getElementById('pfGoal').value.trim();
+    const days = parseInt(document.getElementById('pfDays').value, 10) || 14;
+    pfPlanOut.innerHTML = '<div class="pf-loading">⏳ 正在生成针对性提升计划…</div>';
+    try {
+      const r = await fetch(`${API_BASE}/study-plan`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal, days })
+      });
+      const data = await r.json();
+      pfPlanOut.innerHTML = renderPlan(data.plan || {});
+    } catch (e) {
+      pfPlanOut.innerHTML = `<div class="pf-empty">生成失败：${e.message || e}</div>`;
+    }
+  });
+
+  function renderPlan(plan) {
+    if (!plan || !plan.schedule) return '<div class="pf-empty">未生成有效计划</div>';
+    let html = '';
+    if (plan.goal) html += `<h4>🎯 目标：${escapeHtml(plan.goal)}</h4>`;
+    if (plan.focus && plan.focus.length)
+      html += `<div style="margin:6px 0">重点：${plan.focus.map(x => `<span class="pf-chip weak">${x}</span>`).join(' ')}</div>`;
+    (plan.schedule || []).forEach(s => {
+      html += `<div class="pf-day">第 ${s.day} 天 · ${escapeHtml(s.theme || '')}</div>`;
+      if (s.tasks && s.tasks.length) {
+        html += '<ul>' + s.tasks.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul>';
+      }
+    });
+    if (plan.tips && plan.tips.length) {
+      html += `<h4>💡 给家长的陪伴建议</h4><ul>` + plan.tips.map(t => `<li>${escapeHtml(t)}</li>`).join('') + '</ul>';
+    }
+    return `<div class="pf-plan">${html}</div>`;
+  }
 
   async function loadConnectors() {
     try {
