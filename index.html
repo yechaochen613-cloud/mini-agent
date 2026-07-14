@@ -2076,8 +2076,12 @@
     // 连接 —— 需要配置的先弹输入框，否则直接 POST
     let config = null;
     if (connId === 'github') {
-      // 打开 GitHub 连接弹窗（替代 prompt）
-      openGithubConnectModal();
+      // 直接开新标签页跳转 GitHub 官方授权页（不再弹中间窗口）
+      const url = `${API_BASE}/auth/github`;
+      const w = window.open(url, '_blank');
+      if (!w) { window.location.href = url; return; }
+      toast('已在新标签页打开 GitHub 授权页，请完成授权后自动连接 👉');
+      startGithubOAuthPoll();
       return;
       const key = prompt('请输入 Gmail API Key 或 OAuth 凭据（演示可随意填）：');
       if (!key === null) return; config = { api_key: key };
