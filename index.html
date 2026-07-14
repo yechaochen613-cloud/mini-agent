@@ -271,24 +271,17 @@
   .msg.user { flex-direction: row-reverse; }
   .msg.user .avatar { background: var(--accent-soft); border-color: transparent; }
   .msg.user .msg-col { align-items: flex-end; }
-  /* 常驻 bot 头像：冥想 + 发出信号 */
+  /* 常驻 bot 头像：中国老师（静态） */
   .msg.bot .avatar {
     position: relative; overflow: visible;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: transparent;
     border-color: transparent;
-    box-shadow: 0 0 0 1px rgba(99,102,241,0.25), 0 4px 14px rgba(99,102,241,0.35);
+    box-shadow: none;
   }
   .msg.bot .avatar .bot-glyph {
     display: grid; place-items: center;
-    animation: thinkFloat 2.4s ease-in-out infinite;
   }
-  .msg.bot .avatar .signal-ring {
-    position: absolute; inset: -3px; border-radius: 50%;
-    border: 1.5px solid rgba(139,92,246,0.40);
-    animation: signalPulse 2.6s ease-out infinite;
-  }
-  .msg.bot .avatar .signal-ring:nth-child(2) { animation-delay: .9s; }
   .msg.user .bubble { background: var(--accent); color: var(--on-accent); border-color: transparent; border-bottom-right-radius: 5px; white-space: pre-wrap; word-break: break-word; }
   .msg.bot .bubble { background: var(--surface); border-bottom-left-radius: 5px; }
   .msg.system { justify-content: center; }
@@ -369,29 +362,7 @@
     display: grid; place-items: center; flex-shrink: 0;
   }
   .think-avatar .think-icon {
-    font-size: 24px; line-height: 1;
-    animation: thinkFloat 2.4s ease-in-out infinite;
-    filter: drop-shadow(0 2px 8px rgba(99,102,241,0.35));
-  }
-  @keyframes thinkFloat {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-3px) scale(1.06); }
-  }
-  /* 信号波纹 - 从头像向外扩散 */
-  .think-avatar .signal-ring {
-    position: absolute; inset: -4px; border-radius: 50%;
-    border: 2px solid rgba(99,102,241,0.30);
-    animation: signalPulse 2s ease-out infinite;
-  }
-  .think-avatar .signal-ring:nth-child(2) {
-    animation-delay: 0.65s;
-  }
-  .think-avatar .signal-ring:nth-child(3) {
-    animation-delay: 1.3s;
-  }
-  @keyframes signalPulse {
-    0% { transform: scale(0.85); opacity: 0.8; }
-    80%, 100% { transform: scale(1.7); opacity: 0; }
+    display: grid; place-items: center;
   }
   /* 右侧文字区 */
   .think-text {
@@ -850,10 +821,7 @@
   .think-head-icon {
     display: inline-flex; align-items: center; justify-content: center;
     width: 26px; height: 26px; border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
     margin-right: 6px; vertical-align: middle;
-    box-shadow: 0 2px 8px rgba(99,102,241,0.35);
-    animation: thinkFloat 2.4s ease-in-out infinite;
     overflow: hidden;
   }
   @keyframes pulse { 0%,100%{ opacity:.35; transform:scale(.8);} 50%{ opacity:1; transform:scale(1.25);} }
@@ -1492,21 +1460,24 @@
     return wrap;
   }
 
-  // 常驻 bot 头像：卡通老师 + 信号波纹
+  // 中国老师卡通头像（静态 SVG，可复用）
+  function cnTeacherAvatar(size) {
+    return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="50" cy="50" r="50" fill="#fde7d3"/>' +                                   // 暖色背景
+      '<path d="M22 54 Q20 22 50 20 Q80 22 78 54 Q82 70 73 78 L73 52 Q73 40 50 38 Q27 40 27 52 L27 78 Q18 70 22 54 Z" fill="#222"/>' + // 黑发齐肩
+      '<circle cx="50" cy="56" r="24" fill="#ffd6b0"/>' +                                   // 脸
+      '<circle cx="40" cy="55" r="3.2" fill="#222"/><circle cx="60" cy="55" r="3.2" fill="#222"/>' + // 眼
+      '<circle cx="40" cy="55" r="8" fill="none" stroke="#222" stroke-width="2.2"/>' +      // 左圆眼镜
+      '<circle cx="60" cy="55" r="8" fill="none" stroke="#222" stroke-width="2.2"/>' +      // 右圆眼镜
+      '<line x1="48" y1="55" x2="52" y2="55" stroke="#222" stroke-width="2.2"/>' +          // 鼻梁
+      '<path d="M43 66 Q50 72 57 66" fill="none" stroke="#c0392b" stroke-width="2.6" stroke-linecap="round"/>' + // 红唇微笑
+      '<path d="M27 86 Q50 76 73 86 L75 100 L25 100 Z" fill="#c0392b"/>' +                  // 中国红立领上衣
+      '<path d="M50 82 L42 90 L48 94 L50 90 L52 94 L58 90 Z" fill="#fdf8ef"/>' +            // 白领
+      '</svg>';
+  }
+  // 常驻 bot 头像：中国老师（静态，无波纹）
   function botAvatarHTML() {
-    return '<span class="signal-ring"></span><span class="signal-ring"></span><span class="bot-glyph">' +
-      '<svg viewBox="0 0 100 100" width="20" height="20" xmlns="http://www.w3.org/2000/svg">' +
-        '<defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs>' +
-        '<circle cx="50" cy="50" r="46" fill="#fef3c7"/>' +
-        '<ellipse cx="50" cy="38" rx="34" ry="30" fill="#4b5563"/>' + // 头发
-        '<path d="M22 42 Q50 58 78 42" fill="#4b5563"/>' + // 刘海
-        '<circle cx="50" cy="56" r="28" fill="#fde68a"/>' + // 脸
-        '<circle cx="39" cy="53" r="5.5" fill="#1f2937"/><circle cx="61" cy="53" r="5.5" fill="#1f2937"/>' + // 眼睛
-        '<rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' + // 左镜框
-        '<rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' + // 右镜框
-        '<line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/>' + // 鼻梁架
-        '<path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/>' + // 微笑嘴
-      '</svg></span>';
+    return '<span class="bot-glyph">' + cnTeacherAvatar(22) + '</span>';
   }
 
   // 文档内联卡片（参考 Manus：文件直接出现在对话里）
@@ -1534,10 +1505,7 @@
          <div class="bubble">
            <div class="thinking-row">
              <div class="think-avatar">
-               <div class="signal-ring"></div>
-               <div class="signal-ring"></div>
-               <div class="signal-ring"></div>
-               <span class="think-icon"><svg viewBox="0 0 100 100" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#fef3c7"/><ellipse cx="50" cy="38" rx="34" ry="30" fill="#4b5563"/><path d="M22 42 Q50 58 78 42" fill="#4b5563"/><circle cx="50" cy="56" r="28" fill="#fde68a"/><circle cx="39" cy="53" r="5.5" fill="#1f2937"/><circle cx="61" cy="53" r="5.5" fill="#1f2937"/><rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/><rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/><line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/><path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+               <span class="think-icon">' + cnTeacherAvatar(22) + '</span>
              </div>
              <div class="think-text">
                <div class="think-label">
@@ -1594,15 +1562,7 @@
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble"><div class="md"></div></div>
       <div class="steps-block live">
-        <div class="steps-head"><span class="think-head-icon">' +
-      '<svg viewBox="0 0 100 100" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="tg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs>' +
-      '<circle cx="50" cy="50" r="46" fill="#fef3c7"/><ellipse cx="50" cy="38" rx="34" ry="30" fill="#4b5563"/>' +
-      '<path d="M22 42 Q50 58 78 42" fill="#4b5563"/><circle cx="50" cy="56" r="28" fill="#fde68a"/>' +
-      '<circle cx="39" cy="53" r="5.5" fill="#1f2937"/><circle cx="61" cy="53" r="5.5" fill="#1f2937"/>' +
-      '<rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' +
-      '<rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' +
-      '<line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/>' +
-      '<path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>正在思考中...</span></div>
+        <div class="steps-head"><span class="think-head-icon">' + cnTeacherAvatar(26) + '</span><span>正在思考中...</span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
