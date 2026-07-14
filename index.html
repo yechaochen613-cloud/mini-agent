@@ -329,7 +329,7 @@
   }
 
   /* 步骤进度 + 子任务清单 */
-  .steps-block { margin-top: 12px; padding: 11px 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); }
+  .steps-block { margin-top: 12px; padding: 11px 13px; background: var(--surface-2); border-radius: var(--r-sm); }
   .steps-head { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--text); }
   .steps-head .step-count { color: var(--accent); font-family: var(--font-mono); }
   .progress { height: 5px; background: var(--border); border-radius: var(--r-pill); margin: 9px 0; overflow: hidden; }
@@ -836,7 +836,7 @@
   }
 
   /* ===== 实时执行步骤（流式 / 对标 Manus 工作区） ===== */
-  .steps-block.live { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent); }
+  .steps-block.live { }
   .steps-block.live .step-list { max-height: 340px; overflow: auto; margin-top: 8px; }
   .step-row { display: flex; gap: 8px; align-items: flex-start; padding: 7px 0; border-bottom: 1px dashed color-mix(in srgb, var(--border) 70%, transparent); }
   .step-row:last-child { border-bottom: none; }
@@ -1602,7 +1602,7 @@
       '<rect x="31" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' +
       '<rect x="53" y="48" width="16" height="10" rx="5" fill="none" stroke="#374151" stroke-width="2.2"/>' +
       '<line x1="47" y1="53" x2="53" y2="53" stroke="#374151" stroke-width="2.2"/>' +
-      '<path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>正在思考中...</span><span class="step-count" style="margin-left:auto">0 / 0</span></div>
+      '<path d="M44 67 Q50 73 56 67" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>正在思考中...</span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
