@@ -8,12 +8,9 @@
 import os
 import json
 import time
-import sqlite3
 import hashlib
 
-from storage import DATA_DIR
-
-DB_FILE = os.path.join(DATA_DIR, "conversations.db")
+from db import connect, q, exec, fetchall, fetchone, create_table_if_not_exists
 
 # ── 连接器注册表（参考 Manus 截图中的全部 8 个）─────────────────────
 CONNECTORS = [
@@ -88,11 +85,9 @@ CONNECTORS = [
 _BY_ID = {c["id"]: c for c in CONNECTORS}
 
 
-def _conn():
-    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=DELETE")
-    # 确保表存在
-    conn.execute("""
+def _init_connectors_table():
+    """确保 connectors 表存在（pg / sqlite 自动适配）。"""
+    _SQLITE_DDL = """
     CREATE TABLE IF NOT EXISTS connectors (
         id      TEXT PRIMARY KEY,
         connected INTEGER NOT NULL DEFAULT 0,
@@ -100,8 +95,19 @@ def _conn():
         connected_at TEXT,
         updated_at TEXT
     )
-    """)
-    return conn
+    """
+    _PG_DDL = """
+    CREATE TABLE IF NOT EXISTS connectors (
+        id      TEXT PRIMARY KEY,
+        connected INTEGER NOT NULL DEFAULT 0,
+        config  TEXT DEFAULT '{}',
+        connected_at TEXT,
+        updated_at TEXT
+    )
+    """
+    conn = connect()
+    create_table_if_not_exists(conn, "connectors", _SQLITE_DDL, _PG_DDL)
+    conn.close()
 
 
 def _now():
@@ -112,11 +118,11 @@ def _now():
 
 def list_connectors():
     """返回全部连接器列表，每个带 connected 状态。"""
-    db = _conn()
-    rows = db.execute(
+    conn = connect()
+    rows = exec(conn,
         "SELECT id, connected, config, connected_at FROM connectors"
     ).fetchall()
-    db.close()
+    conn.close()
     status = {r[0]: {"connected": bool(r[1]), "config": json.loads(r[2] or "{}"), "connected_at": r[3]} for r in rows}
 
     result = []
@@ -151,49 +157,49 @@ def connect_connector(conn_id, config=None):
         return {"ok": False, "message": f"未知连接器: {conn_id}"}
 
     cfg = config or {}
-    db = _conn()
+    conn = connect()
     now = _now()
 
     # 特殊处理: browser 内置可用
     if conn_id == "browser":
-        db.execute(
+        exec(conn,
             "INSERT OR REPLACE INTO connectors (id, connected, config, connected_at, updated_at) VALUES (?,?,?,?,?)",
             (conn_id, 1, json.dumps(cfg), now, now),
         )
-        db.commit(); db.close()
+        conn.close()
         return get_connector(conn_id)
 
     # GitHub: 校验 token 格式
     if conn_id == "github":
         token = cfg.get("token", "")
         if not token or len(token) < 10:
-            db.close()
+            conn.close()
             return {"ok": False, "message": "请提供有效的 GitHub Personal Access Token"}
-        db.execute(
+        exec(conn,
             "INSERT OR REPLACE INTO connectors (id, connected, config, connected_at, updated_at) VALUES (?,?,?,?,?)",
             (conn_id, 1, json.dumps(cfg), now, now),
         )
-        db.commit(); db.close()
+        conn.close()
         return get_connector(conn_id)
 
     # Gmail: 需要 credentials
     if conn_id == "gmail":
         if not cfg.get("credentials") and not cfg.get("api_key"):
-            db.close()
+            conn.close()
             return {"ok": False, "message": "请提供 Gmail API 凭据或 OAuth 授权"}
-        db.execute(
+        exec(conn,
             "INSERT OR REPLACE INTO connectors (id, connected, config, connected_at, updated_at) VALUES (?,?,?,?,?)",
             (conn_id, 1, json.dumps(cfg), now, now),
         )
-        db.commit(); db.close()
+        conn.close()
         return get_connector(conn_id)
 
     # 其余: 直接记录连接状态（mock）
-    db.execute(
+    exec(conn,
         "INSERT OR REPLACE INTO connectors (id, connected, config, connected_at, updated_at) VALUES (?,?,?,?,?)",
         (conn_id, 1, json.dumps(cfg), now, now),
     )
-    db.commit(); db.close()
+    conn.close()
     return get_connector(conn_id)
 
 
@@ -201,12 +207,12 @@ def disconnect_connector(conn_id):
     """断开一个连接器。"""
     if conn_id not in _BY_ID:
         return {"ok": False, "message": f"未知连接器: {conn_id}"}
-    db = _conn()
-    db.execute(
+    conn = connect()
+    exec(conn,
         "UPDATE connectors SET connected=0, config='{}', connected_at=NULL, updated_at=? WHERE id=?",
         (_now(), conn_id),
     )
-    db.commit(); db.close()
+    conn.close()
     return get_connector(conn_id)
 
 
@@ -316,3 +322,6 @@ def notion_action(action, params=None):
 
 
 import urllib.parse
+
+# 模块加载时确保 connectors 表存在
+_init_connectors_table()

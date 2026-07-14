@@ -31,3 +31,6 @@ lxml==6.1.1
 # pytesseract==0.3.13
 # pdf2image==1.17.4
 
+# ===== PostgreSQL 驱动（接 Render 免费 PostgreSQL，持久化记忆/连接状态）=====
+psycopg2-binary==2.9.10
+

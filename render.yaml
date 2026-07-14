@@ -1,5 +1,11 @@
 # render.yaml — 一键部署到 Render（https://render.com）
 # 用法：把本仓库推到 GitHub 后，在 Render 后台 New → Blueprint，选中此仓库即可自动按本文件部署。
+databases:
+  - name: mini-agent-db
+    databaseName: miniagent
+    user: miniagent
+    plan: free              # 免费 PostgreSQL（90 天到期，可续）
+    postgresMajorVersion: "15"
 services:
   - type: web
     name: mini-agent
@@ -10,12 +16,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
-    # 免费计划不支持持久盘（disk），数据存在容器临时文件系统内。
-    # 重启/redeploy 后聊天记录会重置。如需持久化请将 plan 改为 starter 并取消下方 disk 注释。
-    # disk:
-    #   name: mini-agent-data
-    #   mountPath: /var/data
-    #   sizeGB: 1
+    # 数据持久化：已接 Render 免费 PostgreSQL（DATABASE_URL 自动注入），重启/redeploy 不丢数据。
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
@@ -24,9 +25,11 @@ services:
       # 家教模式：true = 切换为 K12 私人家教人设（苏格拉底式启发 + 按学生水平/性格自适应）
       - key: TUTOR_MODE
         value: "true"
-      # 告知应用数据根目录（免费版无挂载盘时使用默认 data/ 目录）
-      # - key: RENDER_DISK_MOUNT_PATH
-      #   value: /var/data
+      # 数据库连接串：由上方 databases 自动创建并注入（无需手动填）
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mini-agent-db
+          property: connectionString
       # 以下三个是密钥：务必在 Render 后台 Environment 里手动填（sync:false 表示不从仓库读取）
       - key: OPENAI_API_KEY
         sync: false

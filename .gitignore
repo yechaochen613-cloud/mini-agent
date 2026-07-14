@@ -20,3 +20,6 @@ uploads/
 # 本地虚拟环境
 venv/
 .venv/
+
+# 本地部署钩子（不进仓库）
+.deploy_hook

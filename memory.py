@@ -27,8 +27,8 @@ from dotenv import load_dotenv
 load_dotenv()  # 确保能读到 EMBEDDING_* 配置
 
 from storage import DATA_DIR
+from db import connect, q, exec, fetchall, fetchone, create_table_if_not_exists
 
-MEMORY_FILE = os.path.join(DATA_DIR, "memory.json")
 MAX_MEMORIES = 300  # 上限，防止无限增长
 
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "zhipu")  # zhipu | openai | keyword
@@ -105,21 +105,56 @@ def _cosine(a, b):
     return dot / (na * nb) if na and nb else 0.0
 
 
-# ---------------- 存取 ----------------
+# ---------------- 存取（改用数据库，Render 重启不丢）----------------
+
+def _init_memory_table():
+    """确保 memories 表存在（pg / sqlite 自动适配）。"""
+    _SQLITE_DDL = """
+    CREATE TABLE IF NOT EXISTS memories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        text TEXT,
+        vec TEXT,
+        kw INTEGER,
+        created_at TEXT)
+    """
+    _PG_DDL = """
+    CREATE TABLE IF NOT EXISTS memories (
+        id SERIAL PRIMARY KEY,
+        text TEXT,
+        vec TEXT,
+        kw INTEGER,
+        created_at TEXT)
+    """
+    conn = connect()
+    create_table_if_not_exists(conn, "memories", _SQLITE_DDL, _PG_DDL)
+    conn.close()
+
 
 def _load():
-    if not os.path.exists(MEMORY_FILE):
-        return []
-    try:
-        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    """从数据库读取全部记忆（每条含 text/vec/kw）。"""
+    conn = connect()
+    rows = fetchall(conn, "SELECT text, vec, kw FROM memories")
+    conn.close()
+    out = []
+    for text, vec, kw in rows:
+        out.append({
+            "text": text,
+            "vec": json.loads(vec) if vec else [],
+            "kw": bool(kw),
+        })
+    return out
 
 
 def _save(memories):
-    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(memories, f, ensure_ascii=False, indent=2)
+    """全量覆盖写入（规模小，简单可靠）。"""
+    conn = connect()
+    exec(conn, "DELETE FROM memories")
+    for m in memories:
+        exec(conn,
+             "INSERT INTO memories(text, vec, kw, created_at) VALUES(?,?,?,?)",
+             (m["text"], json.dumps(m.get("vec", []), ensure_ascii=False),
+              int(m.get("kw", False)), m.get("created_at", "")))
+    conn.close()
 
 
 def add_memory(text):
@@ -186,3 +221,7 @@ def clear_memory():
     """清空整个记忆库（调试用）。"""
     _save([])
     return "已清空所有记忆。"
+
+
+# 模块加载时确保 memories 表存在
+_init_memory_table()
