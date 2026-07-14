@@ -21,6 +21,9 @@ services:
         value: "3.11"
       - key: MOCK
         value: "false"
+      # 家教模式：true = 切换为 K12 私人家教人设（苏格拉底式启发 + 按学生水平/性格自适应）
+      - key: TUTOR_MODE
+        value: "true"
       # 告知应用数据根目录（免费版无挂载盘时使用默认 data/ 目录）
       # - key: RENDER_DISK_MOUNT_PATH
       #   value: /var/data
