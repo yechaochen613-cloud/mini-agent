@@ -925,6 +925,80 @@
     .plan-grid { grid-template-columns: 1fr; }
     .more-menu { right: 10px; }
   }
+  /* ===== 学习库抽屉 ===== */
+  .lib-tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--border); }
+  .lib-tab {
+    flex: 1; padding: 9px 6px; border: none; background: transparent; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; color: var(--text-2); border-radius: 10px 10px 0 0;
+    transition: all .18s var(--ease); position: relative;
+  }
+  .lib-tab:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .lib-tab.active { color: var(--accent); }
+  .lib-tab.active::after {
+    content: ''; position: absolute; left: 16%; right: 16%; bottom: -1px; height: 2.5px;
+    background: var(--accent); border-radius: 3px;
+  }
+  .lib-body { padding: 14px 16px 20px; overflow-y: auto; flex: 1; }
+  .lib-filter { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .lib-filter select, .lib-filter input {
+    padding: 7px 10px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-size: 13px;
+  }
+  .lib-filter select { flex: 1; }
+  .lib-list { display: flex; flex-direction: column; gap: 12px; }
+  .lib-empty { text-align: center; color: var(--text-2); font-size: 13px; padding: 40px 10px; line-height: 1.7; }
+  .lib-empty .le-emoji { font-size: 30px; display: block; margin-bottom: 8px; }
+
+  /* 错题卡片 */
+  .wq-card {
+    border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #fff 8%), var(--surface));
+    transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s;
+  }
+  .wq-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.12); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+  .wq-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .wq-subj { font-size: 11.5px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 2px 9px; border-radius: 20px; }
+  .wq-time { font-size: 11px; color: var(--text-2); margin-left: auto; }
+  .wq-q { font-size: 14.5px; font-weight: 700; line-height: 1.5; color: var(--text); margin-bottom: 8px; white-space: pre-wrap; word-break: break-word; }
+  .wq-row { font-size: 13px; line-height: 1.55; margin: 4px 0; white-space: pre-wrap; word-break: break-word; }
+  .wq-row .lab { font-weight: 700; }
+  .wq-row.my .lab { color: #ef4444; }
+  .wq-row.ok .lab { color: #22c55e; }
+  .wq-row.exp { color: var(--text-2); }
+  .wq-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .wq-actions button {
+    flex: 1; padding: 7px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-size: 12.5px; cursor: pointer; transition: all .18s;
+  }
+  .wq-actions button:hover { border-color: var(--accent); color: var(--accent); }
+  .wq-actions .del:hover { border-color: #ef4444; color: #ef4444; }
+
+  /* 收藏卡片 */
+  .fav-card {
+    border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #fff 8%), var(--surface));
+    transition: transform .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  .fav-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.12); }
+  .fav-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+  .fav-content { font-size: 13px; line-height: 1.6; color: var(--text-2); white-space: pre-wrap; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .fav-meta { display: flex; align-items: center; margin-top: 9px; }
+  .fav-time { font-size: 11px; color: var(--text-2); margin-right: auto; }
+  .fav-del { padding: 5px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 12px; cursor: pointer; }
+  .fav-del:hover { border-color: #ef4444; color: #ef4444; }
+
+  /* 掌握度 */
+  .mastery-wrap { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  .radar-box { width: 100%; max-width: 320px; aspect-ratio: 1; }
+  .radar-box canvas { width: 100%; height: 100%; }
+  .mastery-note { font-size: 12px; color: var(--text-2); text-align: center; line-height: 1.6; }
+  .mastery-list { width: 100%; display: flex; flex-direction: column; gap: 9px; }
+  .mbar-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .mbar-name { width: 64px; flex-shrink: 0; color: var(--text); }
+  .mbar-track { flex: 1; height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+  .mbar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #f87171, #fbbf24, #34d399); transition: width .6s var(--ease); }
+  .mbar-val { width: 34px; text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -1326,6 +1400,57 @@
     </div>
   </div>
 
+  <!-- 学习库抽屉 -->
+  <div class="panel-overlay" id="libOverlay"></div>
+  <div class="side-panel" id="libPanel">
+    <div class="sp-head">
+      <h2>📚 学习库</h2>
+      <button class="sp-close" id="libClose" title="关闭">✕</button>
+    </div>
+    <div class="lib-tabs">
+      <button class="lib-tab active" data-tab="wrong">📕 错题本</button>
+      <button class="lib-tab" data-tab="fav">⭐ 收藏</button>
+      <button class="lib-tab" data-tab="mastery">📊 掌握度</button>
+      <button class="lib-tab" data-tab="quiz">📝 组卷</button>
+    </div>
+    <div class="lib-body">
+      <!-- 错题本 -->
+      <div class="lib-pane" data-pane="wrong">
+        <div class="lib-filter">
+          <select id="wqSubjectFilter"><option value="">全部学科</option></select>
+          <span id="wqCount" style="margin-left:auto;font-size:12px;color:var(--text-2)"></span>
+        </div>
+        <div class="lib-list" id="wqList">
+          <div class="lib-empty"><span class="le-emoji">📕</span>还没有错题，在对话里点「存为错题」收集起来</div>
+        </div>
+      </div>
+      <!-- 收藏 -->
+      <div class="lib-pane" data-pane="fav" hidden>
+        <div class="lib-list" id="favList">
+          <div class="lib-empty"><span class="le-emoji">⭐</span>还没有收藏，把 AI 讲得好的答案点「收藏」存进来</div>
+        </div>
+      </div>
+      <!-- 掌握度 -->
+      <div class="lib-pane" data-pane="mastery" hidden>
+        <div class="mastery-wrap">
+          <div class="radar-box"><canvas id="masteryRadar" width="320" height="320"></canvas></div>
+          <div class="mastery-list" id="masteryList"></div>
+          <div class="mastery-note">掌握度来自「学情档案」——上传试卷或辅导后自动生成</div>
+        </div>
+      </div>
+      <!-- 组卷 -->
+      <div class="lib-pane" data-pane="quiz" hidden>
+        <div class="lib-filter">
+          <select id="quizCount"><option value="3">3 题</option><option value="5" selected>5 题</option><option value="10">10 题</option></select>
+          <button class="sp-add" id="quizGen" style="flex:1">🎲 从错题本抽题组卷</button>
+        </div>
+        <div class="lib-list" id="quizList">
+          <div class="lib-empty"><span class="le-emoji">📝</span>点上面按钮，从你的错题本随机抽题组成小测</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 子智能体面板 -->
   <div class="panel-overlay" id="subOverlay"></div>
   <div class="side-panel" id="subPanel">
@@ -1443,6 +1568,8 @@
       inner += `<div class="msg-actions">
         <button class="ic-btn" data-act="copy">📋 复制</button>
         <button class="ic-btn" data-act="retry">🔄 重试</button>
+        <button class="ic-btn" data-act="wrong">📕 存错题</button>
+        <button class="ic-btn" data-act="fav">⭐ 收藏</button>
       </div>`;
       inner += `<div class="rating" data-rated="0"><span>这个结果怎么样？</span><span class="stars">${'<span>★</span>'.repeat(5)}</span></div>`;
       inner += `</div>`;
@@ -1538,6 +1665,10 @@
         navigator.clipboard?.writeText(md.innerText).then(() => { actBtn.classList.add('done'); actBtn.textContent = '✓ 已复制'; setTimeout(() => { actBtn.classList.remove('done'); actBtn.textContent = '📋 复制'; }, 1500); }).catch(() => toast('复制失败'));
       } else if (actBtn.dataset.act === 'retry') {
         if (lastUserText) send(lastUserText);
+      } else if (actBtn.dataset.act === 'wrong') {
+        saveAsWrong(msg);
+      } else if (actBtn.dataset.act === 'fav') {
+        saveAsFavorite(msg);
       }
       return;
     }
@@ -1577,6 +1708,8 @@
       <div class="msg-actions">
         <button class="ic-btn" data-act="copy">📋 复制</button>
         <button class="ic-btn" data-act="retry">🔄 重试</button>
+        <button class="ic-btn" data-act="wrong">📕 存错题</button>
+        <button class="ic-btn" data-act="fav">⭐ 收藏</button>
       </div>
       <div class="rating" data-rated="0"><span>这个结果怎么样？</span><span class="stars">${'<span>★</span>'.repeat(5)}</span></div>
     </div>`;
@@ -2660,7 +2793,7 @@
     input.focus(); toast('已回到主对话');
   });
   document.getElementById('libNav').addEventListener('click', () => {
-    closeHistory(); toggleAttach(true); toast('已在下方打开知识库 📚');
+    closeHistory(); openLibrary();
   });
   document.getElementById('schedNav').addEventListener('click', openSchedules);
 
@@ -2750,6 +2883,209 @@
         }
       } catch (_) {}
     }, 30000);
+  }
+
+  // ---- 学习库（错题本 / 收藏 / 掌握度 / 组卷） ----
+  const libOverlay = document.getElementById('libOverlay');
+  const libPanel = document.getElementById('libPanel');
+  let libTab = 'wrong';
+  function openLibrary() {
+    libOverlay.classList.add('open'); libPanel.classList.add('open');
+    loadLibraryTab(libTab);
+  }
+  function closeLibrary() { libOverlay.classList.remove('open'); libPanel.classList.remove('open'); }
+  libOverlay.addEventListener('click', closeLibrary);
+  document.getElementById('libClose').addEventListener('click', closeLibrary);
+  document.querySelectorAll('.lib-tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.lib-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active'); libTab = t.dataset.tab;
+    document.querySelectorAll('.lib-pane').forEach(p => p.hidden = p.dataset.pane !== libTab);
+    loadLibraryTab(libTab);
+  }));
+
+  const COMMON_SUBJECTS = ['数学', '语文', '英语', '物理', '化学', '生物', '历史', '地理', '政治', '其他'];
+
+  function loadLibraryTab(tab) {
+    if (tab === 'wrong') loadWrongQuestions();
+    else if (tab === 'fav') loadFavorites();
+    else if (tab === 'mastery') loadMastery();
+  }
+
+  // ===== 错题本 =====
+  async function loadWrongQuestions() {
+    const subj = document.getElementById('wqSubjectFilter').value;
+    try {
+      const r = await fetch(`${API_BASE}/wrong-questions${subj ? '?subject=' + encodeURIComponent(subj) : ''}`);
+      const d = await r.json();
+      renderWrongQuestions(d.wrong_questions || []);
+    } catch (e) { document.getElementById('wqList').innerHTML = '<div class="lib-empty">加载失败</div>'; }
+  }
+  function renderWrongQuestions(list) {
+    const wrap = document.getElementById('wqList');
+    document.getElementById('wqCount').textContent = list.length ? list.length + ' 道' : '';
+    const sel = document.getElementById('wqSubjectFilter');
+    const cur = sel.value;
+    const subs = [...new Set(list.map(i => i.subject).filter(Boolean))];
+    sel.innerHTML = '<option value="">全部学科</option>' + subs.map(s => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join('');
+    sel.value = cur;
+    if (!list.length) { wrap.innerHTML = '<div class="lib-empty"><span class="le-emoji">📕</span>还没有错题，在对话里点「存为错题」收集起来</div>'; return; }
+    wrap.innerHTML = list.map(i => wqCard(i)).join('');
+  }
+  function wqCard(i) {
+    const opts = COMMON_SUBJECTS.map(s => `<option value="${s}" ${i.subject === s ? 'selected' : ''}>${s}</option>`).join('') +
+      (i.subject && !COMMON_SUBJECTS.includes(i.subject) ? `<option value="${escapeAttr(i.subject)}" selected>${escapeHtml(i.subject)}</option>` : '');
+    return `<div class="wq-card" data-id="${i.id}">
+      <div class="wq-top">
+        <select class="wq-subj-select" style="font-size:11.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);border:none;border-radius:20px;padding:2px 6px;cursor:pointer">${opts}<option value="">未分类</option></select>
+        <span class="wq-time">${i.created_at || ''}</span>
+      </div>
+      <div class="wq-q">${escapeHtml(i.question || '(未记录题目)')}</div>
+      <div class="wq-row my"><span class="lab">我的答案：</span><input class="wq-edit" data-field="my_answer" value="${escapeAttr(i.my_answer || '')}" placeholder="填你当时写的答案" style="width:100%;border:none;background:transparent;color:#ef4444;font-size:13px"></div>
+      <div class="wq-row ok"><span class="lab">正确答案：</span><input class="wq-edit" data-field="correct_answer" value="${escapeAttr(i.correct_answer || '')}" placeholder="填正确答案" style="width:100%;border:none;background:transparent;color:#22c55e;font-size:13px"></div>
+      <div class="wq-row exp"><span class="lab">讲解：</span>${escapeHtml(i.explanation || '—')}</div>
+      <div class="wq-actions">
+        <button class="req">🔁 重问</button>
+        <button class="del">🗑 删除</button>
+      </div>
+    </div>`;
+  }
+  document.getElementById('wqList').addEventListener('change', e => {
+    const sel = e.target.closest('.wq-subj-select');
+    if (sel) { const card = sel.closest('.wq-card'); patchWrong(card.dataset.id, { subject: sel.value }); return; }
+    const inp = e.target.closest('.wq-edit');
+    if (inp) { const card = inp.closest('.wq-card'); patchWrong(card.dataset.id, { [inp.dataset.field]: inp.value }); }
+  });
+  document.getElementById('wqList').addEventListener('click', e => {
+    const card = e.target.closest('.wq-card'); if (!card) return;
+    if (e.target.closest('.req')) { const q = card.querySelector('.wq-q').textContent; if (q) send(q); closeLibrary(); }
+    else if (e.target.closest('.del')) { delWrong(card.dataset.id); }
+  });
+  async function patchWrong(id, patch) {
+    try { await fetch(`${API_BASE}/wrong-questions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }); }
+    catch (e) { toast('保存失败'); }
+  }
+  async function delWrong(id) {
+    try { await fetch(`${API_BASE}/wrong-questions/${id}`, { method: 'DELETE' }); loadWrongQuestions(); toast('已删除'); }
+    catch (e) { toast('删除失败'); }
+  }
+  document.getElementById('wqSubjectFilter').addEventListener('change', loadWrongQuestions);
+
+  // ===== 收藏 =====
+  async function loadFavorites() {
+    try {
+      const r = await fetch(`${API_BASE}/favorites`); const d = await r.json();
+      renderFavorites(d.favorites || []);
+    } catch (e) { document.getElementById('favList').innerHTML = '<div class="lib-empty">加载失败</div>'; }
+  }
+  function renderFavorites(list) {
+    const wrap = document.getElementById('favList');
+    if (!list.length) { wrap.innerHTML = '<div class="lib-empty"><span class="le-emoji">⭐</span>还没有收藏，把 AI 讲得好的答案点「收藏」存进来</div>'; return; }
+    wrap.innerHTML = list.map(i => `<div class="fav-card" data-id="${i.id}">
+      <div class="fav-title">${escapeHtml(i.title || '收藏')}</div>
+      <div class="fav-content">${escapeHtml(i.content || '')}</div>
+      <div class="fav-meta"><span class="fav-time">${i.created_at || ''}</span><button class="fav-del">删除</button></div>
+    </div>`).join('');
+  }
+  document.getElementById('favList').addEventListener('click', e => {
+    const card = e.target.closest('.fav-card'); if (!card) return;
+    if (e.target.closest('.fav-del')) delFav(card.dataset.id);
+  });
+  async function delFav(id) {
+    try { await fetch(`${API_BASE}/favorites/${id}`, { method: 'DELETE' }); loadFavorites(); toast('已删除'); }
+    catch (e) { toast('删除失败'); }
+  }
+
+  // ===== 掌握度（复用 /profile 学情档案） =====
+  async function loadMastery() {
+    try {
+      const r = await fetch(`${API_BASE}/profile`); const d = await r.json();
+      renderMastery(d.profile?.subjects || {});
+    } catch (e) { document.getElementById('masteryList').innerHTML = '<div class="lib-empty">暂无数据</div>'; }
+  }
+  function renderMastery(subs) {
+    const entries = Object.entries(subs).filter(([, v]) => typeof v === 'number');
+    const list = document.getElementById('masteryList');
+    if (!entries.length) {
+      list.innerHTML = '<div class="lib-empty">还没有掌握度数据<br>去「学情档案」上传试卷或辅导后自动生成</div>';
+      drawRadar([]); return;
+    }
+    list.innerHTML = entries.map(([k, v]) => `<div class="mbar-row"><span class="mbar-name">${escapeHtml(k)}</span><div class="mbar-track"><div class="mbar-fill" style="width:${Math.max(0, Math.min(100, v))}%"></div></div><span class="mbar-val">${v}</span></div>`).join('');
+    drawRadar(entries);
+  }
+  function drawRadar(entries) {
+    const cv = document.getElementById('masteryRadar'); if (!cv) return;
+    const ctx = cv.getContext('2d'); const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 38;
+    ctx.clearRect(0, 0, W, H);
+    const n = entries.length;
+    if (!n) { ctx.fillStyle = '#999'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('暂无数据', cx, cy); return; }
+    const cols = ['#60a5fa', '#a855f7', '#34d399', '#fbbf24', '#f87171', '#22d3ee'];
+    ctx.strokeStyle = 'rgba(128,128,128,.25)'; ctx.lineWidth = 1;
+    for (let g = 1; g <= 4; g++) {
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / n; const r = R * g / 4; const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#888'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    entries.forEach(([k], i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n; const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+      ctx.strokeStyle = 'rgba(128,128,128,.18)'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+      ctx.fillStyle = '#aaa'; ctx.fillText(k, cx + (R + 16) * Math.cos(a), cy + (R + 16) * Math.sin(a));
+    });
+    ctx.beginPath();
+    entries.forEach(([, v], i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n; const r = R * Math.max(0, Math.min(100, v)) / 100;
+      const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.closePath(); ctx.fillStyle = 'rgba(96,165,250,.25)'; ctx.fill(); ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2; ctx.stroke();
+    entries.forEach(([, v], i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n; const r = R * Math.max(0, Math.min(100, v)) / 100;
+      const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a); ctx.fillStyle = cols[i % cols.length];
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
+    });
+  }
+
+  // ===== 组卷（从错题本随机抽题） =====
+  document.getElementById('quizGen').addEventListener('click', async () => {
+    const cnt = parseInt(document.getElementById('quizCount').value, 10) || 5;
+    try {
+      const r = await fetch(`${API_BASE}/wrong-questions`); const d = await r.json();
+      const pool = d.wrong_questions || [];
+      if (!pool.length) { document.getElementById('quizList').innerHTML = '<div class="lib-empty">错题本还是空的，先存几道错题再来组卷 📝</div>'; return; }
+      const picks = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(cnt, pool.length));
+      document.getElementById('quizList').innerHTML = picks.map((i, idx) => `<div class="wq-card" data-id="${i.id}">
+        <div class="wq-top"><span class="wq-subj">第 ${idx + 1} 题</span><span class="wq-time">${escapeHtml(i.subject || '')}</span></div>
+        <div class="wq-q">${escapeHtml(i.question || '')}</div>
+        <div class="wq-actions"><button class="reveal">👀 显示答案</button><button class="del">🗑 移除</button></div>
+        <div class="wq-exp" data-exp hidden><div class="wq-row ok"><span class="lab">答案：</span>${escapeHtml(i.correct_answer || i.explanation || '—')}</div></div>
+      </div>`).join('');
+    } catch (e) { toast('组卷失败'); }
+  });
+  document.getElementById('quizList').addEventListener('click', e => {
+    const card = e.target.closest('.wq-card'); if (!card) return;
+    if (e.target.closest('.reveal')) {
+      const exp = card.querySelector('.wq-exp'); exp.hidden = !exp.hidden;
+      e.target.textContent = exp.hidden ? '👀 显示答案' : '🙈 隐藏答案';
+    } else if (e.target.closest('.del')) { card.remove(); }
+  });
+
+  // ===== 从对话捕获（bot 消息上的「存错题」「收藏」） =====
+  async function saveAsWrong(msg) {
+    const q = lastUserText || '';
+    const md = msg.querySelector('.md'); const text = md ? md.innerText : (msg.querySelector('.bubble')?.innerText || '');
+    if (!q && !text) { toast('没有可保存的内容'); return; }
+    try {
+      await fetch(`${API_BASE}/wrong-questions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q, explanation: text }) });
+      toast('已存为错题 📕');
+    } catch (e) { toast('保存失败'); }
+  }
+  async function saveAsFavorite(msg) {
+    const md = msg.querySelector('.md'); const text = md ? md.innerText : (msg.querySelector('.bubble')?.innerText || '');
+    if (!text) { toast('没有可收藏的内容'); return; }
+    const title = (text.split('\n')[0] || '').slice(0, 24) || '收藏';
+    try {
+      await fetch(`${API_BASE}/favorites`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, content: text }) });
+      toast('已收藏 ⭐');
+    } catch (e) { toast('收藏失败'); }
   }
 
   // ---- 子智能体面板 ----

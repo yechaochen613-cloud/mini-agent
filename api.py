@@ -874,6 +874,82 @@ async def github_auth_callback(code: str, state: str, request: Request):
     return RedirectResponse(url=f"/ui#github-connected={github_login}")
 
 
+# ===== 学习库（错题本 + 收藏） =====
+class WrongQuestionCreate(BaseModel):
+    subject: str = ""
+    question: str = ""
+    my_answer: str = ""
+    correct_answer: str = ""
+    explanation: str = ""
+
+
+class WrongQuestionUpdate(BaseModel):
+    subject: str | None = None
+    question: str | None = None
+    my_answer: str | None = None
+    correct_answer: str | None = None
+    explanation: str | None = None
+
+
+class FavoriteCreate(BaseModel):
+    title: str = "收藏"
+    content: str = ""
+
+
+@app.get("/wrong-questions")
+def get_wrong_questions(subject: str = ""):
+    """列出错题本；可传 subject 按学科过滤。"""
+    from library import list_wrong_questions
+    return {"wrong_questions": list_wrong_questions(subject or None)}
+
+
+@app.post("/wrong-questions")
+def create_wrong_question(req: WrongQuestionCreate):
+    if not req.question.strip():
+        raise HTTPException(status_code=400, detail="题目不能为空")
+    from library import add_wrong_question
+    return add_wrong_question(req.model_dump())
+
+
+@app.delete("/wrong-questions/{wid}")
+def delete_wrong_question_route(wid: str):
+    from library import delete_wrong_question
+    if not delete_wrong_question(wid):
+        raise HTTPException(status_code=404, detail="错题不存在")
+    return {"ok": True}
+
+
+@app.put("/wrong-questions/{wid}")
+def update_wrong_question_route(wid: str, req: WrongQuestionUpdate):
+    from library import update_wrong_question
+    item = update_wrong_question(wid, req.model_dump(exclude_unset=True))
+    if not item:
+        raise HTTPException(status_code=404, detail="错题不存在")
+    return item
+
+
+@app.get("/favorites")
+def get_favorites():
+    from library import list_favorites
+    return {"favorites": list_favorites()}
+
+
+@app.post("/favorites")
+def create_favorite(req: FavoriteCreate):
+    if not req.content.strip():
+        raise HTTPException(status_code=400, detail="内容不能为空")
+    from library import add_favorite
+    return add_favorite(req.model_dump())
+
+
+@app.delete("/favorites/{fid}")
+def delete_favorite_route(fid: str):
+    from library import delete_favorite
+    if not delete_favorite(fid):
+        raise HTTPException(status_code=404, detail="收藏不存在")
+    return {"ok": True}
+
+
 @app.get("/version")
 def version():
     return {"deploy_tag": DEPLOY_TAG, "status": "ok"}
