@@ -104,51 +104,59 @@
 
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
-  /* ===== App 布局：左侧栏 + 主区 ===== */
-  .app { display: flex; height: 100vh; overflow: hidden; }
+  /* ===== App 布局：左侧栏(iFlytek风格) + 主区 ===== */
+  .app { display: flex; height: 100vh; overflow: hidden; background: #f8f9fc; }
   .app.collapsed .sidebar { width: 0; flex-basis: 0; min-width: 0; border: none; padding-left: 0; padding-right: 0; }
 
-  /* ===== 左侧常驻侧边栏（参考 Manus） ===== */
+  /* ===== 左侧常驻侧边栏（iFlytek 星晨风格） ===== */
   .sidebar {
-    flex: 0 0 264px; width: 264px;
-    background: var(--bg-elev);
-    border-right: 1px solid var(--border);
+    flex: 0 0 230px; width: 230px;
+    background: #ffffff;
+    border-right: 1px solid #eef0f4;
     display: flex; flex-direction: column;
     overflow: hidden;
     transition: width .3s var(--ease), flex-basis .3s var(--ease), padding .3s var(--ease);
   }
   .side-brand {
-    display: flex; align-items: center; gap: 11px;
-    padding: 16px 16px 12px; min-width: 264px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 16px 10px; min-width: 230px;
   }
   .side-brand .logo {
-    width: 38px; height: 38px; flex: 0 0 38px; border-radius: 11px;
-    display: grid; place-items: center; background: var(--surface-2);
-    border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+    width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px;
+    display: grid; place-items: center; background: linear-gradient(135deg,#7c5cfc,#5b3fd4);
+    border: none; box-shadow: none;
   }
-  .side-brand h1 { font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.1; }
-  .side-brand p { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .side-brand h1 { font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; font-size: 15px; font-weight: 700; line-height: 1.2; color: #1a1a2e; }
+  .side-brand p { font-family: -apple-system,sans-serif; font-size: 11px; color: #999; letter-spacing: 0; text-transform: none; margin-top: 2px; }
 
-  .cyber-bot { display: block; }
-  .cb-pulse { animation: cbPulse 2.6s ease-in-out infinite; }
-  .cb-eye { animation: cbBlink 4s ease-in-out infinite; }
-  .cb-eye:nth-of-type(2) { animation-delay: .18s; }
-  @keyframes cbPulse { 0%,100% { opacity: 1; } 50% { opacity: .32; } }
-  @keyframes cbBlink { 0%,90%,100% { opacity: 1; } 94% { opacity: .2; } }
+  /* 创建按钮 */
+  .create-btn {
+    margin: 0 14px 8px; padding: 9px 0; border: none;
+    background: #7c5cfc; color: #fff; border-radius: 9px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: background .15s;
+  }
+  .create-btn:hover { background: #6a4ae5; }
 
-  .side-nav { display: flex; flex-direction: column; gap: 3px; padding: 6px 10px; min-width: 264px; }
+  /* 导航项 */
+  .side-nav { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; min-width: 230px; flex: 1; overflow-y: auto; }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
-    border: none; background: transparent; color: var(--text);
-    font: inherit; font-size: 13.5px; font-weight: 600; text-align: left;
-    padding: 9px 11px; border-radius: var(--r-sm); cursor: pointer; width: 100%;
-    transition: background .18s var(--ease), color .18s var(--ease);
+    border: none; background: transparent; color: #555;
+    font: inherit; font-size: 13px; font-weight: 500; text-align: left;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer; width: 100%;
+    transition: background .15s, color .15s;
   }
-  .nav-item:hover { background: var(--surface-2); }
-  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
-  .nav-item .ni-ic { font-size: 16px; width: 20px; text-align: center; }
-  .nav-item.muted { color: var(--text-dim); cursor: default; }
-  .nav-item.muted:hover { background: transparent; }
+  .nav-item:hover { background: #f3f4f8; }
+  .nav-item.active { background: #edeaff; color: #5b3fd4; font-weight: 600; }
+  .nav-item .ni-ic { font-size: 15px; width: 20px; text-align: center; }
+
+  /* 导航分组标题 */
+  .nav-section-label {
+    font-size: 11px; color: #aaa; padding: 10px 14px 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
 
   .side-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 6px 10px; min-width: 264px; }
   .side-sec-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px 4px; }
@@ -175,28 +183,26 @@
   .hist-card:hover .hc-del { opacity: 1; }
   .hist-card .hc-del:hover { color: #dc2626; background: var(--warn-bg); }
 
-  .side-foot { border-top: 1px solid var(--border); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 264px; }
-  .share-card { font-size: 12px; color: var(--text-dim); background: var(--accent-soft); border: 1px solid var(--accent-soft-2); border-radius: var(--r-sm); padding: 9px 11px; }
-  .share-card b { color: var(--accent); }
-  .user-row { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; }
-  .avatar-sm { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); font-size: 15px; }
+  .side-foot { border-top: 1px solid #eef0f4; padding: 10px 12px; display: flex; align-items: center; gap: 9px; min-width: 230px; }
+  .share-card { display: none; }
+  .user-row { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 500; color: #555; cursor: pointer; flex: 1; }
+  .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg,#ff9a56,#ff6b35); font-size: 14px; color: #fff; border: none; }
   .side-close { display: none; }
 
-  /* ===== 主区 ===== */
-  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; }
+  /* ===== 主区（iFlytek 风格） ===== */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; background: #f8f9fc; }
 
   .topbar {
     position: sticky; top: 0; z-index: 30;
-    background: color-mix(in srgb, var(--bg-elev) 86%, transparent);
-    backdrop-filter: blur(12px) saturate(160%);
-    -webkit-backdrop-filter: blur(12px) saturate(160%);
-    border-bottom: 1px solid var(--border);
+    background: #fff;
+    border-bottom: 1px solid #eef0f4;
+    height: 52px;
   }
   .topbar-inner {
-    max-width: 1080px; margin: 0 auto; width: 100%;
-    padding: 11px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    max-width: none; margin: 0; width: 100%;
+    padding: 0 28px; height: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;
   }
-  .tb-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .tb-left { display: none; } /* 隐藏原有左侧工具栏 */
   .tb-right { display: flex; align-items: center; gap: 8px; }
 
   .icon-btn {
@@ -999,90 +1005,155 @@
   .mbar-track { flex: 1; height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
   .mbar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #f87171, #fbbf24, #34d399); transition: width .6s var(--ease); }
   .mbar-val { width: 34px; text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+  /* ===== Hero 首页视图（iFlytek 风格） ===== */
+  #heroView {
+    flex: 1; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 48px 40px 32px;
+  }
+  #heroView.hidden { display: none !important; }
+
+  .hero-title {
+    font-size: 30px; font-weight: 700; color: #5b3fd4;
+    text-align: center; margin-bottom: 28px; letter-spacing: -0.5px;
+    font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+
+  /* 超大输入框 */
+  .hero-input-wrap {
+    width: 100%; max-width: 720px;
+    background: #fff; border: 2px solid #d8d2f0; border-radius: 16px;
+    padding: 18px 22px; transition: border-color .2s;
+  }
+  .hero-input-wrap:focus-within { border-color: #7c5cfc; box-shadow: 0 0 0 3px rgba(124,92,252,.1); }
+  .hero-input-wrap textarea {
+    width: 100%; border: none; outline: none; resize: none;
+    font-size: 15.5px; line-height: 1.6; color: #333;
+    min-height: 56px; max-height: 160px; font-family: inherit;
+    background: transparent;
+  }
+  .hero-input-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f4;
+  }
+  .hero-input-left { display: flex; align-items: center; gap: 14px; color: #bbb; font-size: 13px; cursor: pointer; }
+  .hero-input-right { display: flex; align-items: center; gap: 9px; }
+  .hero-attach-btn {
+    display: flex; align-items: center; gap: 5px; padding: 7px 14px;
+    border-radius: 8px; font-size: 13px; cursor: pointer;
+    border: 1px solid #e0dde8; color: #666; background: #fafafe;
+    transition: background .15s, border-color .15s;
+  }
+  .hero-attach-btn:hover { background: #f0eef6; border-color:#c8c2e0; }
+  .hero-send-btn {
+    background: #7c5cfc; color: #fff; border: none;
+    padding: 8px 18px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: background .15s;
+  }
+  .hero-send-btn:hover { background: #6a4ae5; }
+
+  /* 快捷操作胶囊 */
+  .hero-pills { display: flex; gap: 8px; margin-top: 20px; max-width: 720px; width: 100%; flex-wrap: wrap; }
+  .hero-pill {
+    padding: 7px 17px; border-radius: 20px; font-size: 13px;
+    color: #666; background: #fff; border: 1px solid #e8e6ee;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .hero-pill:hover { border-color: #c8c2e0; color: #5b3fd4; background: #faf8ff; }
+
+  /* 案例卡片区域 */
+  .hero-section { width: 100%; max-width: 900px; margin-top: 38px; }
+  .hero-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .hero-sec-title { font-size: 16px; font-weight: 600; color: #222; }
+  .hero-more { font-size: 13px; color: #888; cursor: pointer; }
+  .hero-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .hero-tab {
+    padding: 5px 15px; border-radius: 16px; font-size: 13px; color: #777; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .hero-tab.on { background: #edeaff; color: #5b3fd4; font-weight: 500; }
+  .hero-tab:hover:not(.on) { background: #f3f4f8; }
+
+  .hero-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  @media (max-width:800px) { .hero-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .hero-card {
+    background: #fff; border: 1px solid #eef0f4; border-radius: 12px;
+    overflow: hidden; cursor: pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .hero-card:hover { border-color: #c8c2e0; transform: translateY(-2px); }
+  .hero-card-img {
+    height: 110px; display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+  }
+  .hero-card-body { padding: 10px 13px; }
+  .hero-card-title { font-size: 13px; font-weight: 500; color: #333; line-height: 1.4; }
+
+  /* 聊天视图容器（默认隐藏，发送后显示） */
+  #chatView {
+    flex: 1; display: none; flex-direction: column; overflow: hidden;
+    min-height: 0;
+  }
+  #chatView.active { display: flex; }
+
+  #chatView .chat { flex: 1; overflow-y: auto; padding: 16px 24px; }
+  #chatView .composer-wrap { flex-shrink: 0; }
 </style>
 </head>
 <body>
   <div class="app" id="app">
-    <!-- 左侧常驻侧边栏 -->
+    <!-- 左侧常驻侧边栏（iFlytek 风格） -->
     <aside class="sidebar" id="histDrawer" aria-label="侧边栏">
       <div class="side-brand">
         <div class="logo">
-          <svg class="cyber-bot" viewBox="0 0 64 64" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="赛博智能体">
-            <defs>
-              <linearGradient id="cbStroke" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#22d3ee"/><stop offset="0.5" stop-color="#a855f7"/><stop offset="1" stop-color="#ec4899"/>
-              </linearGradient>
-              <radialGradient id="cbEye" cx="0.5" cy="0.5" r="0.5">
-                <stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#06b6d4"/>
-              </radialGradient>
-              <filter id="cbGlow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            </defs>
-            <line x1="32" y1="7" x2="32" y2="14" stroke="url(#cbStroke)" stroke-width="2.4" stroke-linecap="round"/>
-            <circle class="cb-pulse" cx="32" cy="5" r="3.2" fill="#22d3ee" filter="url(#cbGlow)"/>
-            <rect x="11" y="26" width="4" height="10" rx="2" fill="url(#cbStroke)"/>
-            <rect x="49" y="26" width="4" height="10" rx="2" fill="url(#cbStroke)"/>
-            <path d="M15 17 Q15 13 19 13 H45 Q49 13 49 17 V39 Q49 45 43 45 H21 Q15 45 15 39 Z" fill="rgba(255,255,255,0.06)" stroke="url(#cbStroke)" stroke-width="2.4" stroke-linejoin="round"/>
-            <rect x="20" y="20" width="24" height="15" rx="7.5" fill="#0a0f1f" stroke="url(#cbStroke)" stroke-width="1.6"/>
-            <circle class="cb-eye" cx="27" cy="27.5" r="3.1" fill="url(#cbEye)" filter="url(#cbGlow)"/>
-            <circle class="cb-eye" cx="37" cy="27.5" r="3.1" fill="url(#cbEye)" filter="url(#cbGlow)"/>
-            <line x1="25" y1="39" x2="39" y2="39" stroke="url(#cbStroke)" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+          <svg viewBox="0 0 32 32" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="8" fill="#7c5cfc"/>
+            <path d="M9 16L14 21L23 11" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div>
-          <h1>智伴私教</h1>
-          <p>你的专属AI助教，随叫随到的学习搭子</p>
+          <h1>智伴私教平台</h1>
+          <p>AI 驱动的专属学习伙伴</p>
         </div>
       </div>
+
+      <button class="create-btn" id="newChat" title="新建对话">＋ 创建</button>
 
       <nav class="side-nav">
-        <button class="nav-item" id="newChat"><span class="ni-ic">＋</span> 新建对话</button>
+        <div class="nav-item active" id="homeNav"><span class="ni-ic">🏠</span> 智伴私教</div>
         <div class="nav-item" id="connNav"><span class="ni-ic">🧩</span> 插件</div>
+        <div class="nav-item" id="libNav"><span class="ni-ic">📚</span> 学习库</div>
         <div class="nav-item" id="profileNav"><span class="ni-ic">📊</span> 学情档案</div>
         <div class="nav-item" id="schedNav"><span class="ni-ic">⏰</span> 定时任务</div>
-        <div class="nav-item" id="libNav"><span class="ni-ic">📚</span> 学习库</div>
+
+        <div class="nav-section-label"><span>历史记录</span></div>
+
+        <div class="side-section">
+          <div class="hist-list" id="histList">
+            <div class="empty-hint">还没有历史对话</div>
+          </div>
+        </div>
       </nav>
 
-      <div class="side-section">
-        <div class="side-sec-head"><span>任务</span><button class="add-sm" id="newChat2" title="新建对话">＋</button></div>
-        <div class="hist-list" id="histList">
-          <div class="empty-hint">还没有历史对话</div>
-        </div>
-      </div>
-
       <div class="side-foot">
-        <div class="share-card">与好友分享 <b>Mini Agent</b>，一起把重复活交给智能体 🚀</div>
-        <div class="user-row" id="accountBtn" role="button" tabindex="0" title="账户设置"><span class="avatar-sm" id="sideAvatar">🦊</span><span id="sideName">我的账户</span></div>
+        <span class="avatar-sm" id="sideAvatar">🦊</span>
+        <div class="user-row" id="accountBtn" role="button" tabindex="0" title="账户设置"><span id="sideName">我的账户</span><span style="color:#aaa;font-size:11px;margin-left:auto">▾</span></div>
       </div>
       <button class="icon-btn side-close" id="histClose" title="关闭">✕</button>
     </aside>
 
-    <!-- 主区 -->
+    <!-- 主区（iFlytek 风格：Hero首页 ↔ 聊天双视图） -->
     <main class="main">
+      <!-- 顶栏（仅右侧头像） -->
       <header class="topbar">
         <div class="topbar-inner">
-          <div class="tb-left">
-            <button class="icon-btn" id="histToggle" title="侧边栏" aria-label="侧边栏">☰</button>
-            <div class="model-select" id="modelSelect">
-              <button class="ms-btn" id="msBtn">
-                <span>📚</span>
-                <span class="ms-label">智伴私教</span>
-                <span class="ms-badge" id="msBadge">Agent for education</span>
-                <span class="ms-caret">▾</span>
-              </button>
-              <div class="ms-menu" id="msMenu" hidden>
-                <button class="ms-opt active" data-name="Mini Agent" data-badge="1.0"><span class="ms-ic">🤖</span><span><div>Mini Agent 1.0</div><div class="ms-sub">标准 · 均衡能力</div></span></button>
-                <button class="ms-opt" data-name="Mini Agent" data-badge="Lite"><span class="ms-ic">⚡</span><span><div>Mini Agent Lite</div><div class="ms-sub">轻量 · 更快响应</div></span></button>
-                <button class="ms-opt" data-name="Mini Agent" data-badge="Pro"><span class="ms-ic">💎</span><span><div>Mini Agent Pro</div><div class="ms-sub">高级 · 更强推理</div></span></button>
-              </div>
-            </div>
-          </div>
           <div class="tb-right">
-            <button class="ghost-btn" id="upgradeBtn">升级</button>
-            <button class="ghost-btn" id="shareBtn">分享</button>
-            <button class="icon-btn" id="exportBtn" title="导出">⤓</button>
-            <button class="icon-btn" id="moreBtn" title="更多">⋯</button>
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
               <button data-theme="dark">🌙</button>
@@ -1092,52 +1163,113 @@
         </div>
       </header>
 
-      <main class="chat" id="chat"></main>
+      <!-- ===== Hero 首页视图（默认显示） ===== -->
+      <div id="heroView">
+        <div class="hero-title">AI 私教助手，你的专属学习伙伴</div>
 
-      <div class="composer-wrap">
-        <div class="composer-inner">
-          <div class="attach-panel" id="attachPanel" hidden>
-            <div class="attach-head">
-              <span>📎 文档上传与理解</span>
-              <button class="drawer-close" id="attachClose" title="收起">✕</button>
+        <!-- 超大输入框 -->
+        <div class="hero-input-wrap" id="heroInputWrap">
+          <textarea id="heroInput" placeholder="今天想学什么？比如：帮我讲解勾股定理…" rows="2"></textarea>
+          <div class="hero-input-bar">
+            <div class="hero-input-left"><span>📎</span></div>
+            <div class="hero-input-right">
+              <button class="hero-attach-btn" id="heroAttachBtn">📎 附件</button>
+              <button class="hero-send-btn" id="heroSendBtn">▶ 发送</button>
             </div>
-            <div class="upload-zone" id="uploadZone">
-              <p>拖拽文件到此处，或</p>
-              <button class="up-btn" id="pickFile">选择文件</button>
-              <input type="file" id="fileInput" multiple hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.html,.htm,.md,.txt,.json,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff">
-              <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / 网页 / Markdown / 文本 / JSON / 图片</p>
-              <div class="url-row">
-                <input type="text" id="urlInput" placeholder="或粘贴网页 URL…">
-                <button class="up-btn" id="urlBtn" style="margin-top:0">抓取</button>
+          </div>
+        </div>
+
+        <!-- 快捷操作胶囊 -->
+        <div class="hero-pills">
+          <div class="hero-pill" data-prompt="帮我讲解数学中的勾股定理">📐 数学</div>
+          <div class="hero-pill" data-prompt="分析这篇英语长难句的语法结构">🔤 英语</div>
+          <div class="hero-pill" data-prompt="背诵并讲解《静夜思》这首古诗">📖 语文</div>
+          <div class="hero-pill" data-prompt="解释牛顿第二定律并举例说明">⚛️ 物理</div>
+        </div>
+
+        <!-- 学习案例卡片网格 -->
+        <div class="hero-section">
+          <div class="hero-sec-head">
+            <div class="hero-sec-title">学习案例</div>
+            <div class="hero-more">更多 ▾</div>
+          </div>
+          <div class="hero-tabs">
+            <div class="hero-tab on">全部</div>
+            <div class="hero-tab">数学</div>
+            <div class="hero-tab">语文</div>
+            <div class="hero-tab">英语</div>
+            <div class="hero-tab">物理</div>
+          </div>
+          <div class="hero-grid">
+            <div class="hero-card" style="--card-color:linear-gradient(135deg,#fef3c7,#fcd34d)" onclick="document.getElementById('heroInput').value='帮我讲解勾股定理的证明方法'">
+              <div class="hero-card-img" style="background:linear-gradient(135deg,#fef3c7,#fcd34d)">📐</div>
+              <div class="hero-card-body"><div class="hero-card-title">勾股定理深度解析</div></div>
+            </div>
+            <div class="hero-card" style="--card-color:linear-gradient(135deg,#dbeafe,#93c5fd)" onclick="document.getElementById('heroInput').value='帮我练习英语一般过去时态的用法'">
+              <div class="hero-card-img" style="background:linear-gradient(135deg,#dbeafe,#93c5fd)">📝</div>
+              <div class="hero-card-body"><div class="hero-card-title">英语时态专项训练</div></div>
+            </div>
+            <div class="hero-card" style="--card-color:linear-gradient(135deg,#dcfce7,#86efac)" onclick="document.getElementById('heroInput').value='请赏析李白的《静夜思》'">
+              <div class="hero-card-img" style="background:linear-gradient(135deg,#dcfce7,#86efac)">📜</div>
+              <div class="hero-card-body"><div class="hero-card-title">古诗词鉴赏精讲</div></div>
+            </div>
+            <div class="hero-card" style="--card-color:linear-gradient(135deg,#fce7f3,#f9a8d4)" onclick="document.getElementById('heroInput').value='用生活中的例子解释牛顿第三定律'">
+              <div class="hero-card-img" style="background:linear-gradient(135deg,#fce7f3,#f9a8d4)">⚗️</div>
+              <div class="hero-card-body"><div class="hero-card-title">物理力学典型例题</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 聊天视图（默认隐藏，发送后显示） ===== -->
+      <div id="chatView">
+        <main class="chat" id="chat"></main>
+
+        <div class="composer-wrap">
+          <div class="composer-inner">
+            <div class="attach-panel" id="attachPanel" hidden>
+              <div class="attach-head">
+                <span>📎 文档上传与理解</span>
+                <button class="drawer-close" id="attachClose" title="收起">✕</button>
               </div>
-              <div class="up-progress" id="upProgress"></div>
+              <div class="upload-zone" id="uploadZone">
+                <p>拖拽文件到此处，或</p>
+                <button class="up-btn" id="pickFile">选择文件</button>
+                <input type="file" id="fileInput" multiple hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.html,.htm,.md,.txt,.json,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff">
+                <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / 网页 / Markdown / 文本 / JSON / 图片</p>
+                <div class="url-row">
+                  <input type="text" id="urlInput" placeholder="或粘贴网页 URL…">
+                  <button class="up-btn" id="urlBtn" style="margin-top:0">抓取</button>
+                </div>
+                <div class="up-progress" id="upProgress"></div>
+              </div>
+              <div class="doc-search">
+                <input type="text" id="docSearchInput" placeholder="跨文档检索，如『违约责任』">
+                <button class="up-btn" id="docSearchBtn" style="margin-top:0">检索</button>
+              </div>
+              <div class="compare-bar" id="compareBar" hidden>
+                <span>比对：<b id="cmpA"></b> ↔ <b id="cmpB"></b></span>
+                <button id="compareRun">开始比对</button>
+                <button id="compareClear">清除</button>
+              </div>
+              <div class="doc-list" id="docList">
+                <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
+              </div>
             </div>
-            <div class="doc-search">
-              <input type="text" id="docSearchInput" placeholder="跨文档检索，如『违约责任』">
-              <button class="up-btn" id="docSearchBtn" style="margin-top:0">检索</button>
-            </div>
-            <div class="compare-bar" id="compareBar" hidden>
-              <span>比对：<b id="cmpA"></b> ↔ <b id="cmpB"></b></span>
-              <button id="compareRun">开始比对</button>
-              <button id="compareClear">清除</button>
-            </div>
-            <div class="doc-list" id="docList">
-              <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
-            </div>
-          </div>
 
-          <div class="composer">
-            <button class="attach-btn" id="addBtn" title="添加" aria-label="添加">＋</button>
-            <textarea id="input" rows="1" placeholder="问我一道题，或先告诉我你的年级和想学的科目…" aria-label="输入消息"></textarea>
-            <button class="mic-btn" id="micBtn" title="语音输入" aria-label="语音输入"><svg class="mic-ico" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect class="bar bar1" x="3" y="7" width="2.6" height="6" rx="1.3"/><rect class="bar bar2" x="8.7" y="4" width="2.6" height="12" rx="1.3"/><rect class="bar bar3" x="14.4" y="6" width="2.6" height="8" rx="1.3"/></svg></button>
-            <button class="send" id="send" title="发送" aria-label="发送">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+            <div class="composer">
+              <button class="attach-btn" id="addBtn" title="添加" aria-label="添加">＋</button>
+              <textarea id="input" rows="1" placeholder="问我一道题，或先告诉我你的年级和想学的科目…" aria-label="输入消息"></textarea>
+              <button class="mic-btn" id="micBtn" title="语音输入" aria-label="语音输入"><svg class="mic-ico" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect class="bar bar1" x="3" y="7" width="2.6" height="6" rx="1.3"/><rect class="bar bar2" x="8.7" y="4" width="2.6" height="12" rx="1.3"/><rect class="bar bar3" x="14.4" y="6" width="2.6" height="8" rx="1.3"/></svg></button>
+              <button class="send" id="send" title="发送" aria-label="发送">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <p class="hint">回车发送 · Shift+回车换行 · 智能体会自己决定调用哪些工具</p>
+            <p class="disclaimer">Mini Agent 是一个 AI 智能体，可能会出错。请在重要用途前仔细核对。</p>
           </div>
-          <p class="hint">回车发送 · Shift+回车换行 · 智能体会自己决定调用哪些工具</p>
-          <p class="disclaimer">Mini Agent 是一个 AI 智能体，可能会出错。请在重要用途前仔细核对。</p>
         </div>
       </div>
     </main>
@@ -1500,6 +1632,87 @@
   switchEl.addEventListener('click', e => {
     const btn = e.target.closest('button'); if (!btn) return;
     localStorage.setItem(STORE_KEY, btn.dataset.theme); applyTheme(btn.dataset.theme);
+  });
+
+  // ===== Hero 首页 ↔ 聊天视图切换 =====
+  const heroView = document.getElementById('heroView');
+  const chatView = document.getElementById('chatView');
+  const heroInput = document.getElementById('heroInput');
+
+  /** 切换到聊天视图 */
+  function showChatView() {
+    if (!heroView.classList.contains('hidden')) {
+      heroView.classList.add('hidden');
+      chatView.classList.add('active');
+      // 聚焦到聊天区输入框
+      document.getElementById('input').focus();
+    }
+  }
+
+  /** 回到首页视图（新建对话时调用） */
+  function showHeroView() {
+    heroView.classList.remove('hidden');
+    chatView.classList.remove('active');
+    // 清空聊天区
+    chat.innerHTML = '';
+    // 重置开场白
+    addMessage('bot', OPENING_TEXT);
+    // 滚动回顶部
+    window.scrollTo(0, 0);
+  }
+
+  // Hero 输入框：回车发送
+  heroInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const text = heroInput.value.trim();
+      if (!text) return;
+      showChatView();
+      document.getElementById('input').value = text;
+      send(text);
+      heroInput.value = '';
+    }
+  });
+
+  // Hero 发送按钮
+  document.getElementById('heroSendBtn')?.addEventListener('click', () => {
+    const text = heroInput.value.trim();
+    if (!text) { heroInput.focus(); return; }
+    showChatView();
+    document.getElementById('input').value = text;
+    send(text);
+    heroInput.value = '';
+  });
+
+  // Hero 快捷胶囊点击
+  document.querySelectorAll('.hero-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const prompt = pill.dataset.prompt || pill.textContent.trim();
+      heroInput.value = prompt;
+      showChatView();
+      document.getElementById('input').value = prompt;
+      send(prompt);
+      heroInput.value = '';
+    });
+  });
+
+  // Hero 附件按钮 → 打开聊天视图并触发附件面板
+  document.getElementById('heroAttachBtn')?.addEventListener('click', () => {
+    showChatView();
+    document.getElementById('addBtn')?.click();
+  });
+
+  // 首页导航（侧栏"智伴私教"）→ 回到首页
+  document.getElementById('homeNav')?.addEventListener('click', () => {
+    closeHistory();
+    closePlugins();
+    closeLibrary();
+    showHeroView();
+  });
+
+  // "创建"按钮 / "新建对话" → 回首页并清空
+  document.getElementById('newChat')?.addEventListener('click', () => {
+    showHeroView();
   });
 
   // ===== 聊天逻辑 =====
@@ -2771,9 +2984,11 @@
 
   // ---- 侧边栏导航 ----
   document.getElementById('libNav').addEventListener('click', () => {
-    closeHistory(); openLibrary();
+    closeHistory(); showChatView(); openLibrary();
   });
-  document.getElementById('schedNav').addEventListener('click', openSchedules);
+  document.getElementById('schedNav').addEventListener('click', () => { showChatView(); openSchedules(); });
+  document.getElementById('connNav').addEventListener('click', () => { showChatView(); openConnectors(); });
+  document.getElementById('profileNav').addEventListener('click', () => { showChatView(); openProfile(); });
 
   // ---- 定时任务面板 ----
   const schedOverlay = document.getElementById('schedOverlay');
