@@ -1038,7 +1038,6 @@
 
       <nav class="side-nav">
         <button class="nav-item" id="newChat"><span class="ni-ic">＋</span> 新建对话</button>
-        <div class="nav-item" id="agentNav"><span class="ni-ic">🤖</span> Agent</div>
         <div class="nav-item" id="connNav"><span class="ni-ic">🧩</span> 插件</div>
         <div class="nav-item" id="profileNav"><span class="ni-ic">📊</span> 学情档案</div>
         <div class="nav-item" id="schedNav"><span class="ni-ic">⏰</span> 定时任务</div>
@@ -1069,7 +1068,7 @@
               <button class="ms-btn" id="msBtn">
                 <span>📚</span>
                 <span class="ms-label">智伴私教</span>
-                <span class="ms-badge" id="msBadge">家教</span>
+                <span class="ms-badge" id="msBadge">Agent for education</span>
                 <span class="ms-caret">▾</span>
               </button>
               <div class="ms-menu" id="msMenu" hidden>
@@ -2788,10 +2787,6 @@
   });
 
   // ---- 侧边栏导航 ----
-  document.getElementById('agentNav').addEventListener('click', () => {
-    closeHistory(); document.querySelector('.main').scrollIntoView({ behavior: 'smooth' });
-    input.focus(); toast('已回到主对话');
-  });
   document.getElementById('libNav').addEventListener('click', () => {
     closeHistory(); openLibrary();
   });
