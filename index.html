@@ -1682,6 +1682,9 @@
       if (!gotDone) finalize(fullReply);
     } catch (err) {
       ui.bubble.innerHTML = renderMarkdown('⚠️ 调用接口出错了：' + err.message);
+      // 错误时隐藏"正在思考中"步骤区，显示错误标记
+      if (ui.stepsEl) { ui.stepsEl.style.display = 'none'; }
+      if (ui.doneBadge) { ui.doneBadge.style.display = ''; ui.doneBadge.textContent = '✗ 请求失败'; ui.doneBadge.style.color = 'var(--error,#ef4444)'; }
     } finally {
       sendBtn.disabled = false; input.focus();
     }
