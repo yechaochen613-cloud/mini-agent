@@ -1573,7 +1573,6 @@
       inner += `<div class="rating" data-rated="0"><span>这个结果怎么样？</span><span class="stars">${'<span>★</span>'.repeat(5)}</span></div>`;
       inner += `</div>`;
     } else if (role === 'user') {
-      inner += `<div class="msg-head"><span class="model-badge">你</span><span class="msg-time">${nowTime()}</span></div>`;
       inner += `<div class="bubble">${escapeHtml(text)}</div>`;
     } else {
       inner += `<div class="bubble">${text}</div>`;
