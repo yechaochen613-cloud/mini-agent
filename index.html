@@ -1563,14 +1563,12 @@
           <details><summary>查看 ${steps.length} 个工具调用</summary><ul class="step-list">${stepRows}</ul></details>
         </div>`;
       }
-      inner += `<div class="done-badge">✓ 任务已完成</div>`;
       inner += `<div class="msg-actions">
         <button class="ic-btn" data-act="copy">📋 复制</button>
         <button class="ic-btn" data-act="retry">🔄 重试</button>
         <button class="ic-btn" data-act="wrong">📕 存错题</button>
         <button class="ic-btn" data-act="fav">⭐ 收藏</button>
       </div>`;
-      inner += `<div class="rating" data-rated="0"><span>这个结果怎么样？</span><span class="stars">${'<span>★</span>'.repeat(5)}</span></div>`;
       inner += `</div>`;
     } else if (role === 'user') {
       inner += `<div class="bubble">${escapeHtml(text)}</div>`;
@@ -1670,15 +1668,6 @@
       }
       return;
     }
-    const star = e.target.closest('.stars span');
-    if (star) {
-      const rating = star.parentElement;
-      const wrap = rating.closest('.rating');
-      const n = [...rating.children].indexOf(star) + 1;
-      wrap.dataset.rated = n;
-      [...rating.children].forEach((s, i) => s.classList.toggle('on', i < n));
-      toast('感谢评分：' + n + ' 星');
-    }
   });
 
   const API_BASE = (location.protocol === 'file:') ? 'http://localhost:8000' : '';
@@ -1702,14 +1691,12 @@
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
-      <div class="done-badge" style="display:none">✓ 任务已完成</div>
       <div class="msg-actions">
         <button class="ic-btn" data-act="copy">📋 复制</button>
         <button class="ic-btn" data-act="retry">🔄 重试</button>
         <button class="ic-btn" data-act="wrong">📕 存错题</button>
         <button class="ic-btn" data-act="fav">⭐ 收藏</button>
       </div>
-      <div class="rating" data-rated="0"><span>这个结果怎么样？</span><span class="stars">${'<span>★</span>'.repeat(5)}</span></div>
     </div>`;
     chat.appendChild(wrap);
     chat.scrollTop = chat.scrollHeight;
@@ -1720,7 +1707,6 @@
       liveList: wrap.querySelector('.step-list'),
       progressBar: wrap.querySelector('.progress-bar'),
       stepCount: wrap.querySelector('.step-count'),
-      doneBadge: wrap.querySelector('.done-badge'),
     };
   }
 
@@ -1755,7 +1741,6 @@
       if (typingRAF) cancelAnimationFrame(typingRAF);
       fullReply = reply || fullReply;
       ui.bubble.innerHTML = renderMarkdown(fullReply);
-      ui.doneBadge.style.display = '';
       ui.stepsEl.querySelector('.live-pulse')?.remove();
       if (stepTotal === 0) ui.stepsEl.style.display = 'none';
       chat.scrollTop = chat.scrollHeight;
@@ -1822,7 +1807,6 @@
       ui.bubble.innerHTML = renderMarkdown('⚠️ 调用接口出错了：' + err.message);
       // 错误时隐藏"正在思考中"步骤区，显示错误标记
       if (ui.stepsEl) { ui.stepsEl.style.display = 'none'; }
-      if (ui.doneBadge) { ui.doneBadge.style.display = ''; ui.doneBadge.textContent = '✗ 请求失败'; ui.doneBadge.style.color = 'var(--error,#ef4444)'; }
     } finally {
       sendBtn.disabled = false; input.focus();
     }
