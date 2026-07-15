@@ -1634,6 +1634,9 @@
     localStorage.setItem(STORE_KEY, btn.dataset.theme); applyTheme(btn.dataset.theme);
   });
 
+  // ===== 模型档位（在 sendMessage 引用前声明，避免 TDZ） =====
+  let currentModel = '1.0';   // 传给后端的档位：1.0 / lite / pro
+
   // ===== Hero 首页 ↔ 聊天视图切换 =====
   const heroView = document.getElementById('heroView');
   const chatView = document.getElementById('chatView');
@@ -2273,7 +2276,7 @@
 
   // ===== 模型选择器 =====
   const msBtn = document.getElementById('msBtn'), msMenu = document.getElementById('msMenu');
-  let currentModel = '1.0';   // 传给后端的档位：1.0 / lite / pro
+  // currentModel 已在脚本顶部声明（避免 TDZ），此处仅绑定事件
   msBtn.addEventListener('click', e => { e.stopPropagation(); msMenu.hidden = !msMenu.hidden; });
   msMenu.addEventListener('click', e => {
     const opt = e.target.closest('.ms-opt'); if (!opt) return;
