@@ -368,25 +368,13 @@
     gap: 10px; padding: 10px 6px;
   }
   .think-left {
-    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-  }
-  .think-avatar {
-    width: 34px; height: 34px;
-    display: grid; place-items: center; flex-shrink: 0;
-  }
-  .think-avatar .think-icon {
-    font-size: 22px;
-    animation: iconBreathe 2s ease-in-out infinite;
-  }
-  @keyframes iconBreathe {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.15); }
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
   }
   /* 文字 + 内联大号动画点（用文字渲染，不依赖背景色） */
   .think-label {
     font-size: 15px; font-weight: 600; color: var(--text);
     letter-spacing: 0.5px; white-space: nowrap;
-    display: flex; align-items: center; gap: 4px;
+    display: flex; align-items: center; gap: 3px;
   }
   /* 三个大号圆点，依次弹跳 */
   .think-dot {
@@ -1898,8 +1886,7 @@
          <div class="bubble">
            <div class="thinking-row">
              <div class="think-left">
-               <div class="think-avatar"><span class="think-icon">🧘</span></div>
-               <div class="think-label">老师正在思考中<span class="think-dot">●</span><span class="think-dot">●</span><span class="think-dot">●</span></div>
+               <div class="think-label">正在思考<span class="think-dot">●</span><span class="think-dot">●</span><span class="think-dot">●</span></div>
              </div>
            </div>
          </div>
@@ -1944,7 +1931,7 @@
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble"><div class="md"></div></div>
       <div class="steps-block live">
-        <div class="steps-head"><span class="think-head-icon">🧘</span><span>老师正在思考中 <b style="color:var(--accent)">●●●</b></span></div>
+        <div class="steps-head"><span>正在思考 <b style="color:var(--accent)">●●●</b></span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
