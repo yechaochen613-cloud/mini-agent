@@ -1812,12 +1812,6 @@
           <details><summary>查看 ${steps.length} 个工具调用</summary><ul class="step-list">${stepRows}</ul></details>
         </div>`;
       }
-      inner += `<div class="msg-actions">
-        <button class="ic-btn" data-act="copy">📋 复制</button>
-        <button class="ic-btn" data-act="retry">🔄 重试</button>
-        <button class="ic-btn" data-act="wrong">📕 存错题</button>
-        <button class="ic-btn" data-act="fav">⭐ 收藏</button>
-      </div>`;
       inner += `</div>`;
     } else if (role === 'user') {
       inner += `<div class="bubble">${escapeHtml(text)}</div>`;
@@ -1936,12 +1930,6 @@
         <div class="steps-head"><span>正在思考 <b style="color:var(--accent)">●●●</b></span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
-      </div>
-      <div class="msg-actions">
-        <button class="ic-btn" data-act="copy">📋 复制</button>
-        <button class="ic-btn" data-act="retry">🔄 重试</button>
-        <button class="ic-btn" data-act="wrong">📕 存错题</button>
-        <button class="ic-btn" data-act="fav">⭐ 收藏</button>
       </div>
     </div>`;
     chat.appendChild(wrap);
