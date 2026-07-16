@@ -1691,8 +1691,6 @@
     chatView.classList.remove('active');
     // 清空聊天区
     chat.innerHTML = '';
-    // 重置开场白
-    addMessage('bot', OPENING_TEXT);
     // 滚动回顶部
     window.scrollTo(0, 0);
   }
@@ -1755,11 +1753,10 @@
       if (!subj) return; // "全部" 不触发发送
       // 填入对应知识点的提示词并进入聊天
       const prompt = SUBJECT_PROMPTS[subj] || `请介绍${subj}的主要知识点`;
-      heroInput.value = prompt;
-      showChatView();
-      document.getElementById('input').value = prompt;
-      send(prompt);
       heroInput.value = '';
+      showChatView();
+      document.getElementById('input').value = '';
+      send(prompt);
     });
   });
 
@@ -2146,7 +2143,7 @@
       const r = await fetch(`${API_BASE}/conversations?title=${encodeURIComponent('新对话')}`, { method: 'POST' });
       const c = await r.json(); sessionId = c.id; localStorage.setItem('mini_agent_sid', c.id);
     } catch (e) { sessionId = null; localStorage.removeItem('mini_agent_sid'); }
-    chat.innerHTML = ''; await loadConversations(); addMessage('bot', OPENING_TEXT);
+    chat.innerHTML = ''; await loadConversations();
   }
 
   sendBtn.addEventListener('click', () => send());
@@ -3430,7 +3427,7 @@
   startScheduleTicker();
 
   (async function init() {
-    await ensureCurrent(); await loadConversations(); addMessage('bot', OPENING_TEXT);
+    await ensureCurrent(); await loadConversations();
   })();
 </script>
 </body>
