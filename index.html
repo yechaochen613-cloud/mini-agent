@@ -1249,28 +1249,15 @@
           <div class="composer-inner">
             <div class="attach-panel" id="attachPanel" hidden>
               <div class="attach-head">
-                <span>📎 文档上传与理解</span>
+                <span>📎 上传文件</span>
                 <button class="drawer-close" id="attachClose" title="收起">✕</button>
               </div>
               <div class="upload-zone" id="uploadZone">
                 <p>拖拽文件到此处，或</p>
                 <button class="up-btn" id="pickFile">选择文件</button>
                 <input type="file" id="fileInput" multiple hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.html,.htm,.md,.txt,.json,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff">
-                <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / 网页 / Markdown / 文本 / JSON / 图片</p>
-                <div class="url-row">
-                  <input type="text" id="urlInput" placeholder="或粘贴网页 URL…">
-                  <button class="up-btn" id="urlBtn" style="margin-top:0">抓取</button>
-                </div>
+                <p class="up-hint">支持 PDF / Word / Excel / PPT / CSV / HTML / Markdown / 文本 / JSON / 图片</p>
                 <div class="up-progress" id="upProgress"></div>
-              </div>
-              <div class="doc-search">
-                <input type="text" id="docSearchInput" placeholder="跨文档检索，如『违约责任』">
-                <button class="up-btn" id="docSearchBtn" style="margin-top:0">检索</button>
-              </div>
-              <div class="compare-bar" id="compareBar" hidden>
-                <span>比对：<b id="cmpA"></b> ↔ <b id="cmpB"></b></span>
-                <button id="compareRun">开始比对</button>
-                <button id="compareClear">清除</button>
               </div>
               <div class="doc-list" id="docList">
                 <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
@@ -2229,8 +2216,7 @@
         <div class="dc-meta">${d.chars} 字 · 表格 ${d.tables} · 分块 ${d.chunks} · 条款 ${d.clauses} · 标题 ${d.headings}</div>
         ${note}
         <div class="doc-actions">
-          <button data-act="text">读全文</button><button data-act="tables">表格</button><button data-act="clauses">条款</button>
-          <button data-act="search">检索此文档</button><button data-act="cmpA" class="${selA}">选为 A</button><button data-act="cmpB" class="${selB}">选为 B</button>
+          <button data-act="text">读全文</button>
         </div></div>`;
     }).join('');
     list.querySelectorAll('.doc-card').forEach(card => {
@@ -2242,18 +2228,10 @@
     try { const r = await fetch(`${API_BASE}/documents`); const data = await r.json(); docs = data.documents || []; renderDocs(); } catch (e) {}
   }
   async function onDocAction(act, id) {
-    if (act === 'cmpA') { cmp.a = id; renderDocs(); updateCompareBar(); return; }
-    if (act === 'cmpB') { cmp.b = id; renderDocs(); updateCompareBar(); return; }
-    if (act === 'search') { const q = prompt('要在这篇文档里检索什么关键词？'); if (q) runSearch(q); return; }
-    let url, label;
-    if (act === 'text') { url = `${API_BASE}/documents/${id}/text?max_chars=4000`; label = '读全文'; }
-    else if (act === 'tables') { url = `${API_BASE}/documents/${id}/tables`; label = '提取表格'; }
-    else if (act === 'clauses') { url = `${API_BASE}/documents/${id}/clauses`; label = '提取条款'; }
-    try {
-      showTyping(); const r = await fetch(url); const data = await r.json(); removeTyping();
-      let text; if (act === 'tables') text = fmtTables(data.tables || []); else text = data.text || JSON.stringify(data, null, 2);
-      addMessage('bot', `【${label}】《${(docs.find(d => d.id === id) || {}).name || id}》\n${text}`);
-    } catch (e) { removeTyping(); addMessage('bot', '⚠️ 操作失败：' + e.message); }
+    if (act === 'text') {
+      try { showTyping(); const r = await fetch(`${API_BASE}/documents/${id}/text?max_chars=4000`); const data = await r.json(); removeTyping(); addMessage('bot', `【读全文】《${(docs.find(d => d.id === id) || {}).name || id}》\n${data.text || JSON.stringify(data, null, 2)}`); }
+      catch (e) { removeTyping(); addMessage('bot', '⚠️ 操作失败：' + e.message); }
+    }
   }
   function fmtTables(tables) {
     if (!tables.length) return '（未检测到表格）';
@@ -2273,19 +2251,20 @@
       addMessage('bot', `【跨文档检索：${q}】\n${data.result}`);
     } catch (e) { removeTyping(); addMessage('bot', '⚠️ 检索失败：' + e.message); }
   }
-  document.getElementById('docSearchBtn').addEventListener('click', () => { const q = document.getElementById('docSearchInput').value.trim(); if (q) runSearch(q); });
-  document.getElementById('docSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) runSearch(q); } });
+  (document.getElementById('docSearchBtn'))?.addEventListener('click', () => { const q = (document.getElementById('docSearchInput'))?.value.trim() || ''; if (q) runSearch(q); });
+  (document.getElementById('docSearchInput'))?.addEventListener('keydown', e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) runSearch(q); } });
   function updateCompareBar() {
     const bar = document.getElementById('compareBar');
+    if (!bar) return;
     const a = docs.find(d => d.id === cmp.a), b = docs.find(d => d.id === cmp.b);
     if (a && b) { bar.hidden = false; document.getElementById('cmpA').textContent = a.name; document.getElementById('cmpB').textContent = b.name; } else bar.hidden = true;
   }
-  document.getElementById('compareRun').addEventListener('click', async () => {
+  (document.getElementById('compareRun'))?.addEventListener('click', async () => {
     if (!cmp.a || !cmp.b) return;
     try { showTyping(); const r = await fetch(`${API_BASE}/documents/compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a: cmp.a, b: cmp.b }) }); const data = await r.json(); removeTyping(); addMessage('bot', `【跨文档比对】\n${data.result}`); }
     catch (e) { removeTyping(); addMessage('bot', '⚠️ 比对失败：' + e.message); }
   });
-  document.getElementById('compareClear').addEventListener('click', () => { cmp = { a: null, b: null }; renderDocs(); updateCompareBar(); });
+  (document.getElementById('compareClear'))?.addEventListener('click', () => { cmp = { a: null, b: null }; renderDocs(); updateCompareBar(); });
 
   // 上传（文件 + 拖拽 + 网页 URL）
   const fileInput = document.getElementById('fileInput');
@@ -2308,8 +2287,8 @@
       (data.docs || []).filter(d => !d.error).forEach(d => addFileCard(d));
     } catch (e) { prog.textContent = '⚠️ 上传失败：' + e.message; }
   }
-  document.getElementById('urlBtn').addEventListener('click', async () => {
-    const url = document.getElementById('urlInput').value.trim(); if (!url) return;
+  (document.getElementById('urlBtn'))?.addEventListener('click', async () => {
+    const url = (document.getElementById('urlInput'))?.value.trim() || ''; if (!url) return;
     const prog = document.getElementById('upProgress'); prog.textContent = '抓取网页中…';
     const fd = new FormData(); fd.append('url', url);
     try {
