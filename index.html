@@ -376,20 +376,22 @@
     letter-spacing: 0.5px; white-space: nowrap;
     display: flex; align-items: center; gap: 3px;
   }
-  /* 三个大号圆点，依次弹跳 */
+  /* 三个小圆点，依次清晰弹跳（显式 d1/d2/d3 控制错峰，避开 nth-child 不可靠） */
   .think-dot {
     display: inline-block;
-    font-size: 18px; line-height: 1;
+    font-size: 11px; line-height: 1;
     color: var(--accent, #5b3fd4);
-    animation: dotJump 1.4s ease-in-out infinite;
-    opacity: 1;
+    transform: translateY(0);
+    opacity: 0.35;
   }
-  .think-dot:nth-child(1) { animation-delay: 0s; }
-  .think-dot:nth-child(2) { animation-delay: 0.2s; }
-  .think-dot:nth-child(3) { animation-delay: 0.4s; }
+  .think-dot.d1 { animation: dotJump 1.2s ease-in-out infinite; animation-delay: 0s; }
+  .think-dot.d2 { animation: dotJump 1.2s ease-in-out infinite; animation-delay: 0.2s; }
+  .think-dot.d3 { animation: dotJump 1.2s ease-in-out infinite; animation-delay: 0.4s; }
   @keyframes dotJump {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
-    40%           { transform: translateY(-6px); opacity: 1; }
+    0%   { transform: translateY(0);   opacity: 0.35; }
+    25%  { transform: translateY(-7px); opacity: 1; }
+    50%  { transform: translateY(0);   opacity: 0.35; }
+    100% { transform: translateY(0);   opacity: 0.35; }
   }
 
   /* ===== 底部 composer ===== */
@@ -1886,7 +1888,7 @@
          <div class="bubble">
            <div class="thinking-row">
              <div class="think-left">
-               <div class="think-label">正在思考<span class="think-dot">●</span><span class="think-dot">●</span><span class="think-dot">●</span></div>
+               <div class="think-label">正在思考<span class="think-dot d1">●</span><span class="think-dot d2">●</span><span class="think-dot d3">●</span></div>
              </div>
            </div>
          </div>
