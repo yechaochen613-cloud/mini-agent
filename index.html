@@ -1198,11 +1198,11 @@
             <div class="hero-more">更多 ▾</div>
           </div>
           <div class="hero-tabs">
-            <div class="hero-tab on">全部</div>
-            <div class="hero-tab">数学</div>
-            <div class="hero-tab">语文</div>
-            <div class="hero-tab">英语</div>
-            <div class="hero-tab">物理</div>
+            <div class="hero-tab on" data-subject="">全部</div>
+            <div class="hero-tab" data-subject="数学">数学</div>
+            <div class="hero-tab" data-subject="语文">语文</div>
+            <div class="hero-tab" data-subject="英语">英语</div>
+            <div class="hero-tab" data-subject="物理">物理</div>
           </div>
           <div class="hero-grid">
             <div class="hero-card" style="--card-color:linear-gradient(135deg,#fef3c7,#fcd34d)" onclick="document.getElementById('heroInput').value='帮我讲解勾股定理的证明方法'">
@@ -1736,6 +1736,31 @@
   document.getElementById('heroAttachBtn')?.addEventListener('click', () => {
     showChatView();
     document.getElementById('addBtn')?.click();
+  });
+
+  // 学科 tab 切换 + 知识点快捷入口
+  const SUBJECT_PROMPTS = {
+    '数学': '帮我梳理【数学】本学期所有核心知识点，按章节列出重点、难点和常考题型',
+    '语文': '帮我整理【语文】的知识点框架，包括古诗文、阅读理解、作文技巧等',
+    '英语': '帮我总结【英语】的核心语法知识点，包括时态、从句、词汇记忆法等',
+    '物理': '帮我讲解【物理】各章节的重点公式和实验原理，配合例题说明'
+  };
+  document.querySelectorAll('.hero-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // 切换选中态
+      document.querySelectorAll('.hero-tab').forEach(t => t.classList.remove('on'));
+      tab.classList.add('on');
+      // 获取学科
+      const subj = tab.dataset.subject || '';
+      if (!subj) return; // "全部" 不触发发送
+      // 填入对应知识点的提示词并进入聊天
+      const prompt = SUBJECT_PROMPTS[subj] || `请介绍${subj}的主要知识点`;
+      heroInput.value = prompt;
+      showChatView();
+      document.getElementById('input').value = prompt;
+      send(prompt);
+      heroInput.value = '';
+    });
   });
 
   // 首页导航（侧栏"智伴私教"）→ 回到首页
