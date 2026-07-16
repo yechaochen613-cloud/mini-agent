@@ -1103,21 +1103,57 @@
   .auth-screen {
     position: fixed; inset: 0; z-index: 50;
     display: none;
-    align-items: center; justify-content: center;
-    padding: 24px;
     overflow: hidden;
     background:
-      radial-gradient(ellipse 120% 100% at 20% 10%, #fff9f0 0%, transparent 45%),
-      radial-gradient(ellipse 100% 120% at 80% 90%, #e8f2fc 0%, transparent 45%),
-      linear-gradient(160deg, #f5f0ff 0%, #eaf3fb 35%, #fefefe 65%, #eef4fa 100%);
+      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(168,180,255,.18) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 90% 80%, rgba(200,190,255,.14) 0%, transparent 55%),
+      linear-gradient(165deg, #f7f5ff 0%, #f0f4ff 30%, #fafbff 55%, #f4f6ff 80%, #edeaff 100%);
+    font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Noto Sans SC', sans-serif;
   }
 
-  /* ===== 3D 教育场景元素容器 ===== */
-  .auth-scene {
-    position: absolute; inset: 0;
-    pointer-events: none;
-    overflow: hidden;
+  /* 背景装饰：右上角点阵 + 曲线 */
+  .auth-bg-decor { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .decor-dots {
+    position:absolute; right:4%; top:3%;
+    width:120px;height:100px;
+    background-image: radial-gradient(circle, #c8c4e8 1.2px, transparent 1.2px);
+    background-size: 12px 12px; opacity:.35;
   }
+  .decor-swoosh {
+    position:absolute; border-radius:50%; border:1.5px solid;
+    opacity:.12;
+  }
+  .decor-swoosh--1 {
+    width:500px;height:300px;left:-8%;top:-5%;
+    border-color:#b8b0e0; transform:rotate(-12deg);
+  }
+  .decor-swoosh--2 {
+    width:400px;height:250px;right:-10%;bottom:-8%;
+    border-color:#c0b8e8; transform:rotate(8deg);
+  }
+
+  /* ===== 左侧区域 ===== */
+  .auth-left {
+    position: absolute; left:0; top:0; bottom:0;
+    width:44%; max-width:520px;
+    display:flex; flex-direction:column;
+    justify-content:center; padding:5% 4% 5% 6%;
+    pointer-events:none; z-index:1;
+  }
+  .auth-left-content { margin-bottom: 6%; pointer-events:auto; }
+  .auth-hero-title {
+    font-size: clamp(28px, 4vw, 42px); font-weight: 800;
+    color:#333; letter-spacing:-0.5px; line-height:1.25;
+    margin-bottom:12px;
+  }
+  .auth-hero-sub {
+    font-size:clamp(13px,1.4vw,16px); color:#888;
+    font-weight:400; letter-spacing:2px;
+  }
+
+  /* ===== 中间卡片 ===== */
+  .auth-card {
+
   /* 场景内每个元素的基础浮动动画 */
   .scene-el {
     position: absolute;
@@ -1149,8 +1185,8 @@
   .sc-cloud--c4{ width:100px;height:48px;right:12%;bottom:22%; --di:.7s; --tx1:-10px;--ty1:-7px;--tx2:-14px;--ty2:3px;--tx3:-6px;--ty3:-9px; --fd:13s;}
 
   /* ---- 灯泡（左上） ---- */
-  .sc-bulb { left:6%; top:6%; --op:.82; --di:.15s; --fd:5s; --r0:-8deg;--r1:-3deg;--r2:-10deg;--r3:-5deg; --tx1:6px;--ty1:-20px;--tx2:-4px;--ty2:-8px;--tx3:8px;--ty3:-26px; }
-  .sc-bulb svg { width:110px;height:110px; display:block; filter: drop-shadow(0 6px 20px rgba(255,210,80,.4)); }
+  .sc-bulb { left:10%; top:8%; --op:.75; --di:.2s; --fd:5s; --r0:-12deg;--r1:-6deg;--r2:-16deg;--r3:-8deg; --tx1:8px;--ty1:-24px;--tx2:-5px;--ty2:-10px;--tx3:11px;--ty3:-30px; }
+  .sc-bulb svg { width:90px;height:90px;display:block; filter: drop-shadow(0 6px 20px rgba(255,210,80,.35)); }
   .sc-bulb-glow {
     position:absolute;top:-15px;left:-15px;width:140px;height:140px;
     background:radial-gradient(circle,rgba(255,240,150,.5) 0%,rgba(255,225,100,.2) 40%,transparent 70%);
@@ -1159,26 +1195,26 @@
   @keyframes pulseGlow { 0%,100%{transform:scale(.9);opacity:.6;} 50%{transform:scale(1.15);opacity:1;} }
 
   /* ---- 蓝色书本（左中） ---- */
-  .sc-book-blue { left:3%; top:36%; --op:.78; --di:.25s; --fd:6.5s; --r0:12deg;--r1:17deg;--r2:9deg;--r3:15deg; --tx1:10px;--ty1:-18px;--tx2:-6px;--ty2:-4px;--tx3:12px;--ty3:-22px; }
-  .sc-book-blue svg { width:95px;height:72px;display:block; }
+  .sc-book-blue { left:4%; top:38%; --op:.72; --di:.3s; --fd:6.5s; --r0:14deg;--r1:19deg;--r2:10deg;--r3:17deg; --tx1:10px;--ty1:-18px;--tx2:-6px;--ty2:-4px;--tx3:13px;--ty3:-24px; }
+  .sc-book-blue svg { width:80px;height:60px;display:block; }
 
-  /* ---- 堆叠书本（左下） ---- */
-  .sc-books-stack { left:4%; bottom:8%; --op:.88; --di:.35s; --fd:7s; --r0:-4deg;--r1:0deg;--r2:-6deg;--r3:-2deg; --tx1:5px;--ty1:-12px;--tx2:-3px;--ty2:-5px;--tx3:7px;--ty3:-16px; }
-  .sc-books-stack svg { width:130px;height:105px;display:block; }
+  /* ---- 堆叠书本（学士帽底座，左下） ---- */
+  .sc-books-stack { left:4%; bottom:4%; --op:.95; --di:.1s; --fd:8s; --r0:-2deg;--r1:2deg;--r2:-4deg;--r3:0deg; --tx1:4px;--ty1:-10px;--tx2:-2px;--ty2:-4px;--tx3:6px;--ty3:-14px; }
+  .sc-books-stack svg { width:170px;height:135px;display:block; }
 
-  /* ---- 学士帽（右上） ---- */
-  .sc-cap { right:10%; top:12%; --op:.78; --di:.2s; --fd:5.5s; --r0:15deg;--r1:20deg;--r2:10deg;--r3:18deg; --tx1:-10px;--ty1:-16px;--tx2:6px;--ty2:-6px;--tx3:-14px;--ty3:-20px; }
-  .sc-cap svg { width:80px;height:68px;display:block; }
+  /* ---- 学士帽在书本上（左下主视觉） ---- */
+  .sc-cap { left:8%; bottom:18%; --op:.92; --di:.15s; --fd:7s; --r0:6deg;--r1:10deg;--r2:3deg;--r3:8deg; --tx1:5px;--ty1:-14px;--tx2:-3px;--ty2:-6px;--tx3:7px;--ty3:-20px; }
+  .sc-cap svg { width:130px;height:110px;display:block; }
   .sc-cap-tassel { transform-origin: 52px 18px; animation:tasselSwing 2.5s ease-in-out infinite; }
   @keyframes tasselSwing { 0%,100%{transform:rotate(-8deg);} 50%{transform:rotate(12deg);} }
 
-  /* ---- 铅笔（右中） ---- */
-  .sc-pencil { right:6%; top:34%; --op:.84; --di:.3s; --fd:6s; --r0:28deg;--r1:33deg;--r2:24deg;--r3:31deg; --tx1:-12px;--ty1:-20px;--tx2:8px;--ty2:-8px;--tx3:-16px;--ty3:-24px; }
-  .sc-pencil svg { width:100px;height:100px;display:block; }
+  /* ---- 铅笔/笔筒（中左） ---- */
+  .sc-pencil { left:26%; bottom:12%; --op:.82; --di:.25s; --fd:6.5s; --r0:8deg;--r1:14deg;--r2:4deg;--r3:11deg; --tx1:-6px;--ty1:-16px;--tx2:4px;--ty2:-8px;--tx3:-8px;--ty3:-20px; }
+  .sc-pencil svg { width:75px;height:110px;display:block; }
 
-  /* ---- 打开的书本（右下） ---- */
-  .sc-book-open { right:5%; bottom:6%; --op:.86; --di:.4s; --fd:7.5s; --r0:-6deg;--r1:-2deg;--r2:-9deg;--r3:-3deg; --tx1:-8px;--ty1:-14px;--tx2:5px;--ty2:-6px;--tx3:-10px;--ty3:-18px; }
-  .sc-book-open svg { width:125px;height:90px;display:block; }
+  /* ---- 打开的书本（左下，堆书前） ---- */
+  .sc-book-open { left:18%; bottom:2%; --op:.88; --di:.35s; --fd:7.5s; --r0:-8deg;--r1:-3deg;--r2:-11deg;--r3:-5deg; --tx1:6px;--ty1:-12px;--tx2:-4px;--ty2:-5px;--tx3:8px;--ty3;-16px; }
+  .sc-book-open svg { width:110px;height:80px;display:block; }
 
   /* ---- 盆栽方块（右下角） ---- */
   .sc-plant { right:1%; bottom:0%; --op:.82; --di:.45s; --fd:8s; --r0:3deg;--r1:6deg;--r2:1deg;--r3:5deg; --tx1:-5px;--ty1:-10px;--tx2:3px;--ty2:-4px;--tx3:-7px;--ty3:-13px; }
@@ -1195,21 +1231,20 @@
   .sc-stairs { --op:.45; --fd:9s; }
   .sc-stairs svg { width:55px;height:42px;display:block; }
 
-  body.logged-out .auth-screen { display: flex; }
+  body.logged-out .auth-screen { display: block; }
 
   .auth-card {
-    width: 100%; max-width: 400px;
-    padding: 36px 34px 30px;
-    border-radius: 22px;
-    background: rgba(255,255,255,.82);
-    border: 1px solid rgba(255,255,255,.7);
+    position: absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width: 380px; max-width: 90vw;
+    padding: 36px 32px 28px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid #eee;
     box-shadow:
-      0 20px 60px rgba(99,77,214,.12),
-      0 8px 24px rgba(0,0,0,.06);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+      0 24px 80px rgba(99,77,214,.10),
+      0 8px 28px rgba(0,0,0,.05);
     animation: authIn .55s cubic-bezier(.16,1,.3,1) both;
-    position: relative; z-index: 2;
+    z-index: 3;
   }
   @keyframes authIn {
     from { opacity: 0; transform: translateY(14px) scale(.98); }
@@ -1247,14 +1282,15 @@
   .auth-field { display: flex; flex-direction: column; gap: 6px; }
   .auth-field span { font-size: 12.5px; font-weight: 600; color: var(--text-dim); padding-left: 2px; }
   .auth-field input {
-    font: inherit; font-size: 14.5px; padding: 12px 14px;
-    border-radius: 12px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text);
+    font: inherit; font-size: 14.5px; padding: 13px 16px;
+    border-radius: 12px; border: 1px solid #e8e4d8;
+    background: #fff9e6; color: #333;
     transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
   }
+  .auth-field input::placeholder { color:#bbb; }
   .auth-field input:focus {
-    outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    outline: none; border-color: #7c5cfc;
+    box-shadow: 0 0 0 3px rgba(124,92,252,.15);
   }
   .auth-error {
     min-height: 18px; font-size: 12.5px; color: #ef4444;
@@ -1270,7 +1306,156 @@
   .auth-submit:hover { background: var(--accent-press); transform: translateY(-1px); }
   .auth-submit:active { transform: translateY(0); }
   .auth-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-  .auth-hint { margin-top: 16px; text-align: center; font-size: 12.5px; color: var(--text-faint); }
+  .auth-hint { margin-top: 16px; text-align: center; font-size: 12.5px; color: #bbb; }
+
+  /* ===== 右侧浮动UI卡片 ===== */
+  .auth-right {
+    position: absolute; right:0; top:0; bottom:0;
+    width:38%; pointer-events:none; z-index:1;
+  }
+
+  /* 浮动卡片通用 */
+  .float-card {
+    position:absolute; background:#fff;
+    border-radius:16px; border:1px solid rgba(200,195,220,.35);
+    box-shadow:0 12px 40px rgba(100,80,170,.10),0 4px 12px rgba(0,0,0,.04);
+    padding:18px 20px;
+    animation: floatCard var(--fd,6s) ease-in-out infinite;
+    animation-delay: var(--di,0s);
+    opacity:0; animation-fill-mode:both;
+    will-change:transform;
+  }
+  @keyframes floatCard {
+    0%,100%{ transform:translateY(0) rotate(var(--r0,0deg)); opacity:var(--op,.7); }
+    33%{ transform:translateY(var(--fy1,-10px)) rotate(var(--r1,1deg)); }
+    66%{ transform:translateY(var(--fy2,-5px)) rotate(var(--r2,-.5deg)); }
+  }
+
+  /* 用户资料卡 */
+  .float-card--user {
+    right:14%; top:22%; width:180px; display:flex; align-items:center; gap:12px;
+    --fd:7s; --di:.2s; --op:.8; --fy1:-12px;--fy2:-6px;--r0:-3deg;--r1:1deg;--r2:-2deg;
+  }
+  .fc-avatar {
+    flex-shrink:0; width:44px;height:44px;border-radius:12px;
+    background:linear-gradient(135deg,#7c5cfc,#a78bfa);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(124,92,252,.3);
+  }
+  .fc-lines { flex:1; display:flex; flex-direction:column; gap:6px; }
+  .fc-line { height:8px; border-radius:4px; background:#e8e4f0; }
+  .fc-line--name { width:65%; background:#c8c4dc; height:10px; border-radius:5px; }
+  .fc-line--short { width:45%; }
+
+  /* 饼图卡 */
+  .float-card--chart {
+    right:6%; top:46%; width:90px; height:90px;
+    display:flex;align-items:center;justify-content:center;
+    --fd:8s; --di:.4s; --op:.75; --fy1:-14px;--fy2:-8px;--r0:4deg;--r1:7deg;--r2:2deg;
+  }
+
+  /* 柱状图卡 */
+  .float-card--bars {
+    right:24%; top:58%; width:110px; height:80px;
+    display:flex;align-items:flex-end;gap:10px;padding:16px 18px;
+    --fd:6.5s; --di:.15s; --op:.72; --fy1:-8px;--fy2:-4px;--r0:-2deg;--r1:2deg;--r2:0deg;
+  }
+  .fc-bar { flex:1; border-radius:4px 4px 0 0; min-width:14px; height:var(--h); background:linear-gradient(180deg,#a78bfa,#7c5cfc); opacity:.7; }
+
+  /* 盆栽 */
+  .float-plant {
+    position:absolute; right:3%; bottom:16%;
+    --fd:9s; --di:.3s; --op:.85;
+    animation: sceneFloat 9s ease-in-out infinite, fadeInScene .8s ease forwards;
+    animation-delay:.3s,.3s;
+    opacity:0;
+  }
+  .fp-leaves { position:relative; width:60px;height:50px; margin-bottom:-6px; z-index:2; }
+  .fp-leaf {
+    position:absolute; bottom:0; width:22px;height:36px;
+    border-radius:50% 50% 45% 45%;
+    background:linear-gradient(135deg,#b8d4a8,#94c488);
+  }
+  .fp-leaf--1 { left:4px; transform-origin:bottom center; transform:rotate(-18deg); animation:leafSway 4s ease-in-out infinite; }
+  .fp-leaf--2 { left:19px; transform:scale(1.15); transform-origin:bottom center; animation:leafSway 4s ease-in-out infinite .5s; }
+  .fp-leaf--3 { left:34px; transform:rotate(16deg) scale(.95); transform-origin:bottom center; animation:leafSway 4s ease-in-out infinite 1s; }
+  @keyframes leafSway { 0%,100%{transform:rotate(var(--rs,-5deg));} 50%{transform:rotate(calc(var(--rs,-5deg)*-1));} }
+  .fp-pot {
+    width:52px;height:42px;margin-left:4px;
+    border-radius:8px 8px 14px 14px;
+    background:linear-gradient(180deg,#f0ecf5,#ddd8e8);
+    border:1px solid #d0cce0; box-shadow:0 6px 16px rgba(140,130,170,.15);
+  }
+
+  /* 底部书本 */
+  .float-book {
+    position:absolute; right:18%; bottom:6%;
+    width:100px;height:70px;
+    animation: sceneFloat 7s ease-in-out infinite, fadeInScene .8s ease forwards;
+    animation-delay:.5s,.5s; --op:.78; --fd:7s; opacity:0;
+    transform-origin:center bottom;
+  }
+  @keyframes fadeInScene { to { opacity:var(--op,.75); } }
+  .fb-cover {
+    position:absolute; bottom:0;left:0;right:0;height:62px;
+    border-radius:4px 10px 10px 4px;
+    background:linear-gradient(135deg,#c4cfee,#a8bff0);
+    box-shadow:0 6px 20px rgba(120,140,190,.25), inset 0 -4px 10px rgba(160,140,200,.1);
+  }
+  .fb-pages {
+    position:absolute; bottom:4px;left:8px;right:12px;height:54px;
+    background:linear-gradient(180deg,#fff 30%,#f8f6ff); border-radius:2px 6px 8px 2px;
+    transform:perspective(400px) rotateY(-8deg);
+  }
+  .fb-pages::before {
+    content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+    background:rgba(180,175,200,.3);border-radius:1px;
+  }
+
+  /* 玻璃球 */
+  .float-orb {
+    position:absolute; border-radius:50%; opacity:0;
+    animation: orbFloat var(--of,5s) ease-in-out infinite, fadeInOrb 1s ease forwards;
+    animation-delay:var(--od,.6s),var(--od,.6s);
+  }
+  @keyframes fadeInOrb { to { opacity:var(--oo,.5); } }
+  @keyframes orbFloat {
+    0%,100%{ transform:translate(0,0) scale(1); }
+    33%{ transform:translate(var(--ox1,5px),var(--oy1,-8px)) scale(1.04); }
+    66%{ transform:translate(var(--ox2,-4px),var(--oy2,-4px)) scale(.97); }
+  }
+  .float-orb--1 {
+    left:auto; right:28%; bottom:26%; width:32px;height:32px;
+    background:radial-gradient(circle at 35% 30%,#fff 0%,#e0ddf0 60%,#c8c4de 100%);
+    box-shadow:inset 0 -4px 12px rgba(150,140,190,.2),0 6px 20px rgba(140,130,180,.15);
+    --of:5.5s; --od:.7s; --oo:.55; --ox1:6px;--oy1:-10px;--ox2:-5px;--oy2:-6px;
+  }
+  .float-orb--2 {
+    left:auto; right:8%; bottom:34%; width:20px;height:20px;
+    background:radial-gradient(circle at 40% 35%,#fff 0%,#e8e4f4 70%,#d0ccea 100%);
+    box-shadow:inset 0 -3px 8px rgba(150,140,190,.18),0 4px 14px rgba(140,130,180,.12);
+    --of:4.5s; --od:1s; --oo:.45; --ox1:-4px;--oy1:-6px;--ox2:5px;--oy2:-3px;
+  }
+
+  /* ===== 左侧3D场景（复用已有scene-el体系） ===== */
+  .auth-scene {
+    position:absolute; inset:0;
+    pointer-events:none; overflow:hidden;
+  }
+
+  /* 登录页移动端响应式 */
+  @media (max-width:960px) {
+    .auth-left { width:40%; padding-left:4%; }
+    .auth-right { display:none; }
+    .auth-card { width:340px; }
+    .sc-books-stack svg,.sc-cap svg { transform:scale(.8); transform-origin:left bottom; }
+  }
+  @media (max-width:680px) {
+    .auth-screen { background:#f7f5ff; }
+    .auth-left { display:none; }
+    .auth-right { display:none; }
+    .auth-card { position:relative; left:auto;top:auto;transform:none; margin:15vh auto 0;width:92vw;max-width:380px; }
+  }
 
   /* 顶栏用户区 — 已移至侧边栏账户弹窗 */
 </style>
@@ -1278,7 +1463,23 @@
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
   <div class="auth-screen" id="authView">
-    <div class="auth-scene" id="authScene" aria-hidden="true"></div>
+    <!-- 背景装饰层 -->
+    <div class="auth-bg-decor" aria-hidden="true">
+      <div class="decor-dots"></div>
+      <div class="decor-swoosh decor-swoosh--1"></div>
+      <div class="decor-swoosh decor-swoosh--2"></div>
+    </div>
+
+    <!-- 左侧：标题 + 3D场景 -->
+    <div class="auth-left">
+      <div class="auth-left-content">
+        <h1 class="auth-hero-title">让学习更高效</h1>
+        <p class="auth-hero-sub">智能陪伴 · 个性化学习 · 成长每一步</p>
+      </div>
+      <div class="auth-scene" id="authScene" aria-hidden="true"></div>
+    </div>
+
+    <!-- 中间：登录卡片 -->
     <div class="auth-card">
       <div class="auth-brand">
         <div class="auth-logo">
@@ -1308,6 +1509,56 @@
         <button type="submit" class="auth-submit" id="authSubmit">登录</button>
       </form>
       <div class="auth-hint" id="authHint">还没有账号？点击上方「注册」创建</div>
+    </div>
+
+    <!-- 右侧：浮动UI卡片 -->
+    <div class="auth-right" aria-hidden="true">
+      <!-- 用户资料卡片 -->
+      <div class="float-card float-card--user">
+        <div class="fc-avatar">
+          <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="20" r="20" fill="#7c5cfc"/><text x="20" y="25" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">陈</text></svg>
+        </div>
+        <div class="fc-lines">
+          <div class="fc-line fc-line--name"></div>
+          <div class="fc-line fc-line--info"></div>
+          <div class="fc-line fc-line--info fc-line--short"></div>
+        </div>
+      </div>
+      <!-- 饼图卡片 -->
+      <div class="float-card float-card--chart">
+        <div class="fc-pie">
+          <svg viewBox="0 0 60 60" width="52" height="52">
+            <circle cx="30" cy="30" r="26" fill="none" stroke="#e8e8f0" stroke-width="8"/>
+            <circle cx="30" cy="30" r="26" fill="none" stroke="#7c5cfc" stroke-width="8" stroke-dasharray="100 163" stroke-dashoffset="25" stroke-linecap="round" transform="rotate(-90 30 30)"/>
+            <circle cx="30" cy="30" r="26" fill="none" stroke="#f5c85c" stroke-width="8" stroke-dasharray="40 163" stroke-dashoffset="-75" stroke-linecap="round" transform="rotate(-90 30 30)"/>
+            <circle cx="30" cy="30" r="26" fill="none" stroke="#a78bfa" stroke-width="8" stroke-dasharray="23 163" stroke-dashoffset="-115" stroke-linecap="round" transform="rotate(-90 30 30)"/>
+          </svg>
+        </div>
+      </div>
+      <!-- 柱状图卡片 -->
+      <div class="float-card float-card--bars">
+        <div class="fc-bar" style="--h:55%"></div>
+        <div class="fc-bar" style="--h:78%"></div>
+        <div class="fc-bar" style="--h:42%"></div>
+        <div class="fc-bar" style="--h:90%"></div>
+      </div>
+      <!-- 盆栽 -->
+      <div class="float-plant">
+        <div class="fp-leaves">
+          <div class="fp-leaf fp-leaf--1"></div>
+          <div class="fp-leaf fp-leaf--2"></div>
+          <div class="fp-leaf fp-leaf--3"></div>
+        </div>
+        <div class="fp-pot"></div>
+      </div>
+      <!-- 底部书本 -->
+      <div class="float-book">
+        <div class="fb-cover fb-cover--top"></div>
+        <div class="fb-pages"></div>
+      </div>
+      <!-- 玻璃球装饰 -->
+      <div class="float-orb float-orb--1"></div>
+      <div class="float-orb float-orb--2"></div>
     </div>
   </div>
 
