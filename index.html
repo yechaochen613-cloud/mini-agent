@@ -1088,9 +1088,132 @@
 
   #chatView .chat { flex: 1; overflow-y: auto; padding: 16px 24px; }
   #chatView .composer-wrap { flex-shrink: 0; }
+
+  /* ===== 登录 / 注册视图（强制登录） ===== */
+  body.logged-out .app { display: none !important; }
+
+  .auth-screen {
+    position: fixed; inset: 0; z-index: 50;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(1100px 620px at 15% -10%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 60%),
+      radial-gradient(900px 560px at 95% 115%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+      var(--bg);
+  }
+  body.logged-out .auth-screen { display: flex; }
+
+  .auth-card {
+    width: 100%; max-width: 400px;
+    padding: 36px 34px 30px;
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    animation: authIn .5s var(--ease) both;
+  }
+  @keyframes authIn {
+    from { opacity: 0; transform: translateY(14px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .auth-brand { text-align: center; margin-bottom: 22px; }
+  .auth-logo {
+    width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 12px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #fff));
+    box-shadow: 0 8px 22px var(--accent-soft-2);
+  }
+  .auth-brand h1 { font-size: 21px; font-weight: 800; letter-spacing: .5px; }
+  .auth-brand p { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+  .auth-tabs {
+    display: flex; gap: 6px; padding: 4px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 14px; margin-bottom: 20px;
+  }
+  .auth-tab {
+    flex: 1; border: none; cursor: pointer; font: inherit; font-weight: 700;
+    padding: 9px 0; border-radius: 10px; color: var(--text-dim);
+    background: transparent; transition: all .2s var(--ease);
+  }
+  .auth-tab.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+
+  .auth-form { display: flex; flex-direction: column; gap: 14px; }
+  .auth-field { display: flex; flex-direction: column; gap: 6px; }
+  .auth-field span { font-size: 12.5px; font-weight: 600; color: var(--text-dim); padding-left: 2px; }
+  .auth-field input {
+    font: inherit; font-size: 14.5px; padding: 12px 14px;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .auth-field input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .auth-error {
+    min-height: 18px; font-size: 12.5px; color: #ef4444;
+    font-weight: 600; text-align: center; margin-top: -4px;
+  }
+  .auth-submit {
+    margin-top: 4px; border: none; cursor: pointer; font: inherit; font-weight: 700;
+    font-size: 15px; padding: 12px; border-radius: 12px;
+    color: var(--on-accent); background: var(--accent);
+    transition: background .2s var(--ease), transform .15s var(--ease), box-shadow .2s var(--ease);
+    box-shadow: 0 6px 18px var(--accent-soft-2);
+  }
+  .auth-submit:hover { background: var(--accent-press); transform: translateY(-1px); }
+  .auth-submit:active { transform: translateY(0); }
+  .auth-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+  .auth-hint { margin-top: 16px; text-align: center; font-size: 12.5px; color: var(--text-faint); }
+
+  /* 顶栏用户区 */
+  .user-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .user-chip .uc-name { overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
-<body>
+<body class="logged-out">
+  <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
+  <div class="auth-screen" id="authView">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-logo">
+          <svg viewBox="0 0 32 32" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 16L14 21L23 11" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1>智伴私教</h1>
+        <p>AI 驱动的专属学习伙伴</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab on" data-mode="login" type="button">登录</button>
+        <button class="auth-tab" data-mode="register" type="button">注册</button>
+      </div>
+
+      <form class="auth-form" id="authForm" autocomplete="off">
+        <label class="auth-field">
+          <span>用户名</span>
+          <input type="text" id="authUser" placeholder="2-32 位，支持中英文" maxlength="32" autocomplete="username">
+        </label>
+        <label class="auth-field">
+          <span>密码</span>
+          <input type="password" id="authPass" placeholder="至少 6 位" maxlength="64" autocomplete="current-password">
+        </label>
+        <div class="auth-error" id="authError"></div>
+        <button type="submit" class="auth-submit" id="authSubmit">登录</button>
+      </form>
+      <div class="auth-hint" id="authHint">还没有账号？点击上方「注册」创建</div>
+    </div>
+  </div>
+
   <div class="app" id="app">
     <!-- 左侧常驻侧边栏（iFlytek 风格） -->
     <aside class="sidebar" id="histDrawer" aria-label="侧边栏">
@@ -1158,6 +1281,8 @@
             <button class="ghost-btn" id="shareBtn">分享</button>
             <button class="icon-btn" id="exportBtn" title="导出">⤓</button>
             <button class="icon-btn" id="moreBtn" title="更多">⋯</button>
+            <button class="ghost-btn user-chip" id="userChip" title="当前账户">👤 <span class="uc-name">用户</span></button>
+            <button class="ghost-btn" id="logoutBtn" title="退出登录">退出</button>
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
               <button data-act="rainbow" title="点击切换背景颜色：赤橙黄绿青蓝紫">🌙</button>
@@ -3426,8 +3551,108 @@
 
   startScheduleTicker();
 
+  // ===== 用户认证（强制登录） =====
+  let currentUser = null;
+
+  const authView   = document.getElementById('authView');
+  const authForm   = document.getElementById('authForm');
+  const authUser   = document.getElementById('authUser');
+  const authPass   = document.getElementById('authPass');
+  const authError  = document.getElementById('authError');
+  const authSubmit = document.getElementById('authSubmit');
+  const authHint   = document.getElementById('authHint');
+  const userChip   = document.getElementById('userChip');
+  const logoutBtn  = document.getElementById('logoutBtn');
+  let authMode = 'login';
+
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('on'));
+      tab.classList.add('on');
+      authMode = tab.dataset.mode;
+      authSubmit.textContent = authMode === 'login' ? '登录' : '注册';
+      authHint.textContent = authMode === 'login'
+        ? '还没有账号？点击上方「注册」创建'
+        : '已有账号？点击上方「登录」';
+      authError.textContent = '';
+    });
+  });
+
+  function showLogoutUI(username) {
+    const nameEl = userChip.querySelector('.uc-name');
+    if (nameEl) nameEl.textContent = username;
+    const sn = document.getElementById('sideName');
+    if (sn) sn.textContent = username;
+  }
+
+  function enterApp() { document.body.classList.remove('logged-out'); }
+  function exitApp()  { document.body.classList.add('logged-out'); }
+
+  async function afterLogin(user) {
+    currentUser = user;
+    showLogoutUI(user.username);
+    enterApp();
+    chat.innerHTML = '';
+    await ensureCurrent();
+    await loadConversations();
+  }
+
+  authForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = authUser.value.trim();
+    const password = authPass.value;
+    authError.textContent = '';
+    if (!username || !password) { authError.textContent = '请输入用户名和密码'; return; }
+    authSubmit.disabled = true;
+    const prevLabel = authSubmit.textContent;
+    authSubmit.textContent = '处理中…';
+    try {
+      const r = await fetch(`${API_BASE}/auth/${authMode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        authError.textContent = data.detail || (authMode === 'login' ? '用户名或密码错误' : '注册失败，请重试');
+        return;
+      }
+      await afterLogin({ username: data.username || username });
+    } catch (err) {
+      authError.textContent = '网络异常，请重试';
+    } finally {
+      authSubmit.disabled = false;
+      authSubmit.textContent = prevLabel;
+    }
+  });
+
+  logoutBtn.addEventListener('click', async () => {
+    try { await fetch(`${API_BASE}/auth/logout`, { method: 'POST' }); } catch (e) {}
+    currentUser = null;
+    chat.innerHTML = '';
+    sessionId = null;
+    try { localStorage.removeItem('mini_agent_sid'); } catch (e) {}
+    exitApp();
+  });
+
+  async function bootstrap() {
+    try {
+      const r = await fetch(`${API_BASE}/auth/me`);
+      if (r.ok) {
+        const u = await r.json();
+        currentUser = u;
+        showLogoutUI(u.username);
+        enterApp();
+        return true;
+      }
+    } catch (e) {}
+    exitApp();
+    return false;
+  }
+
   (async function init() {
-    await ensureCurrent(); await loadConversations();
+    const ok = await bootstrap();
+    if (ok) { await ensureCurrent(); await loadConversations(); }
   })();
 </script>
 </body>
