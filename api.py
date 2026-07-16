@@ -10,10 +10,12 @@
 #        -H "Content-Type: application/json" \
 #        -d '{"message": "帮我算 99*3，再记一条笔记：今天用 FastAPI 包了 Agent"}'
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse, JSONResponse
 from fastapi import File, UploadFile, Form
+
+import auth as auth_store
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -104,6 +106,26 @@ class ChatRequest(BaseModel):
     # 人工审核的答复：{decision:"approve_all"|"reject_all"|"custom", approved:[ids], rejected:[ids], edits:{id:args}}
     # 带上它就表示"人类已答复"，服务端会用它唤醒被中断的图。
     review_decision: dict | None = None
+
+
+# ===== 登录态（会话）依赖 =====
+def get_current_user(request: Request) -> dict:
+    """从 Cookie 读取会话 token，解析出当前登录用户；未登录或失效抛 401。"""
+    token = request.cookies.get("session")
+    user = auth_store.get_session_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="未登录或登录已过期")
+    return user
+
+
+def _set_session_cookie(resp: Response, token: str, request: Request) -> None:
+    """把会话 token 写入 HttpOnly Cookie；按请求协议决定是否 Secure。"""
+    secure = (request.url.scheme == "https") or (request.headers.get("x-forwarded-proto") == "https")
+    resp.set_cookie(
+        "session", token,
+        httponly=True, samesite="lax", path="/",
+        secure=secure, max_age=auth_store.SESSION_TTL,
+    )
 
 
 class ChatResponse(BaseModel):
@@ -249,11 +271,12 @@ def document_compare(req: dict):
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     if not _rate_ok():
         raise HTTPException(status_code=429, detail="请求太频繁，请稍后再试")
 
     session_id = req.session_id
+    owner = user["id"]
 
     # 前端模型档位（1.0/lite/pro）映射到真实模型名，仅非 mock 模式生效
     model_arg = MODEL_PRESETS.get(req.model) if req.model else None
@@ -268,7 +291,7 @@ def chat(req: ChatRequest):
         )
         reply = result["reply"]
         # 审核通过后，把最终回复落进历史（用户消息在上一轮已存）
-        history.append_message(session_id, "bot", reply or "", result.get("steps", []))
+        history.append_message(session_id, "bot", reply or "", result.get("steps", []), owner=owner)
         return ChatResponse(
             reply=reply, steps=result["steps"], session_id=session_id,
             needs_review=result.get("needs_review", False), review=result.get("review"),
@@ -290,9 +313,9 @@ def chat(req: ChatRequest):
     # 持久化到历史记录：用户消息一定存；若需要人工审批，bot 回复先不存
     # （审批通过后会走情况 A 再存最终回复，避免存一条空的占位）
     title = (req.message or "").strip()[:20] or None
-    history.append_message(session_id, "user", req.message or "", title=title)
+    history.append_message(session_id, "user", req.message or "", title=title, owner=owner)
     if not result.get("needs_review"):
-        history.append_message(session_id, "bot", reply or "", steps)
+        history.append_message(session_id, "bot", reply or "", steps, owner=owner)
         return ChatResponse(
             reply=reply, steps=steps, session_id=session_id,
             needs_review=result.get("needs_review", False), review=result.get("review"),
@@ -300,13 +323,14 @@ def chat(req: ChatRequest):
 
 
 @app.post("/chat/stream")
-def chat_stream(req: ChatRequest):
+def chat_stream(req: ChatRequest, user: dict = Depends(get_current_user)):
     """流式对话（SSE）：边执行边吐事件，让前端实时呈现"执行步骤"与打字机式回复。
     对标 Manus 的"活着的智能体"体感。历史记录在服务端落库（用户消息 + 最终回复）。"""
     if not _rate_ok():
         raise HTTPException(status_code=429, detail="请求太频繁，请稍后再试")
 
     session_id = req.session_id or str(uuid.uuid4())
+    owner = user["id"]
     model_arg = MODEL_PRESETS.get(req.model) if req.model else None
     title = (req.message or "").strip()[:20] or None
 
@@ -333,14 +357,14 @@ def chat_stream(req: ChatRequest):
 
             # 情况 B：普通新消息 —— 先落用户消息，再流式跑 Agent
             if req.message:
-                history.append_message(session_id, "user", req.message, title=title)
+                history.append_message(session_id, "user", req.message, title=title, owner=owner)
             for ev in agent.run_stream(session_id, req.message, max_steps=req.max_steps, model=model_arg):
                 if ev.get("type") == "done":
                     final_reply = ev.get("reply", "")
                 yield _sse(ev)
             # 流式结束，落库最终回复（带上逐步记录）
             if final_reply:
-                history.append_message(session_id, "bot", final_reply, agent.steps)
+                history.append_message(session_id, "bot", final_reply, agent.steps, owner=owner)
         except Exception as e:
             yield _sse({"type": "error", "message": f"流式处理出错：{e}"})
 
@@ -356,10 +380,61 @@ def chat_stream(req: ChatRequest):
 
 
 @app.post("/reset")
-def reset(req: ResetRequest):
+def reset(req: ResetRequest, user: dict = Depends(get_current_user)):
     """清空某个会话的 LangGraph 上下文（不影响历史记录，历史由 chat_history 管理）。"""
     agent.reset_session(req.session_id)
     return {"status": "ok", "session_id": req.session_id}
+
+
+# ===== 用户认证（注册 / 登录 / 退出 / 当前用户） =====
+class AuthRequest(BaseModel):
+    username: str = ""
+    password: str = ""
+
+
+@app.post("/auth/register")
+def auth_register(req: AuthRequest, request: Request):
+    """注册新用户；成功自动登录（写入会话 Cookie）。"""
+    try:
+        u = auth_store.register_user(req.username, req.password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    token = auth_store.create_session(u["id"])
+    resp = JSONResponse({"username": u["username"]})
+    _set_session_cookie(resp, token, request)
+    return resp
+
+
+@app.post("/auth/login")
+def auth_login(req: AuthRequest, request: Request):
+    """用户名 + 密码登录；成功写入会话 Cookie。"""
+    u = auth_store.verify_user(req.username, req.password)
+    if not u:
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    token = auth_store.create_session(u["id"])
+    resp = JSONResponse({"username": u["username"]})
+    _set_session_cookie(resp, token, request)
+    return resp
+
+
+@app.post("/auth/logout")
+def auth_logout(request: Request):
+    """注销当前会话（清除 Cookie）。"""
+    token = request.cookies.get("session")
+    auth_store.delete_session(token)
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie("session", path="/")
+    return resp
+
+
+@app.get("/auth/me")
+def auth_me(request: Request):
+    """返回当前登录用户；未登录返回 401。前端据此决定显示登录页还是主页。"""
+    token = request.cookies.get("session")
+    u = auth_store.get_session_user(token)
+    if not u:
+        raise HTTPException(status_code=401, detail="未登录")
+    return {"username": u["username"], "id": u["id"]}
 
 
 # ===== 账户（用户名）相关 =====
@@ -407,32 +482,32 @@ def account_post(body: AccountUpdate):
     return set_account(body.name)
 
 
-# ===== 历史对话记录相关路由 =====
+# ===== 历史对话记录相关路由（均按登录用户隔离） =====
 @app.get("/conversations")
-def conversations():
-    """列出所有历史会话（按最近更新倒序）。"""
-    return {"conversations": history.list_conversations()}
+def conversations(user: dict = Depends(get_current_user)):
+    """列出当前登录用户的历史会话（按最近更新倒序）。"""
+    return {"conversations": history.list_conversations(owner=user["id"])}
 
 
 @app.get("/conversations/{sid}")
-def conversation(sid: str):
-    """获取某次会话的完整内容（含全部消息），用于回看。"""
-    c = history.get_conversation(sid)
+def conversation(sid: str, user: dict = Depends(get_current_user)):
+    """获取某次会话的完整内容（含全部消息），用于回看；非本人会话视为不存在。"""
+    c = history.get_conversation(sid, owner=user["id"])
     if not c:
         raise HTTPException(status_code=404, detail="会话不存在")
     return c
 
 
 @app.post("/conversations")
-def new_conversation(title: str = "新对话"):
-    """新建一个空会话（会出现在历史列表里）。"""
-    return history.create_conversation(title=title)
+def new_conversation(title: str = "新对话", user: dict = Depends(get_current_user)):
+    """新建一个空会话（会出现在历史列表里），归属当前用户。"""
+    return history.create_conversation(title=title, owner=user["id"])
 
 
 @app.delete("/conversations/{sid}")
-def del_conversation(sid: str):
-    """删除一条历史会话。"""
-    return history.delete_conversation(sid)
+def del_conversation(sid: str, user: dict = Depends(get_current_user)):
+    """删除一条历史会话（仅能删自己的）。"""
+    return history.delete_conversation(sid, owner=user["id"])
 
 
 # ===== 视觉理解（屏幕截图） =====
