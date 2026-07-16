@@ -1994,22 +1994,28 @@
       }
     };
 
-    try {
-      const resp = await fetch(`${API_BASE}/chat/stream`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, max_steps: 5, session_id: sessionId, model: currentModel }),
-      });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf('\n\n')) !== -1) {
-          const raw = buf.slice(0, idx); buf = buf.slice(idx + 2);
+    const MAX_RETRY = 1;
+    for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
+      try {
+        if (attempt > 0) {
+          ui.bubble.innerHTML = '<em style="color:var(--text-muted)">⏳ 连接中断，正在重试… (' + attempt + '/' + MAX_RETRY + ')</em>';
+          await new Promise(r => setTimeout(r, 1200));
+        }
+        const resp = await fetch(`${API_BASE}/chat/stream`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, max_steps: 5, session_id: sessionId, model: currentModel }),
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = buf.indexOf('\n\n')) !== -1) {
+            const raw = buf.slice(0, idx); buf = buf.slice(idx + 2);
           const dataLine = raw.split('\n').find(l => l.startsWith('data:'));
           if (!dataLine) continue;
           const data = dataLine.slice(5).trim();
@@ -2019,13 +2025,23 @@
         }
       }
       if (!gotDone) finalize(fullReply);
-    } catch (err) {
-      ui.bubble.innerHTML = renderMarkdown('⚠️ 调用接口出错了：' + err.message);
-      // 错误时隐藏"正在思考中"步骤区，显示错误标记
-      if (ui.stepsEl) { ui.stepsEl.style.display = 'none'; }
-    } finally {
-      sendBtn.disabled = false; input.focus();
+      break; // 成功完成，退出重试循环
+      } catch (err) {
+        const isNetwork = /Failed to fetch|Connection|NetworkError|Load failed/i.test(err.message);
+        if (!isNetwork || attempt >= MAX_RETRY) {
+          // 非网络错误 或 重试耗尽 → 最终报错
+          ui.bubble.innerHTML = renderMarkdown('⚠️ 调用接口出错了：' + err.message + (isNetwork ? '（网络不稳定，请刷新页面后重试）' : ''));
+          if (ui.stepsEl) { ui.stepsEl.style.display = 'none'; }
+          break;
+        }
+        // 网络错误且还有重试次数 → 继续循环
+        continue;
+      } finally {
+        // 循环结束后恢复按钮状态
+      }
     }
+    sendBtn.disabled = false;
+    input.focus();
   }
 
   function renderReviewCard(review) {
