@@ -362,71 +362,56 @@
   .stars span.on { color: #f5b301; }
   .stars span:hover { transform: scale(1.15); }
 
-  /* ===== 冥想思考指示器 (波纹+思考态) ===== */
+  /* ===== 思考指示器（任何背景都清晰可见） ===== */
   .thinking-row {
     display: flex; align-items: center;
-    gap: 14px; padding: 6px 2px;
+    gap: 14px; padding: 8px 4px;
   }
   .think-left {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   }
   .think-avatar {
-    position: relative; width: 34px; height: 34px;
+    width: 34px; height: 34px;
     display: grid; place-items: center; flex-shrink: 0;
   }
-  .think-avatar .think-icon { font-size: 22px; display: grid; place-items: center; }
+  .think-avatar .think-icon { font-size: 22px; }
   /* 左侧文字 */
   .think-label {
     font-size: 14.5px; font-weight: 600; color: var(--text);
     letter-spacing: 0.3px; white-space: nowrap;
   }
-  /* 右侧波纹 + 思考文字 */
+  /* 右侧动画区：深色圆点 + 发光，确保在白/彩/暗背景都可见 */
   .think-right {
-    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
   }
-  /* 三点波纹脉冲 - 加大加粗，确保在任何背景下可见 */
   .ripple-dots {
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(30, 20, 60, 0.08);
   }
   .ripple-dot {
-    width: 9px; height: 9px; border-radius: 50%;
-    background: var(--accent, #5b3fd4);
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #3a2479;
     opacity: 1;
-    animation: ripplePulse 1.4s ease-in-out infinite;
-    box-shadow: 0 0 4px rgba(91,63,212,0.4);
+    animation: dotBounce 1.2s ease-in-out infinite;
+    box-shadow: 0 0 6px rgba(58,36,121,0.5), 0 0 12px rgba(58,36,121,0.25);
   }
-  .ripple-dot:nth-child(2) { animation-delay: 0.18s; }
-  .ripple-dot:nth-child(3) { animation-delay: 0.36s; }
-  @keyframes ripplePulse {
-    0%, 100% { opacity: 0.35; transform: scale(0.8); }
-    50%      { opacity: 1;   transform: scale(1.25); box-shadow: 0 0 8px rgba(91,63,212,0.55); }
+  .ripple-dot:nth-child(2) { animation-delay: 0.2s; }
+  .ripple-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotBounce {
+    0%, 100% { opacity: 0.3; transform: scale(0.7); box-shadow: 0 0 3px rgba(58,36,121,0.3); }
+    50%      { opacity: 1;   transform: scale(1.25); box-shadow: 0 0 10px rgba(58,36,121,0.6), 0 0 18px rgba(58,36,121,0.25); }
   }
-  /* 波纹外圈扩散 */
-  .ripple-ring {
-    position: relative; width: 32px; height: 20px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .ripple-ring::before,
-  .ripple-ring::after {
-    content: '';
-    position: absolute;
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 1.5px solid rgba(91,63,212,0.3);
-    animation: ringExpand 1.8s ease-out infinite;
-  }
-  .ripple-ring::after { animation-delay: 0.9s; }
-  @keyframes ringExpand {
-    0%   { transform: scale(0.4); opacity: 0.8; }
-    100% { transform: scale(1.8); opacity: 0; }
-  }
-  /* 右侧"思考中"文字带省略号动画 */
   .think-status {
-    font-size: 13.5px; font-weight: 600; color: var(--accent, #5b3fd4);
+    font-size: 13.5px; font-weight: 600; color: #3a2479;
     white-space: nowrap;
   }
   .think-status::after {
     content: '';
-    animation: dotPulse 1.6s steps(4, end) infinite;
+    animation: dotPulse 1.5s steps(4, end) infinite;
   }
   @keyframes dotPulse {
     0%   { content: ''; }
