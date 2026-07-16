@@ -1030,7 +1030,6 @@
     display: flex; align-items: center; justify-content: space-between;
     margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f4;
   }
-  .hero-input-left { display: flex; align-items: center; gap: 14px; color: #bbb; font-size: 13px; cursor: pointer; }
   .hero-input-right { display: flex; align-items: center; gap: 9px; }
   .hero-attach-btn {
     display: flex; align-items: center; gap: 5px; padding: 7px 14px;
@@ -1302,8 +1301,7 @@
         <div class="hero-input-wrap" id="heroInputWrap">
           <textarea id="heroInput" placeholder="今天想学什么？比如：帮我讲解勾股定理…" rows="2"></textarea>
           <div class="hero-input-bar">
-            <div class="hero-input-left"><span>📎</span></div>
-            <div class="hero-input-right">
+            <div class="hero-input-right" style="margin-left: auto;">
               <button class="hero-attach-btn" id="heroAttachBtn">📎 附件</button>
               <button class="hero-send-btn" id="heroSendBtn">▶ 发送</button>
             </div>
