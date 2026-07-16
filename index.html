@@ -658,6 +658,15 @@
   }
   .acc-save:hover { filter: brightness(1.07); }
   .acc-tip { font-size: 12px; color: var(--text-dim); margin: 14px 0 0; line-height: 1.5; }
+  .acc-actions { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
+  .acc-logout-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: 10px;
+    border: 1px solid var(--border); background: none;
+    font-size: 13px; color: #dc2626; cursor: pointer;
+    transition: all .18s var(--ease);
+  }
+  .acc-logout-btn:hover { background: #fef2f2; border-color: #fecaca; }
   .user-row { cursor: pointer; }
   .user-row:hover { color: var(--accent); }
 
@@ -1171,55 +1180,7 @@
   .auth-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
   .auth-hint { margin-top: 16px; text-align: center; font-size: 12.5px; color: var(--text-faint); }
 
-  /* 顶栏用户区 */
-  .user-chip-wrap { position: relative; }
-  .user-chip {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 4px 8px 4px 4px;
-    border-radius: 20px;
-    background: #f0f1f5;
-    cursor: pointer;
-    border: none;
-    font-size: 14px;
-    color: var(--text);
-    transition: background .2s, box-shadow .2s;
-  }
-  .user-chip:hover { background: #e4e6ed; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-  .uc-avatar {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: linear-gradient(135deg, #ff7e5f, #feb47b);
-    color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 600;
-    flex-shrink: 0;
-  }
-  .user-chip .uc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
-
-  /* 用户下拉菜单 */
-  .uc-dropdown {
-    display: none; position: absolute; top: calc(100% + 6px);
-    right: 0; min-width: 150px;
-    background: #fff; border-radius: 12px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06);
-    border: 1px solid #eee; z-index: 100;
-    overflow: hidden;
-    animation: ucDropIn .18s ease;
-  }
-  @keyframes ucDropIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-  .uc-dropdown.show { display: block; }
-  .uc-item {
-    display: flex; align-items: center; gap: 8px;
-    width: 100%; padding: 10px 16px;
-    border: none; background: none; cursor: pointer;
-    font-size: 13.5px; color: var(--text);
-    transition: background .15s;
-  }
-  .uc-item:hover { background: #f5f6fa; }
-  .dark .user-chip { background: rgba(255,255,255,.08); color: #e2e4ea; }
-  .dark .user-chip:hover { background: rgba(255,255,255,.15); }
-  .dark .uc-dropdown { background: #232530; border-color: rgba(255,255,255,.08); }
-  .dark .uc-item { color: #c8cad0; }
-  .dark .uc-item:hover { background: rgba(255,255,255,.06); }
+  /* 顶栏用户区 — 已移至侧边栏账户弹窗 */
 </style>
 </head>
 <body class="logged-out">
@@ -1324,15 +1285,6 @@
             <button class="ghost-btn" id="shareBtn">分享</button>
             <button class="icon-btn" id="exportBtn" title="导出">⤓</button>
             <button class="icon-btn" id="moreBtn" title="更多">⋯</button>
-            <div class="user-chip-wrap" id="userChipWrap">
-              <button class="user-chip" id="userChip" title="当前账户" aria-haspopup="true">
-                <span class="uc-avatar"></span>
-                <span class="uc-name">用户</span>
-              </button>
-              <div class="uc-dropdown" id="ucDropdown">
-                <button class="uc-item" id="logoutBtn"><span>🚪</span> 退出登录</button>
-              </div>
-            </div>
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
               <button data-act="rainbow" title="点击切换背景颜色：赤橙黄绿青蓝紫">🌙</button>
@@ -1617,6 +1569,10 @@
       <div class="acc-row">
         <div class="acc-row-label">数据存储</div>
         <div class="acc-row-val">本地 · 会话内</div>
+      </div>
+
+      <div class="acc-actions">
+        <button class="acc-logout-btn" id="accLogoutBtn"><span>🚪</span> 退出登录</button>
       </div>
 
       <p class="acc-tip">名字会保存到后端，用于个性化对话与长期记忆。</p>
@@ -3073,6 +3029,7 @@
   const accGreet     = document.getElementById('accGreet');
   const sideName     = document.getElementById('sideName');
   const sideAvatar   = document.getElementById('sideAvatar');
+  const accLogoutBtn = document.getElementById('accLogoutBtn');
 
   function openAccount() {
     loadAccount();
@@ -3611,10 +3568,6 @@
   const authError  = document.getElementById('authError');
   const authSubmit = document.getElementById('authSubmit');
   const authHint   = document.getElementById('authHint');
-  const userChip   = document.getElementById('userChip');
-  const logoutBtn  = document.getElementById('logoutBtn');
-  const ucDropdown = document.getElementById('ucDropdown');
-  const userChipWrap = document.getElementById('userChipWrap');
   let authMode = 'login';
 
   document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -3631,12 +3584,11 @@
   });
 
   function showLogoutUI(username) {
-    const nameEl = userChip.querySelector('.uc-name');
-    if (nameEl) nameEl.textContent = username;
-    const avatarEl = userChip.querySelector('.uc-avatar');
-    if (avatarEl && username) avatarEl.textContent = username.charAt(0).toUpperCase();
     const sn = document.getElementById('sideName');
     if (sn) sn.textContent = username;
+    // 同步侧边栏头像
+    const sa = document.getElementById('sideAvatar');
+    if (sa && username) sa.textContent = username.charAt(0).toUpperCase();
   }
 
   function enterApp() { document.body.classList.remove('logged-out'); }
@@ -3680,17 +3632,9 @@
     }
   });
 
-  // 用户头像下拉菜单
-  userChip.addEventListener('click', (e) => {
-    e.stopPropagation();
-    ucDropdown.classList.toggle('show');
-  });
-  document.addEventListener('click', (e) => {
-    if (!userChipWrap.contains(e.target)) ucDropdown.classList.remove('show');
-  });
-
-  logoutBtn.addEventListener('click', async () => {
-    ucDropdown.classList.remove('show');
+  // 账户弹窗内的退出登录
+  accLogoutBtn.addEventListener('click', async () => {
+    closeAccount();
     try { await fetch(`${API_BASE}/auth/logout`, { method: 'POST' }); } catch (e) {}
     currentUser = null;
     chat.innerHTML = '';
