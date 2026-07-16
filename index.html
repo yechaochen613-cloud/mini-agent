@@ -1181,8 +1181,8 @@
   .sc-cloud--c3{ width:120px;height:58px;left:8%;bottom:12%; --di:.5s; --tx1:12px;--ty1:-10px;--tx2:18px;--ty2:0;--tx3:5px;--ty3:-6px; --fd:11s;}
   .sc-cloud--c4{ width:100px;height:48px;right:12%;bottom:22%; --di:.7s; --tx1:-10px;--ty1:-7px;--tx2:-14px;--ty2:3px;--tx3:-6px;--ty3:-9px; --fd:13s;}
 
-  /* ---- 灯泡（左上） ---- */
-  .sc-bulb { left:10%; top:8%; --op:.75; --di:.2s; --fd:5s; --r0:-12deg;--r1:-6deg;--r2:-16deg;--r3:-8deg; --tx1:8px;--ty1:-24px;--tx2:-5px;--ty2:-10px;--tx3:11px;--ty3:-30px; }
+  /* ---- 灯泡（右上） ---- */
+  .sc-bulb { right:12%; top:8%; --op:.75; --di:.2s; --fd:5s; --r0:-12deg;--r1:-6deg;--r2:-16deg;--r3:-8deg; --tx1:8px;--ty1:-24px;--tx2:-5px;--ty2:-10px;--tx3:11px;--ty3:-30px; }
   .sc-bulb svg { width:90px;height:90px;display:block; filter: drop-shadow(0 6px 20px rgba(255,210,80,.35)); }
   .sc-bulb-glow {
     position:absolute;top:-15px;left:-15px;width:140px;height:140px;
@@ -1250,12 +1250,12 @@
 
   .auth-brand { text-align: center; margin-bottom: 22px; }
   .auth-logo {
-    width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 12px;
-    display: grid; place-items: center;
-    background: linear-gradient(135deg, #7c5cfc 0%, #a78bfa 100%);
-    box-shadow: 0 8px 24px rgba(124,92,252,.35);
+    width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(124,92,252,.30);
     animation: logoFloat 3s ease-in-out infinite;
   }
+  .auth-logo img { width:100%; height:100%; object-fit:cover; }
   @keyframes logoFloat {
     0%,100% { transform: translateY(0); }
     50% { transform: translateY(-4px); }
@@ -1464,9 +1464,7 @@
     <div class="auth-card">
       <div class="auth-brand">
         <div class="auth-logo">
-          <svg viewBox="0 0 32 32" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 16L14 21L23 11" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <img src="data:image/png;base64,$(cat /tmp/logo_b64.txt)" alt="智伴私教">
         </div>
         <h1>智伴私教</h1>
         <p>Agent for education</p>
@@ -4044,9 +4042,10 @@
     container.appendChild(el('sc-cloud sc-cloud--c3'));
     container.appendChild(el('sc-cloud sc-cloud--c4'));
 
-    // 灯泡 + 光晕
+    // 灯泡 + 光晕（放到右侧区域）
     const bulbWrap = el('sc-bulb', '<div class="sc-bulb-glow"></div>'+SVG.bulb);
-    container.appendChild(bulbWrap);
+    const rightArea = document.querySelector('.auth-right');
+    if(rightArea) rightArea.appendChild(bulbWrap); else container.appendChild(bulbWrap);
 
     // 蓝色书本
     container.appendChild(el('sc-book-blue', SVG.bookBlue));
