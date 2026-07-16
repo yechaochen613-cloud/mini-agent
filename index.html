@@ -1244,8 +1244,8 @@
     z-index: 3;
   }
   @keyframes authIn {
-    from { opacity: 0; transform: translateY(14px) scale(.98); }
-    to   { opacity: 1; transform: none; }
+    from { opacity: 0; transform: translate(-50%,-50%) translateY(14px) scale(.98); }
+    to   { opacity: 1; transform: translate(-50%,-50%); }
   }
 
   .auth-brand { text-align: center; margin-bottom: 22px; }
@@ -1327,22 +1327,6 @@
     33%{ transform:translateY(var(--fy1,-10px)) rotate(var(--r1,1deg)); }
     66%{ transform:translateY(var(--fy2,-5px)) rotate(var(--r2,-.5deg)); }
   }
-
-  /* 用户资料卡 */
-  .float-card--user {
-    right:14%; top:22%; width:180px; display:flex; align-items:center; gap:12px;
-    --fd:7s; --di:.2s; --op:.8; --fy1:-12px;--fy2:-6px;--r0:-3deg;--r1:1deg;--r2:-2deg;
-  }
-  .fc-avatar {
-    flex-shrink:0; width:44px;height:44px;border-radius:12px;
-    background:linear-gradient(135deg,#7c5cfc,#a78bfa);
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 4px 14px rgba(124,92,252,.3);
-  }
-  .fc-lines { flex:1; display:flex; flex-direction:column; gap:6px; }
-  .fc-line { height:8px; border-radius:4px; background:#e8e4f0; }
-  .fc-line--name { width:65%; background:#c8c4dc; height:10px; border-radius:5px; }
-  .fc-line--short { width:45%; }
 
   /* 饼图卡 */
   .float-card--chart {
@@ -1510,17 +1494,6 @@
 
     <!-- 右侧：浮动UI卡片 -->
     <div class="auth-right" aria-hidden="true">
-      <!-- 用户资料卡片 -->
-      <div class="float-card float-card--user">
-        <div class="fc-avatar">
-          <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="20" r="20" fill="#7c5cfc"/><text x="20" y="25" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">陈</text></svg>
-        </div>
-        <div class="fc-lines">
-          <div class="fc-line fc-line--name"></div>
-          <div class="fc-line fc-line--info"></div>
-          <div class="fc-line fc-line--info fc-line--short"></div>
-        </div>
-      </div>
       <!-- 饼图卡片 -->
       <div class="float-card float-card--chart">
         <div class="fc-pie">
