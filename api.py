@@ -138,7 +138,8 @@ def root():
 @app.get("/ui", response_class=FileResponse)
 def ui():
     # 托管网页聊天界面，同源访问 /chat，无需处理跨域
-    return FileResponse(UI_FILE)
+    # no-cache：每次都向服务器校验，HTML 改动即时生效，避免浏览器缓存旧版
+    return FileResponse(UI_FILE, headers={"Cache-Control": "no-cache, no-transform"})
 
 
 # ===== PWA 所需静态资源 =====
@@ -150,8 +151,10 @@ def manifest():
 
 @app.get("/sw.js", response_class=FileResponse)
 def sw():
+    # sw.js 本身必须 no-cache，否则 PWA 更新后浏览器仍跑旧 worker
     return FileResponse(os.path.join(BASE_DIR, "sw.js"),
-                        media_type="text/javascript")
+                        media_type="text/javascript",
+                        headers={"Cache-Control": "no-cache, no-transform"})
 
 
 @app.get("/icon.svg", response_class=FileResponse)
