@@ -362,10 +362,10 @@
   .stars span.on { color: #f5b301; }
   .stars span:hover { transform: scale(1.15); }
 
-  /* ===== 思考指示器（任何背景都清晰可见） ===== */
+  /* ===== 思考指示器（文字级动画，任何背景100%可见） ===== */
   .thinking-row {
     display: flex; align-items: center;
-    gap: 14px; padding: 8px 4px;
+    gap: 10px; padding: 10px 6px;
   }
   .think-left {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
@@ -374,51 +374,34 @@
     width: 34px; height: 34px;
     display: grid; place-items: center; flex-shrink: 0;
   }
-  .think-avatar .think-icon { font-size: 22px; }
-  /* 左侧文字 */
+  .think-avatar .think-icon {
+    font-size: 22px;
+    animation: iconBreathe 2s ease-in-out infinite;
+  }
+  @keyframes iconBreathe {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.15); }
+  }
+  /* 文字 + 内联大号动画点（用文字渲染，不依赖背景色） */
   .think-label {
-    font-size: 14.5px; font-weight: 600; color: var(--text);
-    letter-spacing: 0.3px; white-space: nowrap;
+    font-size: 15px; font-weight: 600; color: var(--text);
+    letter-spacing: 0.5px; white-space: nowrap;
+    display: flex; align-items: center; gap: 4px;
   }
-  /* 右侧动画区：深色圆点 + 发光，确保在白/彩/暗背景都可见 */
-  .think-right {
-    display: flex; align-items: center; gap: 8px;
-    flex-shrink: 0;
-    margin-left: auto;
-  }
-  .ripple-dots {
-    display: flex; align-items: center; gap: 7px;
-    padding: 6px 12px;
-    border-radius: 20px;
-    background: rgba(30, 20, 60, 0.08);
-  }
-  .ripple-dot {
-    width: 11px; height: 11px; border-radius: 50%;
-    background: #3a2479;
+  /* 三个大号圆点，依次弹跳 */
+  .think-dot {
+    display: inline-block;
+    font-size: 18px; line-height: 1;
+    color: var(--accent, #5b3fd4);
+    animation: dotJump 1.4s ease-in-out infinite;
     opacity: 1;
-    animation: dotBounce 1.2s ease-in-out infinite;
-    box-shadow: 0 0 6px rgba(58,36,121,0.5), 0 0 12px rgba(58,36,121,0.25);
   }
-  .ripple-dot:nth-child(2) { animation-delay: 0.2s; }
-  .ripple-dot:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes dotBounce {
-    0%, 100% { opacity: 0.3; transform: scale(0.7); box-shadow: 0 0 3px rgba(58,36,121,0.3); }
-    50%      { opacity: 1;   transform: scale(1.25); box-shadow: 0 0 10px rgba(58,36,121,0.6), 0 0 18px rgba(58,36,121,0.25); }
-  }
-  .think-status {
-    font-size: 13.5px; font-weight: 600; color: #3a2479;
-    white-space: nowrap;
-  }
-  .think-status::after {
-    content: '';
-    animation: dotPulse 1.5s steps(4, end) infinite;
-  }
-  @keyframes dotPulse {
-    0%   { content: ''; }
-    25%  { content: '.'; }
-    50%  { content: '..'; }
-    75%  { content: '...'; }
-    100% { content: ''; }
+  .think-dot:nth-child(1) { animation-delay: 0s; }
+  .think-dot:nth-child(2) { animation-delay: 0.2s; }
+  .think-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotJump {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+    40%           { transform: translateY(-6px); opacity: 1; }
   }
 
   /* ===== 底部 composer ===== */
@@ -1916,15 +1899,7 @@
            <div class="thinking-row">
              <div class="think-left">
                <div class="think-avatar"><span class="think-icon">🧘</span></div>
-               <div class="think-label">老师正在思考中</div>
-             </div>
-             <div class="think-right">
-               <div class="ripple-dots">
-                 <span class="ripple-dot"></span>
-                 <span class="ripple-dot"></span>
-                 <span class="ripple-dot"></span>
-               </div>
-               <span class="think-status">思考中</span>
+               <div class="think-label">老师正在思考中<span class="think-dot">●</span><span class="think-dot">●</span><span class="think-dot">●</span></div>
              </div>
            </div>
          </div>
@@ -1969,7 +1944,7 @@
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble"><div class="md"></div></div>
       <div class="steps-block live">
-        <div class="steps-head"><span class="think-head-icon">🧘</span><span>老师正在思考中</span></div>
+        <div class="steps-head"><span class="think-head-icon">🧘</span><span>老师正在思考中 <b style="color:var(--accent)">●●●</b></span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
