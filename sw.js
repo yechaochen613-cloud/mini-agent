@@ -20,9 +20,24 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// 这些前缀走网络，绝不缓存（含认证与所有业务 API，避免登录态/数据被陈旧缓存）
+const NO_CACHE_PREFIXES = [
+  '/auth', '/conversations', '/chat', '/documents', '/connectors',
+  '/profile', '/papers', '/schedules', '/sub-agents', '/wrong-questions',
+  '/favorites', '/memory', '/account', '/version', '/tools', '/stt',
+  '/vision', '/analyze-paper', '/study-plan', '/reset', '/upload',
+];
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return; // 只缓存 GET
+
+  const url = new URL(req.url);
+  // API 与认证接口：始终走网络，保证登录态和数据实时
+  if (NO_CACHE_PREFIXES.some((p) => url.pathname.startsWith(p))) {
+    e.respondWith(fetch(req));
+    return;
+  }
 
   // 页面导航：始终走网络，保证每次都拿到最新界面；仅在离线且恰好有缓存时回退
   if (req.mode === 'navigate') {
