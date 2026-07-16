@@ -1172,11 +1172,54 @@
   .auth-hint { margin-top: 16px; text-align: center; font-size: 12.5px; color: var(--text-faint); }
 
   /* 顶栏用户区 */
+  .user-chip-wrap { position: relative; }
   .user-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 8px 4px 4px;
+    border-radius: 20px;
+    background: #f0f1f5;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+    color: var(--text);
+    transition: background .2s, box-shadow .2s;
   }
-  .user-chip .uc-name { overflow: hidden; text-overflow: ellipsis; }
+  .user-chip:hover { background: #e4e6ed; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .uc-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7e5f, #feb47b);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .user-chip .uc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
+
+  /* 用户下拉菜单 */
+  .uc-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px);
+    right: 0; min-width: 150px;
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06);
+    border: 1px solid #eee; z-index: 100;
+    overflow: hidden;
+    animation: ucDropIn .18s ease;
+  }
+  @keyframes ucDropIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .uc-dropdown.show { display: block; }
+  .uc-item {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 10px 16px;
+    border: none; background: none; cursor: pointer;
+    font-size: 13.5px; color: var(--text);
+    transition: background .15s;
+  }
+  .uc-item:hover { background: #f5f6fa; }
+  .dark .user-chip { background: rgba(255,255,255,.08); color: #e2e4ea; }
+  .dark .user-chip:hover { background: rgba(255,255,255,.15); }
+  .dark .uc-dropdown { background: #232530; border-color: rgba(255,255,255,.08); }
+  .dark .uc-item { color: #c8cad0; }
+  .dark .uc-item:hover { background: rgba(255,255,255,.06); }
 </style>
 </head>
 <body class="logged-out">
@@ -1281,8 +1324,15 @@
             <button class="ghost-btn" id="shareBtn">分享</button>
             <button class="icon-btn" id="exportBtn" title="导出">⤓</button>
             <button class="icon-btn" id="moreBtn" title="更多">⋯</button>
-            <button class="ghost-btn user-chip" id="userChip" title="当前账户">👤 <span class="uc-name">用户</span></button>
-            <button class="ghost-btn" id="logoutBtn" title="退出登录">退出</button>
+            <div class="user-chip-wrap" id="userChipWrap">
+              <button class="user-chip" id="userChip" title="当前账户" aria-haspopup="true">
+                <span class="uc-avatar"></span>
+                <span class="uc-name">用户</span>
+              </button>
+              <div class="uc-dropdown" id="ucDropdown">
+                <button class="uc-item" id="logoutBtn"><span>🚪</span> 退出登录</button>
+              </div>
+            </div>
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
               <button data-act="rainbow" title="点击切换背景颜色：赤橙黄绿青蓝紫">🌙</button>
@@ -3563,6 +3613,8 @@
   const authHint   = document.getElementById('authHint');
   const userChip   = document.getElementById('userChip');
   const logoutBtn  = document.getElementById('logoutBtn');
+  const ucDropdown = document.getElementById('ucDropdown');
+  const userChipWrap = document.getElementById('userChipWrap');
   let authMode = 'login';
 
   document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -3581,6 +3633,8 @@
   function showLogoutUI(username) {
     const nameEl = userChip.querySelector('.uc-name');
     if (nameEl) nameEl.textContent = username;
+    const avatarEl = userChip.querySelector('.uc-avatar');
+    if (avatarEl && username) avatarEl.textContent = username.charAt(0).toUpperCase();
     const sn = document.getElementById('sideName');
     if (sn) sn.textContent = username;
   }
@@ -3626,7 +3680,17 @@
     }
   });
 
+  // 用户头像下拉菜单
+  userChip.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ucDropdown.classList.toggle('show');
+  });
+  document.addEventListener('click', (e) => {
+    if (!userChipWrap.contains(e.target)) ucDropdown.classList.remove('show');
+  });
+
   logoutBtn.addEventListener('click', async () => {
+    ucDropdown.classList.remove('show');
     try { await fetch(`${API_BASE}/auth/logout`, { method: 'POST' }); } catch (e) {}
     currentUser = null;
     chat.innerHTML = '';
