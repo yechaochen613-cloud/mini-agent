@@ -1150,10 +1150,30 @@
 
     <!-- 主区（iFlytek 风格：Hero首页 ↔ 聊天双视图） -->
     <main class="main">
-      <!-- 顶栏（仅右侧头像） -->
+      <!-- 顶栏 -->
       <header class="topbar">
         <div class="topbar-inner">
+          <div class="tb-left">
+            <button class="icon-btn" id="histToggle" title="侧边栏" aria-label="侧边栏">☰</button>
+            <div class="model-select" id="modelSelect">
+              <button class="ms-btn" id="msBtn">
+                <span>📚</span>
+                <span class="ms-label">智伴私教</span>
+                <span class="ms-badge" id="msBadge">Agent for education</span>
+                <span class="ms-caret">▾</span>
+              </button>
+              <div class="ms-menu" id="msMenu" hidden>
+                <button class="ms-opt active" data-name="Mini Agent" data-badge="1.0"><span class="ms-ic">🤖</span><span><div>Mini Agent 1.0</div><div class="ms-sub">标准 · 均衡能力</div></span></button>
+                <button class="ms-opt" data-name="Mini Agent" data-badge="Lite"><span class="ms-ic">⚡</span><span><div>Mini Agent Lite</div><div class="ms-sub">轻量 · 更快响应</div></span></button>
+                <button class="ms-opt" data-name="Mini Agent" data-badge="Pro"><span class="ms-ic">💎</span><span><div>Mini Agent Pro</div><div class="ms-sub">高级 · 更强推理</div></span></button>
+              </div>
+            </div>
+          </div>
           <div class="tb-right">
+            <button class="ghost-btn" id="upgradeBtn">升级</button>
+            <button class="ghost-btn" id="shareBtn">分享</button>
+            <button class="icon-btn" id="exportBtn" title="导出">⤓</button>
+            <button class="icon-btn" id="moreBtn" title="更多">⋯</button>
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
               <button data-theme="dark">🌙</button>
@@ -1276,6 +1296,16 @@
   </div>
 
   <div class="drawer-backdrop" id="histBackdrop"></div>
+
+  <!-- 更多菜单（下拉） -->
+  <div class="more-menu" id="moreMenu" hidden>
+    <button class="mm-item" data-act="theme">🌓 切换主题</button>
+    <button class="mm-item" data-act="clear-chat">🧹 清除当前对话</button>
+    <button class="mm-item" data-act="clear-memory">🧠 清除长期记忆</button>
+    <button class="mm-item" data-act="clear-history">🗑 清空所有历史</button>
+    <button class="mm-item" data-act="shortcuts">⌨ 快捷键</button>
+    <button class="mm-item" data-act="about">ℹ 关于 Mini Agent</button>
+  </div>
 
   <!-- 插件面板（参考 Manus） -->
   <div class="conn-overlay" id="connOverlay"></div>
@@ -2104,8 +2134,8 @@
   }
 
   sendBtn.addEventListener('click', () => send());
-  document.getElementById('newChat').addEventListener('click', newChat);
-  document.getElementById('newChat2').addEventListener('click', newChat);
+  document.getElementById('newChat')?.addEventListener('click', newChat);
+  document.getElementById('newChat2')?.addEventListener('click', newChat);
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
   input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; });
 
@@ -2126,7 +2156,7 @@
   const histToggle = document.getElementById('histToggle');
   function openHistory() { histDrawer.classList.add('open'); histBackdrop.classList.add('open'); loadConversations(); }
   function closeHistory() { histDrawer.classList.remove('open'); histBackdrop.classList.remove('open'); }
-  histToggle.addEventListener('click', () => {
+  histToggle?.addEventListener('click', () => {
     if (window.matchMedia('(max-width: 900px)').matches) {
       histDrawer.classList.contains('open') ? closeHistory() : openHistory();
     } else {
@@ -2293,8 +2323,8 @@
   // ===== 模型选择器 =====
   const msBtn = document.getElementById('msBtn'), msMenu = document.getElementById('msMenu');
   // currentModel 已在脚本顶部声明（避免 TDZ），此处仅绑定事件
-  msBtn.addEventListener('click', e => { e.stopPropagation(); msMenu.hidden = !msMenu.hidden; });
-  msMenu.addEventListener('click', e => {
+  msBtn?.addEventListener('click', e => { e.stopPropagation(); msMenu.hidden = !msMenu.hidden; });
+  msMenu?.addEventListener('click', e => {
     const opt = e.target.closest('.ms-opt'); if (!opt) return;
     document.getElementById('msBadge').textContent = opt.dataset.badge;
     msMenu.querySelectorAll('.ms-opt').forEach(o => o.classList.toggle('active', o === opt));
@@ -2386,10 +2416,10 @@
   }
 
   // ===== 升级 / 分享 / 导出 =====
-  document.getElementById('upgradeBtn').addEventListener('click', openUpgrade);
-  document.getElementById('moreBtn').addEventListener('click', e => { e.stopPropagation(); toggleMoreMenu(); });
-  document.getElementById('shareBtn').addEventListener('click', () => triggerScreenshot());
-  document.getElementById('exportBtn').addEventListener('click', () => downloadExport('json'));
+  document.getElementById('upgradeBtn')?.addEventListener('click', openUpgrade);
+  document.getElementById('moreBtn')?.addEventListener('click', e => { e.stopPropagation(); toggleMoreMenu(); });
+  document.getElementById('shareBtn')?.addEventListener('click', () => triggerScreenshot());
+  document.getElementById('exportBtn')?.addEventListener('click', () => downloadExport('json'));
   async function downloadExport(fmt) {
     if (!sessionId) { toast('还没有对话可导出'); return; }
     try {
@@ -2580,8 +2610,6 @@
     connOverlay.classList.remove('open'); connPanel.classList.remove('open'); }
   connOverlay.addEventListener('click', closeConnectors);
   document.getElementById('connClose').addEventListener('click', closeConnectors);
-  // 侧边栏「插件」入口（精确绑定，避免 :last-of-type 选错元素）
-  document.getElementById('connNav').addEventListener('click', openConnectors);
 
   // ===== 📊 学情档案面板（私人家教 Phase 2） =====
   const profileOverlay = document.getElementById('profileOverlay');
