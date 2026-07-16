@@ -96,6 +96,9 @@
     overflow: hidden;
     transition: background .4s var(--ease), color .3s var(--ease);
   }
+  /* 彩虹背景（月亮按钮循环切换：赤橙黄绿青蓝紫） */
+  body[data-bg] { background: var(--bg-rainbow); }
+  body[data-bg] .main { background: var(--bg-rainbow); }
 
   * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
   ::-webkit-scrollbar { width: 9px; height: 9px; }
@@ -1176,7 +1179,7 @@
             <button class="icon-btn" id="moreBtn" title="更多">⋯</button>
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
-              <button data-theme="dark">🌙</button>
+              <button data-act="rainbow" title="点击切换背景颜色：赤橙黄绿青蓝紫">🌙</button>
               <button data-theme="system">💻</button>
             </div>
           </div>
@@ -1646,8 +1649,41 @@
     if (localStorage.getItem(STORE_KEY) === 'system') applyTheme('system');
   });
   applyTheme(localStorage.getItem(STORE_KEY) || 'system');
+
+  // ===== 彩虹背景循环（月亮按钮：赤橙黄绿青蓝紫） =====
+  const RAINBOW = [
+    'linear-gradient(135deg,#ff6b6b 0%,#ffd3d3 100%)', // 赤
+    'linear-gradient(135deg,#ffa552 0%,#ffe0c2 100%)', // 橙
+    'linear-gradient(135deg,#ffe66d 0%,#fff3c4 100%)', // 黄
+    'linear-gradient(135deg,#51cf66 0%,#d3f9d8 100%)', // 绿
+    'linear-gradient(135deg,#22d3ee 0%,#c5f6fa 100%)', // 青
+    'linear-gradient(135deg,#4dabf7 0%,#d0ebff 100%)', // 蓝
+    'linear-gradient(135deg,#9775fa 0%,#e5dbff 100%)', // 紫
+  ];
+  const RB_KEY = 'mini-agent-bg';
+  const moonBtn = switchEl.querySelector('[data-act="rainbow"]');
+  let bgIdx = parseInt(localStorage.getItem(RB_KEY) || '-1', 10);
+  function applyBg(idx) {
+    if (idx < 0) {
+      document.body.removeAttribute('data-bg');
+      document.body.style.removeProperty('--bg-rainbow');
+    } else {
+      document.body.setAttribute('data-bg', String(idx));
+      document.body.style.setProperty('--bg-rainbow', RAINBOW[idx]);
+    }
+    if (moonBtn) moonBtn.classList.toggle('active', idx >= 0);
+  }
+  applyBg(bgIdx);
+
   switchEl.addEventListener('click', e => {
     const btn = e.target.closest('button'); if (!btn) return;
+    if (btn.dataset.act === 'rainbow') {
+      bgIdx = (bgIdx + 1) % RAINBOW.length;
+      localStorage.setItem(RB_KEY, String(bgIdx));
+      applyBg(bgIdx);
+      return;
+    }
+    if (moonBtn) moonBtn.classList.remove('active');
     localStorage.setItem(STORE_KEY, btn.dataset.theme); applyTheme(btn.dataset.theme);
   });
 
