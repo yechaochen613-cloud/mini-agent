@@ -1950,7 +1950,7 @@
     wrap.className = 'msg bot';
     wrap.innerHTML = `<div class="avatar">${botAvatarHTML()}</div><div class="msg-col">
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
-      <div class="bubble"><div class="md"></div></div>
+      <div class="bubble" id="streamBubble" style="display:none"><div class="md"></div></div>
       <div class="steps-block live">
         <div class="steps-head"><span>正在思考 <b style="color:var(--accent)">●●●</b></span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
@@ -1962,6 +1962,7 @@
     return {
       wrap,
       bubble: wrap.querySelector('.md'),
+      bubbleWrap: wrap.querySelector('#streamBubble'),
       stepsEl: wrap.querySelector('.steps-block'),
       liveList: wrap.querySelector('.step-list'),
       progressBar: wrap.querySelector('.progress-bar'),
@@ -1985,6 +1986,7 @@
         const stepN = Math.max(1, Math.ceil((fullReply.length - shown) / 24));
         shown = Math.min(fullReply.length, shown + stepN);
         ui.bubble.textContent = fullReply.slice(0, shown);
+        ui.bubbleWrap?.removeAttribute('style'); /* 首个字符到达时显示气泡 */
         chat.scrollTop = chat.scrollHeight;
         typingRAF = requestAnimationFrame(typeNext);
       } else {
@@ -2000,6 +2002,7 @@
       if (typingRAF) cancelAnimationFrame(typingRAF);
       fullReply = reply || fullReply;
       ui.bubble.innerHTML = renderMarkdown(fullReply);
+      ui.bubbleWrap?.removeAttribute('style'); /* 确保气泡可见 */
       ui.stepsEl.querySelector('.live-pulse')?.remove();
       if (stepTotal === 0) ui.stepsEl.style.display = 'none';
       chat.scrollTop = chat.scrollHeight;
