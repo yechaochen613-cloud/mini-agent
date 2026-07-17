@@ -298,7 +298,8 @@
 
   .side-foot { border-top: 1px solid #eef0f4; padding: 10px 12px; display: flex; align-items: center; gap: 9px; min-width: 230px; }
   .share-card { display: none; }
-  .user-row { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 500; color: #555; cursor: pointer; flex: 1; }
+  .user-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #444; cursor: pointer; flex: 1; padding: 10px 12px; border-radius: 12px; transition: all .2s var(--ease); background: transparent; }
+  .user-row:hover { background: #f3f1f9; color: var(--accent, #7c5cfc); }
   .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg,#ff9a56,#ff6b35); font-size: 14px; color: #fff; border: none; }
   .side-close { display: grid; place-items: center; }
 
@@ -763,19 +764,19 @@
   .acc-overlay.open { opacity: 1; pointer-events: auto; }
   .acc-modal {
     position: fixed; inset: 0; z-index: 61;
-    display: grid; place-items: center; padding: 20px;
     pointer-events: none;
   }
   .acc-modal.open { pointer-events: auto; }
   .acc-card {
-    width: min(420px, 100%);
-    background: var(--bg-elev); border: 1px solid var(--border);
-    border-radius: var(--r-lg); box-shadow: 0 24px 64px rgba(28,27,25,.28);
-    padding: 26px 24px 22px; position: relative;
-    transform: translateY(12px) scale(.98); opacity: 0;
-    transition: transform .3s var(--ease-expo), opacity .3s var(--ease);
+    position: absolute; top: 0; left: 0; height: 100vh;
+    width: min(360px, 90vw);
+    background: var(--bg-elev); border: none; border-right: 1px solid var(--border);
+    border-radius: 0 var(--r-lg) var(--r-lg) 0; box-shadow: 0 24px 64px rgba(28,27,25,.28);
+    padding: 26px 24px 22px; position: relative; overflow-y: auto;
+    transform: translateX(-100%); opacity: 1;
+    transition: transform .32s var(--ease-expo), opacity .3s var(--ease);
   }
-  .acc-modal.open .acc-card { transform: translateY(0) scale(1); opacity: 1; }
+  .acc-modal.open .acc-card { transform: translateX(0); opacity: 1; }
   .acc-close {
     position: absolute; top: 16px; right: 16px;
     border: 1px solid var(--border); background: transparent; color: var(--text);
