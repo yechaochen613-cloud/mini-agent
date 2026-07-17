@@ -426,7 +426,7 @@
     display: grid; place-items: center;
   }
   .msg.user .bubble { background: var(--accent); color: var(--on-accent); border-color: transparent; border-bottom-right-radius: 5px; white-space: pre-wrap; word-break: break-word; }
-  .msg.bot .bubble { background: var(--surface); border-bottom-left-radius: 5px; }
+  .msg.bot .bubble { background: var(--msg-bot-bg, var(--surface)); border-bottom-left-radius: 5px; transition: background .35s ease; }
   .msg.system { justify-content: center; }
   .msg.system .bubble { background: transparent; border: none; padding: 0; }
 
@@ -1151,6 +1151,12 @@
     border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface-2); font-size: 13px; color: var(--text); gap: 6px; }
   .qp-saved button { background: none; border: none; color: var(--text-2); cursor: pointer; font-size: 15px; padding: 0 2px; line-height: 1; }
   .qp-saved button:hover { color: #ef4444; }
+  /* 快捷语芯片（输入框上方） */
+  .qp-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 0; transition: all .2s; }
+  .qp-chips:empty { display: none; }
+  .qp-chip { padding: 5px 11px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 12px; cursor: pointer; transition: all .2s var(--ease); white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+  .qp-chip:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); color: var(--accent); transform: translateY(-1px); }
+  .qp-chip:active { transform: scale(.95); }
   /* 底部操作栏 */
   .p-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
   .p-btn-reset { padding: 9px 20px; border-radius: 10px; border: 1.5px solid var(--border); background: transparent; color: var(--text-2); font-size: 13.5px; cursor: pointer; transition: all .2s; font-weight: 500; }
@@ -1989,6 +1995,8 @@
                 <div class="empty-hint">还没有文档，先上传一个试试 👆</div>
               </div>
             </div>
+
+            <div class="qp-chips" id="qpChips"></div>
 
             <div class="composer">
               <textarea id="input" rows="1" placeholder="问我一道题，或先告诉我你的年级和想学的科目…" aria-label="输入消息"></textarea>
@@ -2868,7 +2876,7 @@
         }
         const resp = await fetch(`${API_BASE}/chat/stream`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, max_steps: 5, session_id: sessionId, model: currentModel }),
+          body: JSON.stringify({ message: text, max_steps: 5, session_id: sessionId, model: currentModel, persona: (pSettings||{}).persona||'tutor', style: (pSettings||{}).style||'concise' }),
         });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const reader = resp.body.getReader();
@@ -3838,37 +3846,46 @@
   }
 
   // 人设选择
+  const PERSONA_NAMES = { tutor:'学习搭子', strict:'严谨导师', funny:'幽默伙伴', gentle:'温柔陪伴' };
   document.querySelectorAll('#personaOpts .popt').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('#personaOpts .popt').forEach(function(b){ b.classList.remove('active'); });
       this.classList.add('active');
       pSettings.persona = this.dataset.val;
+      toast('AI人设：' + (PERSONA_NAMES[this.dataset.val] || this.dataset.val));
     });
   });
   // 回答风格
+  const STYLE_NAMES = { concise:'简洁明了', detailed:'详细讲解', step:'分步推导', example:'举一反三' };
   document.querySelectorAll('#styleOpts .popt').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('#styleOpts .popt').forEach(function(b){ b.classList.remove('active'); });
       this.classList.add('active');
       pSettings.style = this.dataset.val;
+      toast('回答风格：' + (STYLE_NAMES[this.dataset.val] || this.dataset.val));
     });
   });
-  // 气泡颜色
+  // 气泡颜色（点选即时预览）
   document.querySelectorAll('#bubbleColorGrid .pcolor').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('#bubbleColorGrid .pcolor').forEach(function(b){ b.classList.remove('active'); });
       this.classList.add('active');
       pSettings.bubbleColor = this.dataset.c;
+      applyPSettings(); // 即时生效
+      toast('气泡颜色已更换 ✓');
     });
   });
 
   // 字体滑块实时预览
+  var fontToastTimer = null;
   document.getElementById('fontSzRange')?.addEventListener('input', function() {
     var v = parseInt(this.value);
     pSettings.fontSz = v;
     var el = document.getElementById('fontSzVal');
     if (el) el.textContent = v + 'px';
     applyPSettings(); // 实时预览
+    clearTimeout(fontToastTimer);
+    fontToastTimer = setTimeout(function() { toast('字体大小：' + v + 'px'); }, 400);
   });
 
   // 快捷语管理
@@ -3884,6 +3901,7 @@
       div.querySelector('button').addEventListener('click', function() {
         pSettings.quickPhrases.splice(parseInt(this.dataset.i), 1);
         renderQuickPhrases();
+        renderQpChips();
       });
       container.appendChild(div);
     });
@@ -3902,6 +3920,7 @@
         pSettings.quickPhrases.push(val);
         input.value = '';
         renderQuickPhrases();
+        renderQpChips();
       };
       addBtn.addEventListener('click', doAdd);
       input.addEventListener('keydown', function(e) { if (e.key === 'Enter') doAdd(); });
@@ -3913,6 +3932,7 @@
   document.getElementById('pSaveBtn')?.addEventListener('click', function() {
     localStorage.setItem(PKEY, JSON.stringify(pSettings));
     applyPSettings();
+    renderQpChips();
     toast('个性化设置已保存 ✓');
     closeModal('personalOverlay', 'personalModal');
   });
@@ -3923,11 +3943,35 @@
     localStorage.setItem(PKEY, JSON.stringify(pSettings));
     applyPSettings();
     syncPUI();
+    renderQpChips();
     toast('已恢复默认设置');
   });
 
   // 初始化应用（页面加载时就生效）
   applyPSettings();
+  renderQpChips(); // 渲染快捷语芯片到输入框上方
+
+  // ---- 快捷语芯片（输入框上方可点发送） ----
+  function renderQpChips() {
+    var container = document.getElementById('qpChips');
+    if (!container) return;
+    container.innerHTML = '';
+    (pSettings.quickPhrases || []).forEach(function(text, i) {
+      var chip = document.createElement('button');
+      chip.className = 'qp-chip';
+      chip.textContent = text;
+      chip.title = '点击发送：' + text;
+      chip.addEventListener('click', function() {
+        var inp = document.getElementById('input');
+        if (inp) { inp.value = text; sendMessage(); }
+        else {
+          var hInp = document.getElementById('heroInput');
+          if (hInp) { hInp.value = text; sendMessage(); }
+        }
+      });
+      container.appendChild(chip);
+    });
+  }
 
   // ---- 快捷键 ----
   function openShortcuts() { openModal('shortcutsOverlay', 'shortcutsModal'); }
