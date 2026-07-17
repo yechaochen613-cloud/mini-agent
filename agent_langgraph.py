@@ -441,6 +441,25 @@ class Agent:
 
                 if not tool_calls:
                     last_reply = content
+                    # ---- 推理预调用：先给用户看"AI 在想什么"，再流式出答案 ----
+                    # 不绕过 ReAct（主循环已正常跑完），只多一次非流式调用拿推理思路。
+                    _reason_enabled = os.getenv("SHOW_REASONING", "true").lower() == "true"
+                    if _reason_enabled and not self.mock:
+                        try:
+                            _reason_msgs = [
+                                SystemMessage(content=system + (
+                                    "\n\n【仅输出推理过程，不写正式回答】"
+                                    "请用 2-4 句话简洁说明你对这个问题的分析思路和关键推演步骤。"
+                                    "不要重复问题本身，直接给出你的思考。"
+                                )),
+                                HumanMessage(content=user_input),
+                            ]
+                            _reason_resp = llm.invoke(_reason_msgs)
+                            _reason_text = (getattr(_reason_resp, "content", None) or "").strip()
+                            if _reason_text and len(_reason_text) < 500:
+                                yield {"type": "reasoning", "text": _reason_text}
+                        except Exception:
+                            pass  # 推理预调用失败不影响主流程
                     for ev in stream_final(messages, content):
                         yield ev
                     yield {"type": "done", "reply": content, "session_id": session_id}
