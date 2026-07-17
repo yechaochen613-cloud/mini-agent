@@ -375,9 +375,9 @@
   }
   /* 文字 + 内联大号动画点（用文字渲染，不依赖背景色） */
   .think-label {
-    font-size: 15px; font-weight: 600; color: var(--text);
+    font-size: 15px; font-weight: 600; color: #999;
     letter-spacing: 0.5px; white-space: nowrap;
-    display: flex; align-items: center; gap: 3px;
+    display: flex; align-items: center;
   }
   /* 三个小圆点，依次清晰弹跳（显式 d1/d2/d3 控制错峰，避开 nth-child 不可靠） */
   .think-dot {
@@ -2390,7 +2390,7 @@
          <div class="bubble">
            <div class="thinking-row">
              <div class="think-left">
-               <div class="think-label">正在思考<span class="think-dot d1">●</span><span class="think-dot d2">●</span><span class="think-dot d3">●</span></div>
+               <div class="think-label">正在思考</div>
              </div>
            </div>
          </div>
@@ -2435,7 +2435,7 @@
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
       <div class="bubble" id="streamBubble" style="display:none"><div class="md"></div></div>
       <div class="steps-block live">
-        <div class="steps-head"><span>正在思考 <b style="color:var(--accent)">●●●</b></span></div>
+        <div class="steps-head"><span>正在思考</span></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
