@@ -2133,7 +2133,7 @@
       <li><kbd>Shift</kbd> + <kbd>Enter</kbd> 换行</li>
       <li><kbd>☰</kbd> 收起 / 展开侧边栏</li>
       <li><kbd>＋</kbd> 新建对话</li>
-      <li><kbd>🎤</kbd> 语音输入　<kbd>分享</kbd> 截图理解</li>
+      <li><kbd>🎤</kbd> 语音输入</li>
     </ul>
   </div>
 
@@ -3062,48 +3062,9 @@
   }
   micBtn.addEventListener('click', () => { if (fallbackMode) return; recognizing ? stopMic() : startMic(); });
 
-  // ===== 🖥️ 屏幕截图 -> /vision 视觉理解（已绑定到「分享」按钮） =====
-  async function triggerScreenshot() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { toast('当前浏览器不支持屏幕捕获'); return; }
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      const track = stream.getVideoTracks()[0];
-      const video = document.createElement('video');
-      video.srcObject = stream; await video.play();
-      await new Promise(r => setTimeout(r, 300));
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      stream.getTracks().forEach(t => t.stop());
-      const dataUrl = canvas.toDataURL('image/png');
-      addImageCard(dataUrl, canvas.width + '×' + canvas.height);
-      showTyping();
-      const r = await fetch(`${API_BASE}/vision`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: dataUrl, prompt: '请描述这张截图，并说明它展示的内容，以及能用它做什么。' }),
-      });
-      const d = await r.json();
-      removeTyping();
-      addMessage('bot', d.reply || '（无返回）');
-    } catch (e) { toast('截图已取消或失败：' + (e.message || '')); }
-  }
-
   // ===== 升级 / 更多 =====
   document.getElementById('upgradeBtn')?.addEventListener('click', openUpgrade);
   document.getElementById('moreBtn')?.addEventListener('click', e => { e.stopPropagation(); toggleMoreMenu(); });
-  async function downloadExport(fmt) {
-    if (!sessionId) { toast('还没有对话可导出'); return; }
-    try {
-      const r = await fetch(`${API_BASE}/conversations/${sessionId}/export?format=${fmt}`);
-      if (!r.ok) { toast('导出失败'); return; }
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `conversation.${fmt === 'json' ? 'json' : 'md'}`;
-      a.click(); URL.revokeObjectURL(a.href);
-      toast('已导出 ' + a.download);
-    } catch (e) { toast('导出失败：' + e.message); }
-  }
 
   // 对话里展示截图缩略图卡片
   function addImageCard(dataUrl, size) {
