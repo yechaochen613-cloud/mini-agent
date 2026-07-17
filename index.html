@@ -181,6 +181,58 @@
   .search-result-item .sr-time { font-size: 11px; color: #bbb; white-space: nowrap; margin-top: 2px; }
   .search-empty { padding: 28px 18px; text-align: center; color: #bbb; font-size: 14px; }
   .search-hint { padding: 10px 18px; font-size: 12px; color: #ccc; text-align: center; }
+
+  /* 打卡弹层 */
+  .checkin-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15,12,35,.45); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center;
+    animation: searchIn .2s ease;
+  }
+  .checkin-overlay.open { display: flex; }
+  .checkin-box {
+    width: min(380px, 85vw); background: #fff;
+    border-radius: 20px; box-shadow: 0 24px 80px rgba(40,20,90,.22);
+    overflow: hidden; text-align: center; padding: 32px 24px 24px;
+  }
+  .checkin-fire { font-size: 52px; line-height: 1; margin-bottom: 4px; animation: firePulse 1.5s ease-in-out infinite; }
+  @keyframes firePulse {
+    0%,100% { transform: scale(1) rotate(-3deg); }
+    50% { transform: scale(1.12) rotate(3deg); }
+  }
+  .checkin-streak {
+    font-size: 36px; font-weight: 800; color: #ff6b35;
+    letter-spacing: -0.5px; line-height: 1.2;
+  }
+  .checkin-streak span { font-size: 15px; color: #999; font-weight: 500; margin-left: 4px; }
+  .checkin-status {
+    margin-top: 8px; font-size: 13px; color: #aaa;
+  }
+  .checkin-status.done { color: #51cf66; font-weight: 600; }
+  .checkin-btn {
+    margin-top: 18px; padding: 11px 36px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    background: linear-gradient(135deg,#ff6b35,#f7931e); color: #fff;
+    box-shadow: 0 4px 16px rgba(255,107,53,.35);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .checkin-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(255,107,53,.45); }
+  .checkin-btn:disabled { opacity: .5; cursor: not-allowed; transform:none; box-shadow:none; }
+  /* 最近7天日历 */
+  .checkin-calendar { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
+  .ci-day {
+    width: 38px; height: 46px; border-radius: 10px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    background: #f7f6fc; transition: all .2s ease;
+  }
+  .ci-day.today { border: 2px solid #e5dbff; background: #faf9ff; }
+  .ci-day.checked { background: linear-gradient(135deg,#fff4e5,#ffe8cc); }
+  .ci-day .ci-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #ddd;
+  }
+  .ci-day.checked .ci-dot { background: #ff6b35; box-shadow: 0 0 6px rgba(255,107,53,.4); }
+  .ci-day .ci-dow { font-size: 9px; color: #bbb; font-weight: 600; text-transform: uppercase; }
+  .ci-day .ci-dom { font-size: 13px; font-weight: 700; color: #555; }
   .side-brand .logo {
     width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px;
     overflow: hidden;
@@ -1714,6 +1766,17 @@
       </div>
     </div>
 
+    <!-- 打卡弹层 -->
+    <div class="checkin-overlay" id="checkinOverlay">
+      <div class="checkin-box">
+        <div class="checkin-fire">🔥</div>
+        <div class="checkin-streak" id="ciStreak">0<span>天</span></div>
+        <div class="checkin-status" id="ciStatus">今日未打卡</div>
+        <button class="checkin-btn" id="ciDoBtn">立即打卡</button>
+        <div class="checkin-calendar" id="ciCalendar"></div>
+      </div>
+    </div>
+
     <!-- 主区（iFlytek 风格：Hero首页 ↔ 聊天双视图） -->
     <main class="main">
       <!-- 顶栏 -->
@@ -1743,7 +1806,7 @@
             <div class="theme-switch" id="themeSwitch">
               <button data-theme="light">☀</button>
               <button data-act="rainbow" title="点击切换背景颜色：赤橙黄绿青蓝紫">🌙</button>
-              <button data-theme="system">💻</button>
+              <button id="checkinBtn" title="连续打卡">🔥</button>
             </div>
           </div>
         </div>
@@ -4364,6 +4427,111 @@
     if (diffMs < 604800000) return Math.floor(diffMs / 86400000) + '天前';
     return `${d.getMonth()+1}/${d.getDate()}`;
   }
+
+  // ===== 连续打卡功能 =====
+  (function() {
+    const CI_KEY = 'mini-agent-checkin';
+    const $overlay = document.getElementById('checkinOverlay');
+    const $streak = document.getElementById('ciStreak');
+    const $status = document.getElementById('ciStatus');
+    const $btn = document.getElementById('ciDoBtn');
+    const $cal = document.getElementById('ciCalendar');
+
+    function todayKey() { return new Date().toISOString().slice(0,10); }
+    function getRecords() { try { return JSON.parse(localStorage.getItem(CI_KEY) || '[]'); } catch { return []; } }
+
+    /** 计算连续天数 */
+    function calcStreak(records) {
+      if (!records.length) return 0;
+      // 去重 + 排序
+      const days = [...new Set(records)].sort().reverse();
+      if (!days.length) return 0;
+      // 今天是否已打卡
+      const t = todayKey();
+      let streak = 0;
+      let checkDate = days[0]; // 最近一次打卡日期
+      // 如果最近打卡是今天，从今天开始算；如果是昨天，也从昨天开始算
+      if (checkDate !== t) {
+        // 检查昨天有没有打卡（允许中间断一天不算断）
+        const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+        if (!days.includes(yesterday)) return 0; // 昨天没打，断了
+        checkDate = yesterday;
+      }
+      for (let i = 0; i < 365; i++) {
+        if (days.includes(checkDate)) streak++;
+        else break;
+        checkDate = new Date(new Date(checkDate).getTime()-86400000).toISOString().slice(0,10);
+      }
+      return streak;
+    }
+
+    function isTodayChecked() { return getRecords().includes(todayKey()); }
+
+    function renderCalendar() {
+      if (!$cal) return;
+      const records = getRecords();
+      const dowNames = ['日','一','二','三','四','五','六'];
+      let html = '';
+      for (let i=6; i>=0; i--) {
+        const d = new Date(Date.now() - i*86400000);
+        const key = d.toISOString().slice(0,10);
+        const isToday = i===0;
+        const checked = records.includes(key);
+        html += `<div class="ci-day${isToday?' today':''}${checked?' checked':''}">`;
+        html += `<span class="ci-dow">${dowNames[d.getDay()]}</span>`;
+        html += `<div><span class="ci-dom">${d.getDate()}</span></div>`;
+        html += `<span class="ci-dot"></span></div>`;
+      }
+      $cal.innerHTML = html;
+    }
+
+    function renderUI() {
+      const records = getRecords();
+      const streak = calcStreak(records);
+      const checked = isTodayChecked();
+      if ($streak) $streak.innerHTML = `${streak}<span>天</span>`;
+      if ($status) {
+        $status.textContent = checked ? '✅ 今日已打卡' : '今日未打卡';
+        $status.className = 'checkin-status' + (checked ? ' done' : '');
+      }
+      if ($btn) {
+        $btn.textContent = checked ? '已打卡' : '立即打卡';
+        $btn.disabled = checked;
+      }
+      renderCalendar();
+    }
+
+    function doCheckin() {
+      if (isTodayChecked()) return;
+      const records = getRecords();
+      records.push(todayKey());
+      localStorage.setItem(CI_KEY, JSON.stringify(records));
+      renderUI();
+      // 打卡动画反馈：按钮闪烁一下
+      if ($btn) { $btn.style.transform='scale(1.1)'; setTimeout(()=>$btn.style.transform='',200); }
+    }
+
+    function openCheckin() {
+      if (!$overlay) return;
+      renderUI();
+      $overlay.classList.add('open');
+    }
+    function closeCheckin() {
+      if (!$overlay) return;
+      $overlay.classList.remove('open');
+    }
+
+    // 打开/关闭事件
+    document.getElementById('checkinBtn')?.addEventListener('click', openCheckin);
+    $btn?.addEventListener('click', doCheckin);
+    $overlay?.addEventListener('click', e => { if (e.target === $overlay) closeCheckin(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && $overlay?.classList.contains('open')) closeCheckin();
+    });
+
+    // 初始化时更新按钮 tooltip 显示当前天数
+    renderUI();
+  })();
 
   (async function init() {
     const ok = await bootstrap();
