@@ -416,32 +416,13 @@
     50%  { transform: translateY(0);   opacity: 0.35; }
     100% { transform: translateY(0);   opacity: 0.35; }
   }
-  /* 思考过程面板（可折叠，展示 AI 推理思路） */
-  .think-panel {
-    margin: 6px 0 10px;
-    border: 1px solid var(--border, #e6e2f2);
-    border-radius: var(--r-sm, 12px);
-    background: var(--surface-2, #f6f5fb);
-    overflow: hidden;
-    font-size: 13px;
-    transition: opacity .25s ease;
-  }
-  .think-panel > summary {
-    cursor: pointer; list-style: none;
-    padding: 8px 12px; font-weight: 600;
-    color: var(--text-soft, #8b86a3);
-    display: flex; align-items: center; gap: 6px;
-    user-select: none;
-  }
-  .think-panel > summary::-webkit-details-marker { display: none; }
-  .think-panel > summary::before { content: "▸"; font-size: 10px; transition: transform .2s; }
-  .think-panel[open] > summary::before { transform: rotate(90deg); }
+  /* 思考内容（贴在「正在思考」下方，展示 AI 推理思路） */
   .think-content {
-    padding: 0 12px 10px;
+    padding: 6px 0 2px;
     color: var(--text-soft, #8b86a3);
+    font-size: 13px;
     line-height: 1.7; white-space: pre-wrap; word-break: break-word;
-    max-height: 260px; overflow: auto;
-    border-top: 1px dashed var(--border, #e6e2f2);
+    max-height: 240px; overflow: auto;
   }
   .think-content:empty::before { content: "…"; color: #b9b4cc; }
 
@@ -2481,13 +2462,10 @@
     wrap.className = 'msg bot';
     wrap.innerHTML = `<div class="avatar">${botAvatarHTML()}</div><div class="msg-col">
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
-      <details class="think-panel" id="thinkPanel" open>
-        <summary>💭 思考过程</summary>
-        <div class="think-content" id="thinkContent"></div>
-      </details>
       <div class="bubble" id="streamBubble" style="display:none"><div class="md"></div></div>
       <div class="steps-block live">
         <div class="steps-head"><span>正在思考</span></div>
+        <div class="think-content" id="thinkContent"></div>
         <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
         <ul class="step-list"></ul>
       </div>
@@ -2498,7 +2476,6 @@
       wrap,
       bubble: wrap.querySelector('.md'),
       bubbleWrap: wrap.querySelector('#streamBubble'),
-      thinkPanel: wrap.querySelector('#thinkPanel'),
       thinkContent: wrap.querySelector('#thinkContent'),
       stepsEl: wrap.querySelector('.steps-block'),
       liveList: wrap.querySelector('.step-list'),
@@ -2564,11 +2541,9 @@
         }
         updateProgress();
       } else if (ev.type === 'reasoning') {
-        // 推理预调用的结果：展示到思考面板
+        // 推理预调用的结果：展示到「正在思考」下方的思考内容区
         if (ui.thinkContent) {
           ui.thinkContent.textContent = ev.text;
-          ui.thinkPanel.setAttribute('open', '');
-          if (ui.stepsEl) ui.stepsEl.style.display = 'none';
           chat.scrollTop = chat.scrollHeight;
         }
       } else if (ev.type === 'token') {
@@ -2581,8 +2556,8 @@
       } else if (ev.type === 'done') {
         gotDone = true;
         if (ev.session_id) { sessionId = ev.session_id; localStorage.setItem('mini_agent_sid', sessionId); }
-        // 答案生成完成：直接隐藏思考面板（不再保留折叠标题）
-        if (ui.thinkPanel) ui.thinkPanel.style.display = 'none';
+        // 答案生成完成：隐藏「正在思考」区（含思考内容）
+        if (ui.stepsEl) ui.stepsEl.style.display = 'none';
         finalize(ev.reply || '');
         loadConversations();
       } else if (ev.type === 'error') {
