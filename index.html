@@ -2882,6 +2882,7 @@
       sessionId = sid; localStorage.setItem('mini_agent_sid', sid);
       chat.innerHTML = '';
       (c.messages || []).forEach(m => addMessage(m.role, m.text, m.steps));
+      showChatView();
       closeHistory(); input.focus();
     } catch (e) { alert('加载失败：' + e.message); }
   }
