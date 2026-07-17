@@ -414,25 +414,63 @@ class Agent:
 
             # ---- 首字快速路径：纯问答直接流式，砍掉 ReAct 决策环节的等待 ----
             # 效果：简单问题首字延迟从「多轮 LLM+工具」降到「单次 LLM 首字」。
-            # 复杂问题（需工具/检索）仍回退到下方完整 ReAct，能力不丢。
+            # 同时分离「思考过程」(reasoning 事件) 与「正式答案」(token 事件)，
+            # 前端可实时展示推理链。复杂问题仍回退到下方完整 ReAct，能力不丢。
             fast_enabled = os.getenv("FAST_FIRST_TOKEN", "true").lower() == "true"
             if fast_enabled and self._is_simple_qa(user_input):
-                _fast_text, _fast_tool = [], False
+                _THINK_INSTR = (
+                    "\n\n回答前，请先用「✻思考✻」标记输出你的推理过程，"
+                    "再用「✻回答✻」标记输出正式回答。思考应简洁，只写关键推演步骤。"
+                )
+                _think_msgs = [
+                    SystemMessage(content=system + _THINK_INSTR),
+                    HumanMessage(content=user_input),
+                ]
+                _reason_acc, _answer_acc = "", ""
+                _sent_len, _in_answer, _fast_tool = 0, False, False
                 try:
-                    for _chk in llm.stream(messages):
+                    for _chk in llm.stream(_think_msgs):
                         _c = getattr(_chk, "content", None)
-                        if _c:
-                            _fast_text.append(_c)
-                            yield {"type": "token", "text": _c}
                         if getattr(_chk, "tool_calls", None):
                             _fast_tool = True
+                            break
+                        if not _c:
+                            continue
+                        if not _in_answer:
+                            _reason_acc += _c
+                            if "✻回答✻" in _reason_acc:
+                                _idx = _reason_acc.index("✻回答✻")
+                                _pre = _reason_acc[:_idx].replace("✻思考✻", "").strip()
+                                _post = _reason_acc[_idx + len("✻回答✻"):]
+                                if _pre:
+                                    yield {"type": "reasoning", "text": _pre}
+                                if _post:
+                                    yield {"type": "token", "text": _post}
+                                    _answer_acc = _post
+                                _in_answer = True
+                            else:
+                                # 实时推送安全前缀（留 3 字符缓冲，避免标记残片）
+                                _safe = _reason_acc[:-3] if len(_reason_acc) > 3 else ""
+                                if len(_safe) > _sent_len:
+                                    yield {"type": "reasoning", "text": _reason_acc[_sent_len:len(_safe)]}
+                                    _sent_len = len(_safe)
+                        else:
+                            yield {"type": "token", "text": _c}
+                            _answer_acc += _c
                 except Exception:
                     pass
-                if not _fast_tool:
-                    yield {"type": "done", "reply": "".join(_fast_text), "session_id": session_id}
+                if _fast_tool:
+                    # 漏判：模型要调工具 -> 落到下方主循环（用原 messages 走完整 ReAct）
+                    pass
+                else:
+                    if not _in_answer:
+                        # 模型未遵循标记 -> 整段当答案（不显示思考区）
+                        _answer_acc = _reason_acc.replace("✻思考✻", "").replace("✻回答✻", "").strip()
+                        if _answer_acc:
+                            yield {"type": "token", "text": _answer_acc}
+                    yield {"type": "done", "reply": _answer_acc, "session_id": session_id}
                     return
-                # 漏判：模型其实要调工具 -> 落到下面的 ReAct 主循环正常处理
-                # （前面已 yield 的少量预览文本作为 reasoning 展示，无害）
+                # 漏判回退：继续走下方 ReAct 主循环
 
         try:
             for _ in range(max_steps):
