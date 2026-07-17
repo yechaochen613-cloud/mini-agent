@@ -7,9 +7,11 @@
 <meta name="theme-color" content="#5b54e6" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="apple-touch-icon" href="/icon.svg" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<!-- 使用国内可达的字体源（Google Fonts 国内镜像），并改为非阻塞加载，避免白屏 -->
+<link rel="preconnect" href="https://fonts.loli.net" />
+<link rel="preconnect" href="https://gstatic.loli.net" crossorigin />
+<link rel="stylesheet" href="https://fonts.loli.net/css2?family=Space+Grotesk:wght@500;600;700&display=swap" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://fonts.loli.net/css2?family=Space+Grotesk:wght@500;600;700&display=swap" /></noscript>
 <style>
   /* ============================================================
      Design Tokens — "Editorial Calm" · 内容优先 · 克制高级
