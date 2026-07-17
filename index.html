@@ -416,35 +416,6 @@
     50%  { transform: translateY(0);   opacity: 0.35; }
     100% { transform: translateY(0);   opacity: 0.35; }
   }
-  /* 思考过程面板（真实推理链，可折叠） */
-  .think-panel {
-    margin: 6px 0 10px;
-    border: 1px solid var(--border, #e6e2f2);
-    border-radius: var(--r-sm, 12px);
-    background: var(--surface-2, #f6f5fb);
-    overflow: hidden;
-    font-size: 13px;
-    transition: opacity .25s ease;
-  }
-  .think-panel > summary {
-    cursor: pointer; list-style: none;
-    padding: 8px 12px; font-weight: 600;
-    color: var(--text-soft, #8b86a3);
-    display: flex; align-items: center; gap: 6px;
-    user-select: none;
-  }
-  .think-panel > summary::-webkit-details-marker { display: none; }
-  .think-panel > summary::before { content: "▸"; font-size: 10px; transition: transform .2s; }
-  .think-panel[open] > summary::before { transform: rotate(90deg); }
-  .think-content {
-    padding: 0 12px 10px;
-    color: var(--text-soft, #8b86a3);
-    line-height: 1.7; white-space: pre-wrap; word-break: break-word;
-    max-height: 260px; overflow: auto;
-    border-top: 1px dashed var(--border, #e6e2f2);
-  }
-  .think-content:empty::before { content: "…"; color: #b9b4cc; }
-
   /* ===== 底部 composer ===== */
   .composer-wrap { padding: 12px 18px 14px; background: linear-gradient(to top, var(--bg) 65%, transparent); }
   .composer-inner { max-width: 840px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
@@ -2481,10 +2452,6 @@
     wrap.className = 'msg bot';
     wrap.innerHTML = `<div class="avatar">${botAvatarHTML()}</div><div class="msg-col">
       <div class="msg-head"><span class="model-badge"><span class="mb-dot"></span>Mini Agent</span><span class="msg-time">${nowTime()}</span></div>
-      <details class="think-panel" id="thinkPanel" open>
-        <summary>💭 思考过程</summary>
-        <div class="think-content" id="thinkContent"></div>
-      </details>
       <div class="bubble" id="streamBubble" style="display:none"><div class="md"></div></div>
       <div class="steps-block live">
         <div class="steps-head"><span>正在思考</span></div>
@@ -2498,8 +2465,6 @@
       wrap,
       bubble: wrap.querySelector('.md'),
       bubbleWrap: wrap.querySelector('#streamBubble'),
-      thinkPanel: wrap.querySelector('#thinkPanel'),
-      thinkContent: wrap.querySelector('#thinkContent'),
       stepsEl: wrap.querySelector('.steps-block'),
       liveList: wrap.querySelector('.step-list'),
       progressBar: wrap.querySelector('.progress-bar'),
@@ -2553,14 +2518,6 @@
         li.innerHTML = `<span class="spinner">⟳</span><span class="st"><code>${escapeHtml(ev.tool)}(${escapeHtml(argStr)})</code></span>`;
         ui.liveList.appendChild(li);
         updateProgress();
-      } else if (ev.type === 'reasoning') {
-        // 真实推理链：实时展示到可折叠思考面板，并接管「过程」展示（隐藏步骤区）
-        if (ui.thinkContent) {
-          ui.thinkContent.textContent += ev.text;
-          ui.thinkPanel.setAttribute('open', '');
-          if (ui.stepsEl) ui.stepsEl.style.display = 'none';
-          chat.scrollTop = chat.scrollHeight;
-        }
       } else if (ev.type === 'step_end') {
         const li = ui.liveList.querySelector(`[data-id="${CSS.escape(ev.id)}"]`);
         if (li) {
@@ -2581,14 +2538,6 @@
       } else if (ev.type === 'done') {
         gotDone = true;
         if (ev.session_id) { sessionId = ev.session_id; localStorage.setItem('mini_agent_sid', sessionId); }
-        // 思考完成：有内容则折叠（可展开回顾），无内容则隐藏面板
-        if (ui.thinkPanel) {
-          if (ui.thinkContent && ui.thinkContent.textContent.trim()) {
-            ui.thinkPanel.removeAttribute('open');
-          } else {
-            ui.thinkPanel.style.display = 'none';
-          }
-        }
         finalize(ev.reply || '');
         loadConversations();
       } else if (ev.type === 'error') {
