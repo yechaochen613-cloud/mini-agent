@@ -3729,8 +3729,11 @@
     try {
       const r = await fetch(`${API_BASE}/account`);
       const d = await r.json();
-      applyName(d.name || '');
-    } catch (e) { applyName(''); }
+      // 仅当后端返回有效名字时才覆盖本地缓存；否则保留 localStorage 的值
+      if (d.name && d.name.trim()) { applyName(d.name.trim()); }
+    } catch (e) {
+      // 网络异常时静默保留本地缓存，不做任何操作
+    }
   }
 
   accNameEdit.addEventListener('click', () => {
