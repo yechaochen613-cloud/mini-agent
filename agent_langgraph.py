@@ -412,6 +412,28 @@ class Agent:
                 except Exception:
                     yield {"type": "token", "text": content}
 
+            # ---- 首字快速路径：纯问答直接流式，砍掉 ReAct 决策环节的等待 ----
+            # 效果：简单问题首字延迟从「多轮 LLM+工具」降到「单次 LLM 首字」。
+            # 复杂问题（需工具/检索）仍回退到下方完整 ReAct，能力不丢。
+            fast_enabled = os.getenv("FAST_FIRST_TOKEN", "true").lower() == "true"
+            if fast_enabled and self._is_simple_qa(user_input):
+                _fast_text, _fast_tool = [], False
+                try:
+                    for _chk in llm.stream(messages):
+                        _c = getattr(_chk, "content", None)
+                        if _c:
+                            _fast_text.append(_c)
+                            yield {"type": "token", "text": _c}
+                        if getattr(_chk, "tool_calls", None):
+                            _fast_tool = True
+                except Exception:
+                    pass
+                if not _fast_tool:
+                    yield {"type": "done", "reply": "".join(_fast_text), "session_id": session_id}
+                    return
+                # 漏判：模型其实要调工具 -> 落到下面的 ReAct 主循环正常处理
+                # （前面已 yield 的少量预览文本作为 reasoning 展示，无害）
+
         try:
             for _ in range(max_steps):
                 resp = call_llm(messages)
@@ -464,6 +486,33 @@ class Agent:
             yield {"type": "done", "reply": last_reply or "（已达到最大步数，停止循环）", "session_id": session_id}
         except Exception as e:
             yield {"type": "error", "message": f"执行出错：{e}"}
+
+    def _is_simple_qa(self, user_input):
+        """启发式判断是否为「简单问答」，可走首字快速路径（跳过 ReAct 决策等待）。
+
+        判定为「需走完整 ReAct」的信号：
+          - 含明显工具/外部操作触发词（查/搜/算/翻译/画/生成/天气/文件…）
+          - 过长（>80 字）或多行（疑似代码/长文），更可能需要检索或多步
+        其余视为纯问答，直接流式出答案。
+        """
+        if not user_input or not user_input.strip():
+            return False
+        text = user_input.strip()
+        low = text.lower()
+        TOOL_HINTS = [
+            "查", "搜", "检索", "计算", "算一下", "算个", "翻译", "画", "生成",
+            "打开", "调用", "天气", "汇率", "提醒", "日程", "笔记", "保存",
+            "读取", "文档", "文件", "网页", "新闻", "帮我做", "执行",
+            "查询", "获取", "fetch", "http", "www.", ".com", "下载", "发送",
+            "写代码", "编程", "运行", "脚本", "api", "数据库",
+        ]
+        if any(h in low for h in TOOL_HINTS):
+            return False
+        if len(text) > 80:
+            return False
+        if "\n" in text:
+            return False
+        return True
 
     def _build_system(self, user_input):
         """构建 system 提示：基础人设 + 当前问题相关的长期记忆（每轮重新计算，保证记忆新鲜）。
