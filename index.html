@@ -3789,10 +3789,11 @@
       chip.className = 'topic-chip';
       chip.textContent = t.text;
       chip.addEventListener('click', () => {
-        const input = document.getElementById('heroInput');
-        if (input) { input.value = t.prompt; }
-        // 触发发送
-        document.getElementById('heroSendBtn')?.click();
+        showChatView();
+        document.getElementById('input').value = t.prompt;
+        send(t.prompt);
+        const heroInput = document.getElementById('heroInput');
+        if (heroInput) heroInput.value = '';
       });
       grid.appendChild(chip);
     });
