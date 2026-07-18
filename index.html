@@ -136,6 +136,17 @@
     flex-shrink: 0;
   }
   .search-btn:hover { background: #f0eef6; color: var(--accent, #7c5cfc); }
+  /* 侧栏开关 - 固定左侧，始终可见 */
+  .sidebar-toggle-float {
+    position: fixed; left: 238px; top: 50%; transform: translateY(-50%);
+    z-index: 500;
+    width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid var(--border, #e0dde6); background: var(--bg-elev, #fff);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: #999; transition: left .3s var(--ease), all .25s ease; box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .sidebar-toggle-float:hover { background: #f0eef6; color: var(--accent, #7c5cfc); box-shadow: 0 4px 12px rgba(124,92,252,.15); }
+  .app.collapsed .sidebar-toggle-float { left: 8px; }
   /* 搜索弹层 */
   .search-overlay {
     position: fixed; inset: 0; z-index: 1000;
@@ -1808,7 +1819,6 @@
           <p>Ai for education</p>
         </div>
         <button class="search-btn" id="searchToggle" title="搜索历史对话">🔍</button>
-        <button class="search-btn" id="sideCloseBtn" title="关闭侧栏"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
       </div>
       <button class="create-btn" id="newChat" title="新建对话">＋ 创建</button>
 
@@ -1833,6 +1843,9 @@
         <div class="user-row" id="accountBtn" role="button" tabindex="0" title="账户设置"><span id="sideName">我的账户</span><span style="color:#aaa;font-size:11px;margin-left:auto">▾</span></div>
       </div>
     </aside>
+
+    <!-- 侧栏开关（固定在左侧，始终可见） -->
+    <button id="sideCloseBtn" title="切换侧栏" class="sidebar-toggle-float"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
 
 
     <!-- 搜索弹层 -->
