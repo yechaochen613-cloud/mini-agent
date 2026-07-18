@@ -1829,7 +1829,6 @@
           <h1>今日任务</h1>
         </div>
         </div>
-        <button class="search-btn" id="panelBtn" title="面板">📋</button>
         <button class="search-btn" id="searchToggle" title="搜索历史对话">🔍</button>
       </div>
 
@@ -4699,7 +4698,6 @@
   }
 
   document.getElementById('searchToggle')?.addEventListener('click', openSearch);
-  document.getElementById('panelBtn')?.addEventListener('click', openPersonal);
   document.getElementById('searchClose')?.addEventListener('click', closeSearch);
   searchOverlay?.addEventListener('click', e => { if (e.target === searchOverlay) closeSearch(); });
   document.addEventListener('keydown', e => {
