@@ -1808,6 +1808,7 @@
           <p>Agent for education</p>
         </div>
         <button class="search-btn" id="searchToggle" title="搜索历史对话">🔍</button>
+        <button class="search-btn" id="sideCloseBtn" title="关闭侧栏">☐</button>
       </div>
       <button class="create-btn" id="newChat" title="新建对话">＋ 创建</button>
 
@@ -2978,6 +2979,9 @@
     } else {
       document.getElementById('app').classList.toggle('collapsed');
     }
+  });
+  document.getElementById('sideCloseBtn')?.addEventListener('click', () => {
+    document.getElementById('app').classList.toggle('collapsed');
   });
   histBackdrop.addEventListener('click', closeHistory);
 
