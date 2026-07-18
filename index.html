@@ -1330,6 +1330,49 @@
   #chatView .chat { flex: 1; overflow-y: auto; padding: 16px 24px; }
   #chatView .composer-wrap { flex-shrink: 0; }
 
+  /* ===== 今日任务视图（P0 核心功能） ===== */
+  #taskView { flex: 1; display: none; flex-direction: column; overflow-y: auto; align-items: stretch; padding: 40px 28px 32px; }
+  #taskView.active { display: flex; }
+  .task-wrap { width: 100%; max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+  .task-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .task-greet { font-size: 26px; font-weight: 700; color: #2d2a45; letter-spacing: -.4px; }
+  .task-date { margin-top: 6px; font-size: 14px; color: #8a87a0; }
+  .task-progress-ring { position: relative; width: 84px; height: 84px; flex-shrink: 0; }
+  .task-progress-ring svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: #ece9f5; stroke-width: 10; }
+  .ring-fg { fill: none; stroke: #7c5cfc; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.16,1,.3,1); }
+  .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-time { font-size: 15px; font-weight: 700; color: #5b3fd4; }
+  .ring-sub { font-size: 11px; color: #9a96b0; }
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .stat-card { background: linear-gradient(135deg,#faf9ff,#f3f0ff); border: 1px solid #ece8f7; border-radius: 16px; padding: 18px; text-align: center; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(124,92,252,.12); }
+  .stat-val { font-size: 26px; font-weight: 800; color: #5b3fd4; }
+  .stat-val span { font-size: 13px; font-weight: 600; color: #9a96b0; margin-left: 2px; }
+  .stat-key { margin-top: 4px; font-size: 13px; color: #8a87a0; }
+  .task-card-block { background: #fff; border: 1px solid #ece8f7; border-radius: 20px; padding: 22px; box-shadow: 0 6px 24px rgba(40,30,80,.05); }
+  .task-block-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tbt-title { font-size: 17px; font-weight: 700; color: #2d2a45; }
+  .tbt-progress { font-size: 13px; color: #8a87a0; }
+  .task-bar { height: 8px; background: #efeafb; border-radius: 99px; overflow: hidden; margin-bottom: 16px; }
+  .task-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg,#8b6dff,#5b3fd4); border-radius: 99px; transition: width .4s cubic-bezier(.16,1,.3,1); }
+  .task-add { display: flex; gap: 10px; margin-bottom: 14px; }
+  .task-add input { flex: 1; padding: 12px 14px; border: 1.5px solid #e2def0; border-radius: 12px; font-size: 14px; outline: none; transition: border-color .2s; }
+  .task-add input:focus { border-color: #7c5cfc; box-shadow: 0 0 0 3px rgba(124,92,252,.1); }
+  .task-add button { padding: 0 18px; border: none; border-radius: 12px; background: linear-gradient(135deg,#8b6dff,#5b3fd4); color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; transition: transform .2s var(--ease), box-shadow .2s; }
+  .task-add button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(124,92,252,.3); }
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task-item { display: flex; align-items: center; gap: 12px; background: #faf9ff; border: 1px solid #ece8f7; border-radius: 14px; padding: 12px 14px; animation: taskIn .25s var(--ease) both; transition: background .2s, opacity .2s; }
+  .task-item.done { background: #f4f4f8; opacity: .65; }
+  .task-check { width: 26px; height: 26px; border-radius: 8px; border: 2px solid #c9c2e6; background: #fff; color: #fff; font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; transition: all .2s; display: flex; align-items: center; justify-content: center; }
+  .task-item.done .task-check { background: #5b3fd4; border-color: #5b3fd4; }
+  .task-text { flex: 1; font-size: 14.5px; color: #3a3756; word-break: break-word; }
+  .task-item.done .task-text { text-decoration: line-through; color: #9a96b0; }
+  .task-del { width: 28px; height: 28px; border: none; background: transparent; color: #c2bed6; font-size: 14px; cursor: pointer; border-radius: 8px; transition: all .2s; }
+  .task-del:hover { background: #fde8e8; color: #e06a6a; }
+  @keyframes taskIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 680px) { .stat-row { gap: 8px; } .task-greet { font-size: 22px; } .task-card-block { padding: 16px; } }
+
   /* ===== 登录 / 注册视图（强制登录） ===== */
   body.logged-out .app { display: none !important; }
 
@@ -2000,6 +2043,52 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== 今日任务视图（P0 核心功能） ===== -->
+      <div id="taskView">
+        <div class="task-wrap">
+          <!-- 顶部问候 + 进度环 -->
+          <div class="task-head">
+            <div>
+              <div class="task-greet">👋 你好，<span id="taskName">同学</span></div>
+              <div class="task-date" id="taskDate"></div>
+            </div>
+            <div class="task-progress-ring" title="今日学习时长">
+              <svg viewBox="0 0 120 120" width="84" height="84">
+                <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+                <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="ring-label">
+                <div class="ring-time" id="ringTime">0 分钟</div>
+                <div class="ring-sub">今日学习</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 学习时长统计 -->
+          <div class="stat-row">
+            <div class="stat-card"><div class="stat-val" id="statToday">0<span>分</span></div><div class="stat-key">今日</div></div>
+            <div class="stat-card"><div class="stat-val" id="statYest">0<span>分</span></div><div class="stat-key">昨日</div></div>
+            <div class="stat-card"><div class="stat-val" id="statWeek">0<span>分</span></div><div class="stat-key">本周日均</div></div>
+          </div>
+
+          <!-- 学习任务卡片区 -->
+          <div class="task-card-block">
+            <div class="task-block-head">
+              <div class="tbt-title">📋 今日学习计划</div>
+              <div class="tbt-progress"><span id="taskDone">0</span>/<span id="taskTotal">0</span> 已完成</div>
+            </div>
+            <div class="task-bar"><div class="task-bar-fill" id="taskBarFill"></div></div>
+            <div class="task-add">
+              <input id="taskInput" type="text" placeholder="添加一项学习任务，比如：做 5 道二次函数题" maxlength="60" />
+              <button id="taskAddBtn">＋ 添加</button>
+            </div>
+            <div class="task-list" id="taskList">
+              <div class="empty-hint" id="taskEmpty">还没有任务，添加今天的第一个学习目标吧 ✨</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -2479,11 +2568,140 @@
   const chatView = document.getElementById('chatView');
   const heroInput = document.getElementById('heroInput');
 
+  // ===== 今日任务（P0 核心功能） =====
+  const taskView    = document.getElementById('taskView');
+  const taskList    = document.getElementById('taskList');
+  const taskInput   = document.getElementById('taskInput');
+  const taskEmpty   = document.getElementById('taskEmpty');
+  const taskDoneEl  = document.getElementById('taskDone');
+  const taskTotalEl = document.getElementById('taskTotal');
+  const taskBarFill = document.getElementById('taskBarFill');
+  const ringFg      = document.getElementById('ringFg');
+  const ringTime    = document.getElementById('ringTime');
+  const statToday   = document.getElementById('statToday');
+  const statYest    = document.getElementById('statYest');
+  const statWeek    = document.getElementById('statWeek');
+  const taskDateEl  = document.getElementById('taskDate');
+  const taskNameEl  = document.getElementById('taskName');
+
+  const TASK_KEY   = 'mini_tasks';
+  const DAILY_GOAL = 60 * 60; // 每日学习时长目标（秒）= 60 分钟
+
+  function dateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function loadTasks() {
+    try { return JSON.parse(localStorage.getItem(TASK_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveTasks(arr) {
+    try { localStorage.setItem(TASK_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+  function renderTasks() {
+    const tasks = loadTasks();
+    taskList.querySelectorAll('.task-item').forEach(n => n.remove());
+    const done = tasks.filter(t => t.done).length;
+    taskDoneEl.textContent = done;
+    taskTotalEl.textContent = tasks.length;
+    const pct = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+    taskBarFill.style.width = pct + '%';
+    if (tasks.length === 0) {
+      taskEmpty.style.display = '';
+    } else {
+      taskEmpty.style.display = 'none';
+      tasks.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'task-item' + (t.done ? ' done' : '');
+        el.innerHTML =
+          '<button class="task-check" data-id="' + t.id + '" aria-label="完成">' + (t.done ? '✓' : '') + '</button>' +
+          '<div class="task-text">' + escapeHtml(t.text) + '</div>' +
+          '<button class="task-del" data-id="' + t.id + '" aria-label="删除">✕</button>';
+        taskList.appendChild(el);
+      });
+    }
+  }
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+    const tasks = loadTasks();
+    tasks.push({ id: 't' + Date.now(), text: text, done: false, createdAt: Date.now() });
+    saveTasks(tasks);
+    taskInput.value = '';
+    renderTasks();
+  }
+  function toggleTask(id) {
+    const tasks = loadTasks();
+    const t = tasks.find(x => x.id === id);
+    if (t) { t.done = !t.done; saveTasks(tasks); renderTasks(); }
+  }
+  function delTask(id) {
+    saveTasks(loadTasks().filter(x => x.id !== id));
+    renderTasks();
+  }
+  if (taskInput) taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } });
+  const taskAddBtn = document.getElementById('taskAddBtn');
+  if (taskAddBtn) taskAddBtn.addEventListener('click', addTask);
+  if (taskList) taskList.addEventListener('click', e => {
+    const check = e.target.closest('.task-check');
+    const del = e.target.closest('.task-del');
+    if (check) toggleTask(check.dataset.id);
+    else if (del) delTask(del.dataset.id);
+  });
+
+  // ---- 学习时长统计 ----
+  function getStudySeconds(dateKey) {
+    try { return parseInt(localStorage.getItem('mini_study_' + dateKey) || '0', 10) || 0; } catch (e) { return 0; }
+  }
+  function setStudySeconds(dateKey, sec) {
+    try { localStorage.setItem('mini_study_' + dateKey, String(sec)); } catch (e) {}
+  }
+  function fmtMin(sec) { return Math.floor(sec / 60); }
+  function renderStudyStats() {
+    const today = new Date();
+    const todayKey = dateStr(today);
+    const todaySec = getStudySeconds(todayKey);
+    statToday.innerHTML = fmtMin(todaySec) + '<span>分</span>';
+    const y = new Date(today); y.setDate(y.getDate() - 1);
+    statYest.innerHTML = fmtMin(getStudySeconds(dateStr(y))) + '<span>分</span>';
+    let sum = 0;
+    for (let i = 0; i < 7; i++) { const d = new Date(today); d.setDate(d.getDate() - i); sum += getStudySeconds(dateStr(d)); }
+    statWeek.innerHTML = fmtMin(Math.round(sum / 7)) + '<span>分</span>';
+    const pct = Math.min(1, todaySec / DAILY_GOAL);
+    const C = 2 * Math.PI * 52;
+    ringFg.style.strokeDasharray = C;
+    ringFg.style.strokeDashoffset = C * (1 - pct);
+    ringTime.textContent = fmtMin(todaySec) + ' 分钟';
+  }
+  function tickStudy() {
+    if (document.visibilityState !== 'visible') return;
+    if (document.body.classList.contains('logged-out')) return;
+    const todayKey = dateStr(new Date());
+    setStudySeconds(todayKey, getStudySeconds(todayKey) + 1);
+    renderStudyStats();
+  }
+  setInterval(tickStudy, 1000);
+
+  function showTaskView() {
+    heroView.classList.add('hidden');
+    chatView.classList.remove('active');
+    taskView.classList.add('active');
+    const hn = document.getElementById('homeNav'); if (hn) hn.classList.add('active');
+    const now = new Date();
+    const wk = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()];
+    taskDateEl.textContent = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + wk;
+    let nm = '同学';
+    try { nm = localStorage.getItem('mini_agent_name') || '同学'; } catch (e) {}
+    taskNameEl.textContent = nm;
+    renderTasks();
+    renderStudyStats();
+  }
+
   /** 切换到聊天视图 */
   function showChatView() {
-    if (!heroView.classList.contains('hidden')) {
+    if (!heroView.classList.contains('hidden') || taskView.classList.contains('active')) {
       heroView.classList.add('hidden');
+      taskView.classList.remove('active');
       chatView.classList.add('active');
+      const hn = document.getElementById('homeNav'); if (hn) hn.classList.remove('active');
       // 聚焦到聊天区输入框
       document.getElementById('input').focus();
     }
@@ -2493,6 +2711,8 @@
   function showHeroView() {
     heroView.classList.remove('hidden');
     chatView.classList.remove('active');
+    taskView.classList.remove('active');
+    const hn = document.getElementById('homeNav'); if (hn) hn.classList.remove('active');
     // 清空聊天区
     chat.innerHTML = '';
     // 滚动回顶部
@@ -2569,7 +2789,7 @@
     closeHistory();
     closePlugins();
     closeLibrary();
-    showHeroView();
+    showTaskView();
   });
 
   // "创建"按钮 / "新建对话" → 回首页并清空
