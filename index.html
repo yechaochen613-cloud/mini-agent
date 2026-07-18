@@ -303,29 +303,6 @@
   .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg,#ff9a56,#ff6b35); font-size: 14px; color: #fff; border: none; }
   .side-close { display: grid; place-items: center; }
 
-  /* 侧栏切换按钮（固定悬浮，始终可见） */
-  .side-toggle-float {
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    z-index: 200;
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 10px !important;
-    background: var(--surface, #fff) !important;
-    border: 1px solid var(--border, #e0e0e0) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,.1) !important;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    transition: transform .2s, box-shadow .2s, background .2s;
-  }
-  .side-toggle-float:hover {
-    transform: scale(1.08);
-    box-shadow: 0 4px 14px rgba(0,0,0,.15) !important;
-    background: var(--surface-2, #f5f5f7) !important;
-  }
-
   /* ===== 主区（iFlytek 风格） ===== */
   .main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; background: #f8f9fc; }
 
@@ -1856,8 +1833,6 @@
       </div>
     </aside>
 
-    <!-- 侧栏开关（悬浮，始终可见，不受侧栏折叠影响） -->
-    <button class="search-btn side-toggle-float" id="histToggleBtn" title="切换侧栏" aria-label="切换侧栏">☐</button>
 
     <!-- 搜索弹层 -->
     <div class="search-overlay" id="searchOverlay">
@@ -1888,6 +1863,7 @@
       <header class="topbar">
         <div class="topbar-inner">
           <div class="tb-left">
+            <button class="icon-btn" id="histToggle" title="侧边栏" aria-label="侧边栏">☰</button>
             <div class="model-select" id="modelSelect">
               <button class="ms-btn" id="msBtn">
                 <span>📚</span>
@@ -3001,14 +2977,6 @@
       histDrawer.classList.contains('open') ? closeHistory() : openHistory();
     } else {
       document.getElementById('app').classList.toggle('collapsed');
-    }
-  });
-  document.getElementById('histToggleBtn')?.addEventListener('click', () => {
-    if (window.matchMedia('(max-width: 900px)').matches) {
-      histDrawer.classList.contains('open') ? closeHistory() : openHistory();
-    } else {
-      const app = document.getElementById('app');
-      app.classList.contains('collapsed') ? (app.classList.remove('collapsed'), histDrawer.classList.add('open')) : (histDrawer.classList.remove('open'), app.classList.add('collapsed'));
     }
   });
   histBackdrop.addEventListener('click', closeHistory);
