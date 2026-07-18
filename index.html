@@ -1829,6 +1829,7 @@
           <h1>今日任务</h1>
         </div>
         </div>
+        <button class="search-btn" id="panelBtn" title="面板">📋</button>
         <button class="search-btn" id="searchToggle" title="搜索历史对话">🔍</button>
       </div>
 
@@ -3023,6 +3024,8 @@
     } catch (e) { return []; }
   }
   function renderHistory(list) {
+    // 缓存到 localStorage，供搜索功能使用
+    try { localStorage.setItem('mini_agent_convs', JSON.stringify(list)); } catch(e) {}
     const el = document.getElementById('histList');
     if (!list.length) { el.innerHTML = '<div class="empty-hint">还没有历史对话</div>'; return; }
     el.innerHTML = list.map(c => `
@@ -4696,6 +4699,7 @@
   }
 
   document.getElementById('searchToggle')?.addEventListener('click', openSearch);
+  document.getElementById('panelBtn')?.addEventListener('click', openPersonal);
   document.getElementById('searchClose')?.addEventListener('click', closeSearch);
   searchOverlay?.addEventListener('click', e => { if (e.target === searchOverlay) closeSearch(); });
   document.addEventListener('keydown', e => {
