@@ -1253,10 +1253,31 @@
   #heroView.hidden { display: none !important; }
 
   .hero-title {
-    font-size: 30px; font-weight: 700; color: #5b3fd4;
-    text-align: center; margin-bottom: 28px; letter-spacing: -0.5px;
+    font-size: 28px; font-weight: 700; color: #1a1a2e;
+    text-align: center; margin-bottom: 32px; letter-spacing: -0.3px;
     font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    line-height: 1.4;
   }
+
+  /* 知识要点推荐网格 */
+  .topic-grid {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    max-width: 860px; width: 100%; margin-bottom: 36px;
+  }
+  .topic-chip {
+    padding: 14px 22px; border-radius: 16px; font-size: 14px; font-weight: 500;
+    color: #444; background: rgba(255,255,255,.82); border: 1px solid #e4e2ec;
+    cursor: pointer; transition: all .22s var(--ease);
+    backdrop-filter: blur(6px);
+    user-select: none;
+    white-space: nowrap;
+  }
+  .topic-chip:hover {
+    border-color: #7c5cfc; color: #5b3fd4;
+    background: rgba(255,255,255,.95);
+    transform: translateY(-2px); box-shadow: 0 4px 14px rgba(124,92,252,.15);
+  }
+  .topic-chip:active { transform: translateY(0); }
 
   /* 超大输入框 */
   .hero-input-wrap {
@@ -1916,56 +1937,19 @@
 
       <!-- ===== Hero 首页视图（默认显示） ===== -->
       <div id="heroView">
-        <div class="hero-title">AI 私教助手，你的专属学习伙伴</div>
+        <!-- 居中大标题 -->
+        <div class="hero-title">今天你想学习什么内容？</div>
+
+        <!-- 知识要点推荐按钮网格 -->
+        <div class="topic-grid" id="topicGrid"></div>
 
         <!-- 超大输入框 -->
         <div class="hero-input-wrap" id="heroInputWrap">
-          <textarea id="heroInput" placeholder="今天想学什么？比如：帮我讲解勾股定理…" rows="2"></textarea>
+          <textarea id="heroInput" placeholder="输入你的问题，或点击上方知识点快速提问…" rows="2"></textarea>
           <div class="hero-input-bar">
             <div class="hero-input-right" style="margin-left: auto;">
               <button class="hero-attach-btn" id="heroAttachBtn">📎 附件</button>
               <button class="hero-send-btn" id="heroSendBtn">▶ 发送</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 快捷操作胶囊 -->
-        <div class="hero-pills">
-          <div class="hero-pill" data-prompt="帮我讲解数学中的勾股定理">📐 数学</div>
-          <div class="hero-pill" data-prompt="分析这篇英语长难句的语法结构">🔤 英语</div>
-          <div class="hero-pill" data-prompt="背诵并讲解《静夜思》这首古诗">📖 语文</div>
-          <div class="hero-pill" data-prompt="解释牛顿第二定律并举例说明">⚛️ 物理</div>
-        </div>
-
-        <!-- 学习案例卡片网格 -->
-        <div class="hero-section">
-          <div class="hero-sec-head">
-            <div class="hero-sec-title">学习案例</div>
-            <div class="hero-more">更多 ▾</div>
-          </div>
-          <div class="hero-tabs">
-            <div class="hero-tab on" data-subject="">全部</div>
-            <div class="hero-tab" data-subject="数学">数学</div>
-            <div class="hero-tab" data-subject="语文">语文</div>
-            <div class="hero-tab" data-subject="英语">英语</div>
-            <div class="hero-tab" data-subject="物理">物理</div>
-          </div>
-          <div class="hero-grid">
-            <div class="hero-card" style="--card-color:linear-gradient(135deg,#fef3c7,#fcd34d)" onclick="document.getElementById('heroInput').value='帮我讲解勾股定理的证明方法'">
-              <div class="hero-card-img" style="background:linear-gradient(135deg,#fef3c7,#fcd34d)">📐</div>
-              <div class="hero-card-body"><div class="hero-card-title">勾股定理深度解析</div></div>
-            </div>
-            <div class="hero-card" style="--card-color:linear-gradient(135deg,#dbeafe,#93c5fd)" onclick="document.getElementById('heroInput').value='帮我练习英语一般过去时态的用法'">
-              <div class="hero-card-img" style="background:linear-gradient(135deg,#dbeafe,#93c5fd)">📝</div>
-              <div class="hero-card-body"><div class="hero-card-title">英语时态专项训练</div></div>
-            </div>
-            <div class="hero-card" style="--card-color:linear-gradient(135deg,#dcfce7,#86efac)" onclick="document.getElementById('heroInput').value='请赏析李白的《静夜思》'">
-              <div class="hero-card-img" style="background:linear-gradient(135deg,#dcfce7,#86efac)">📜</div>
-              <div class="hero-card-body"><div class="hero-card-title">古诗词鉴赏精讲</div></div>
-            </div>
-            <div class="hero-card" style="--card-color:linear-gradient(135deg,#fce7f3,#f9a8d4)" onclick="document.getElementById('heroInput').value='用生活中的例子解释牛顿第三定律'">
-              <div class="hero-card-img" style="background:linear-gradient(135deg,#fce7f3,#f9a8d4)">⚗️</div>
-              <div class="hero-card-body"><div class="hero-card-title">物理力学典型例题</div></div>
             </div>
           </div>
         </div>
@@ -3771,6 +3755,48 @@
 
   // ===== 开场白 =====
   const OPENING_TEXT = '同学，我是你的专属AI私教，今天我们攻克哪个知识点？';
+
+  // ===== 知识要点推荐网格 =====
+  const KNOWLEDGE_TOPICS = [
+    // 数学
+    { text: '📐 二次函数图像与性质', prompt: '帮我系统讲解二次函数的图像、开口方向、对称轴和顶点坐标，并举例说明' },
+    { text: '📐 勾股定理及逆定理', prompt: '详细讲解勾股定理的内容、证明方法（至少2种），以及勾股定理逆定理的应用' },
+    { text: '📐 三角函数基础公式', prompt: '帮我整理正弦余弦正切的定义、特殊角值表，以及同角三角函数的基本关系式' },
+    { text: '📐 概率与统计初步', prompt: '讲解概率的基本概念（古典概型）、频率估计概率，以及平均数中位数众数的区别' },
+    // 语文
+    { text: '📖 文言文阅读技巧', prompt: '总结文言文阅读的常见实词虚词、断句方法，并举一篇短文做实战分析' },
+    { text: '📖 作文写作高分模板', prompt: '帮我梳理记叙文和议论文的高分写作结构框架，并给出开头结尾范例' },
+    { text: '📖 古诗词鉴赏方法', prompt: '讲解古诗词鉴赏的角度：意象、手法、情感、炼字，并以一首唐诗为例详细赏析' },
+    // 英语
+    { text: '🔤 定语从句全解析', prompt: '系统讲解定语从句的关系代词和关系副词选择规则，限制性与非限制性的区别' },
+    { text: '🔤 完形填空解题策略', prompt: '总结英语完形填空的常见考查点（词义辨析、逻辑关系等）和解题步骤' },
+    { text: '🔤 长难句拆解方法', prompt: '讲解如何识别句子主干、从句嵌套，并用3个高考真题长难句演示拆解过程' },
+    // 物理
+    { text: '⚛️ 牛顿运动定律应用', prompt: '详细讲解牛顿三定律的内容、适用条件，并结合斜面模型做受力分析' },
+    { text: '⚛️ 电路分析与欧姆定律', prompt: '讲解串并联电路特点、欧姆定律计算，以及电功率相关公式的综合运用' },
+    { text: '⚛️ 机械能守恒定律', prompt: '讲解动能、势能的概念，机械能守恒的条件判断，以及能量转化问题' },
+    // 化学
+    { text: '🧪 化学方程式配平', prompt: '讲解化学方程式的配平方法（最小公倍数法、观察法），并练习5道典型题目' },
+    { text: '🧪 酸碱盐反应规律', prompt: '系统归纳酸碱盐之间的复分解反应规律、条件，以及常见离子共存问题' },
+    // 生物
+    { text: '🧬 细胞结构与功能', prompt: '讲解动植物细胞的结构区别、各细胞器的功能，以及细胞膜的选择透过性' },
+  ];
+  (function initTopicGrid() {
+    const grid = document.getElementById('topicGrid');
+    if (!grid) return;
+    KNOWLEDGE_TOPICS.forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'topic-chip';
+      chip.textContent = t.text;
+      chip.addEventListener('click', () => {
+        const input = document.getElementById('heroInput');
+        if (input) { input.value = t.prompt; }
+        // 触发发送
+        document.getElementById('heroSendBtn')?.click();
+      });
+      grid.appendChild(chip);
+    });
+  })();
 
   // ===== 升级 / 快捷键 / 更多 / 侧边栏导航 / 定时任务 / 子智能体 =====
 
