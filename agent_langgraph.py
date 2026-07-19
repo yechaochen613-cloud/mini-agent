@@ -347,6 +347,8 @@ class Agent:
                 api_key=self._api_key,
                 base_url=self._base_url,
                 temperature=0,
+                timeout=60,          # 单次调用最多等 60 秒，避免无限挂起
+                request_timeout=60,
             )
             self._llm_cache[model_name] = llm.bind_tools(self._all_tools)
         return self._llm_cache[model_name]
