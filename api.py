@@ -145,6 +145,30 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/llm")
+def debug_llm():
+    """诊断用：用服务端环境变量直接打一次模型，返回延迟与错误（key 不外泄）。"""
+    import time as _t
+    from langchain_openai import ChatOpenAI
+    from langchain_core.messages import HumanMessage
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    base = os.getenv("OPENAI_BASE_URL") or "(未设置)"
+    key = os.getenv("OPENAI_API_KEY")
+    if not key:
+        return {"ok": False, "error": "OPENAI_API_KEY 未设置", "model": model, "base_url": base}
+    try:
+        llm = ChatOpenAI(model=model, api_key=key, base_url=os.getenv("OPENAI_BASE_URL"),
+                         temperature=0, timeout=25, request_timeout=25)
+        t0 = _t.time()
+        resp = llm.invoke([HumanMessage(content="ping")])
+        dt = round((_t.time() - t0) * 1000)
+        return {"ok": True, "latency_ms": dt, "model": model, "base_url": base,
+                "reply_len": len(getattr(resp, "content", "") or "")}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:300], "model": model, "base_url": base}
+
+
+
 @app.get("/tools")
 def tools():
     """列出当前已加载的工具（本地 + 通过 MCP 接入的），方便排查 MCP 是否生效。"""
