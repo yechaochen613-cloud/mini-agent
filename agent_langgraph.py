@@ -443,7 +443,7 @@ class Agent:
                     last_reply = content
                     # ---- 推理预调用：先给用户看"AI 在想什么"，再流式出答案 ----
                     # 不绕过 ReAct（主循环已正常跑完），只多一次非流式调用拿推理思路。
-                    _reason_enabled = os.getenv("SHOW_REASONING", "true").lower() == "true"
+                    _reason_enabled = os.getenv("SHOW_REASONING", "false").lower() == "true"
                     if _reason_enabled and not self.mock:
                         try:
                             _reason_msgs = [
