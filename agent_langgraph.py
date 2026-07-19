@@ -406,12 +406,10 @@ class Agent:
             def call_llm(msgs):
                 return llm.invoke(msgs)
             def stream_final(msgs, content):
-                # real 模式：用 .stream() 拿到真实 token 流
-                try:
-                    for chunk in llm.stream(msgs):
-                        if getattr(chunk, "content", None):
-                            yield {"type": "token", "text": chunk.content}
-                except Exception:
+                # real 模式：直接把 invoke 已拿到的完整答案吐出（前端做打字机动画）
+                # 不再依赖 llm.stream()——部分兼容端点(deepseek等)流式会卡住/不吐内容，
+                # 导致前端一直显示 • 直到超时。content 已可靠获取，直接下发最稳。
+                if content:
                     yield {"type": "token", "text": content}
 
         try:
