@@ -1376,6 +1376,14 @@
   .task-del:hover { background: #fde8e8; color: #e06a6a; }
   @keyframes taskIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* ===== 名师·技能视图 ===== */
+  #teacherView { display: none; }
+  #teacherView.active { display: flex; flex-direction: column; width: 100%; max-width: 820px; margin: 0 auto; padding: 28px 20px 40px; box-sizing: border-box; animation: fadeIn .3s ease both; }
+  .teacher-wrap { display: flex; flex-direction: column; gap: 18px; }
+  .teacher-head { text-align: center; padding-bottom: 16px; border-bottom: 2px solid #f0edff; }
+  .teacher-greet { font-size: 24px; font-weight: 800; color: #2d2a45; letter-spacing: -0.3px; }
+  .teacher-sub { font-size: 14px; color: #9a96b0; margin-top: 6px; }
+
   /* ===== 名师·技能卡片网格 ===== */
   .teachers-section { margin-top: 24px; }
   .teachers-block {
@@ -1941,6 +1949,7 @@
 
       <nav class="side-nav">
         <div class="nav-item active" id="homeNav"><span class="ni-ic">🎯</span> 今日任务</div>
+        <div class="nav-item" id="teacherNav"><span class="ni-ic">👨‍🏫</span> 名师·技能</div>
         <div class="nav-item" id="connNav"><span class="ni-ic">🧩</span> 插件</div>
         <div class="nav-item" id="libNav"><span class="ni-ic">📚</span> 学习库</div>
         <div class="nav-item" id="profileNav"><span class="ni-ic">📊</span> 学情档案</div>
@@ -2160,15 +2169,18 @@
               <div class="empty-hint" id="taskEmpty">还没有任务，添加今天的第一个学习目标吧 ✨</div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- 名师·技能 -->
-          <div class="teachers-section">
-            <div class="teachers-block">
-              <div class="teachers-head">
-                <div><span class="teachers-title">👨‍🏫 名师·技能</span><span class="teachers-sub">全科目名师团队</span></div>
-              </div>
-              <div class="teachers-grid" id="teachersGrid"></div>
-            </div>
+      <!-- ===== 名师·技能视图 ===== -->
+      <div id="teacherView">
+        <div class="teacher-wrap">
+          <div class="teacher-head">
+            <div class="teacher-greet">👨‍🏫 全科目名师团队</div>
+            <div class="teacher-sub">点击「召唤老师」开始一对一辅导</div>
+          </div>
+          <div class="teachers-block">
+            <div class="teachers-grid" id="teachersGrid"></div>
           </div>
         </div>
       </div>
@@ -2657,6 +2669,9 @@
   const taskInput   = document.getElementById('taskInput');
   const taskEmpty   = document.getElementById('taskEmpty');
   const taskDoneEl  = document.getElementById('taskDone');
+
+  // ===== 名师·技能视图 =====
+  const teacherView = document.getElementById('teacherView');
   const taskTotalEl = document.getElementById('taskTotal');
   const taskBarFill = document.getElementById('taskBarFill');
   const ringFg      = document.getElementById('ringFg');
@@ -2864,8 +2879,10 @@
   function showTaskView() {
     heroView.classList.add('hidden');
     chatView.classList.remove('active');
+    teacherView.classList.remove('active');
     taskView.classList.add('active');
     const hn = document.getElementById('homeNav'); if (hn) hn.classList.add('active');
+    const tn = document.getElementById('teacherNav'); if (tn) tn.classList.remove('active');
     const now = new Date();
     const wk = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()];
     taskDateEl.textContent = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + wk;
@@ -2874,16 +2891,28 @@
     taskNameEl.textContent = nm;
     renderTasks();
     renderStudyStats();
+  }
+
+  /** 切换到名师·技能视图 */
+  function showTeacherView() {
+    heroView.classList.add('hidden');
+    chatView.classList.remove('active');
+    taskView.classList.remove('active');
+    teacherView.classList.add('active');
+    const hn = document.getElementById('homeNav'); if (hn) hn.classList.remove('active');
+    const tn = document.getElementById('teacherNav'); if (tn) tn.classList.add('active');
     renderTeachers();
   }
 
   /** 切换到聊天视图 */
   function showChatView() {
-    if (!heroView.classList.contains('hidden') || taskView.classList.contains('active')) {
+    if (!heroView.classList.contains('hidden') || taskView.classList.contains('active') || teacherView.classList.contains('active')) {
       heroView.classList.add('hidden');
       taskView.classList.remove('active');
+      teacherView.classList.remove('active');
       chatView.classList.add('active');
       const hn = document.getElementById('homeNav'); if (hn) hn.classList.remove('active');
+      const tn = document.getElementById('teacherNav'); if (tn) tn.classList.remove('active');
       // 聚焦到聊天区输入框
       document.getElementById('input').focus();
     }
@@ -2894,7 +2923,9 @@
     heroView.classList.remove('hidden');
     chatView.classList.remove('active');
     taskView.classList.remove('active');
+    teacherView.classList.remove('active');
     const hn = document.getElementById('homeNav'); if (hn) hn.classList.remove('active');
+    const tn = document.getElementById('teacherNav'); if (tn) tn.classList.remove('active');
     // 清空聊天区
     chat.innerHTML = '';
     // 滚动回顶部
@@ -2971,6 +3002,13 @@
     closeHistory();
     closeLibrary();
     showTaskView();
+  });
+
+  // 名师·技能导航 → 打开名师视图
+  document.getElementById('teacherNav')?.addEventListener('click', () => {
+    closeHistory();
+    closeLibrary();
+    showTeacherView();
   });
 
   // "创建"按钮 / "新建对话" → 回首页并清空
