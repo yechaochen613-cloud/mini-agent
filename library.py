@@ -42,6 +42,15 @@ def _now():
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _now_ts():
+    return int(time.time())
+
+
+# 艾宾浩斯复习间隔（天），索引 = 掌握度 0(生疏)~5(熟练)
+REVIEW_INTERVALS = [1, 2, 4, 7, 15, 30]
+MASTERY_LABELS = ["生疏", "薄弱", "一般", "良好", "扎实", "熟练"]
+
+
 # ===== 错题本 =====
 def list_wrong_questions(subject=None):
     items = _load()["wrong_questions"]
@@ -52,6 +61,7 @@ def list_wrong_questions(subject=None):
 
 def add_wrong_question(data):
     d = _load()
+    now_ts = _now_ts()
     item = {
         "id": uuid.uuid4().hex[:12],
         "subject": (data.get("subject") or "").strip(),
@@ -60,6 +70,11 @@ def add_wrong_question(data):
         "correct_answer": (data.get("correct_answer") or "").strip(),
         "explanation": (data.get("explanation") or "").strip(),
         "created_at": _now(),
+        # 复习闭环字段
+        "mastery": 0,                              # 0 生疏 ~ 5 熟练
+        "review_count": 0,                        # 已复习次数
+        "next_review_at": now_ts + 86400,         # 首次复习：明天
+        "last_review_at": None,                   # 上次复习时间戳
     }
     d["wrong_questions"].append(item)
     _save(d)
@@ -80,12 +95,48 @@ def update_wrong_question(wid, data):
     d = _load()
     for i in d["wrong_questions"]:
         if i["id"] == wid:
-            for k in ("subject", "my_answer", "correct_answer", "explanation"):
-                if k in data and data[k] is not None:
-                    i[k] = str(data[k]).strip()
+            for k, v in data.items():
+                if v is None:
+                    continue
+                if k in ("subject", "my_answer", "correct_answer", "explanation"):
+                    i[k] = str(v).strip()
+                elif k == "mastery":
+                    try:
+                        i["mastery"] = max(0, min(5, int(v)))
+                    except (TypeError, ValueError):
+                        pass
             _save(d)
             return i
     return None
+
+
+def review_wrong_question(wid, mastery):
+    """标记一次复习：更新掌握度，按艾宾浩斯推算下次复习时间。返回更新后的错题，找不到返回 None。"""
+    d = _load()
+    for i in d["wrong_questions"]:
+        if i["id"] == wid:
+            m = max(0, min(5, int(mastery) if mastery is not None else (i.get("mastery", 0) or 0)))
+            i["mastery"] = m
+            i["review_count"] = (i.get("review_count", 0) or 0) + 1
+            now_ts = _now_ts()
+            i["last_review_at"] = now_ts
+            i["next_review_at"] = now_ts + REVIEW_INTERVALS[m] * 86400
+            _save(d)
+            return i
+    return None
+
+
+def due_wrong_questions():
+    """返回当前应当复习的错题（下次复习时间 <= 现在，或从未排期）。按紧急度（时间升序）排列。"""
+    now_ts = _now_ts()
+    items = _load()["wrong_questions"]
+    due = []
+    for i in items:
+        nxt = i.get("next_review_at")
+        if nxt is None or nxt <= now_ts:
+            due.append(i)
+    due.sort(key=lambda x: x.get("next_review_at") or 0)
+    return due
 
 
 def subjects_of_wrong_questions():

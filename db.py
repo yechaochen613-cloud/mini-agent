@@ -15,6 +15,9 @@
 
 import os
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 USE_PG = DATABASE_URL.startswith("postgres")
@@ -40,7 +43,7 @@ def _ensure_pool():
         from psycopg2 import pool as _pgpool
         _PG_POOL = _pgpool.ThreadedConnectionPool(1, 10, DATABASE_URL, connect_timeout=15)
     except Exception as e:  # noqa: BLE001
-        print(f"[db] 连接池初始化失败，回退为每次新建连接: {e}")
+        logger.warning("[db] 连接池初始化失败，回退为每次新建连接: %s", e)
         _PG_POOL = None
 
 
@@ -68,7 +71,7 @@ def connect():
                 conn.close = _return_to_pool
                 return conn
             except Exception as e:  # noqa: BLE001
-                print(f"[db] 取池连接失败，回退直连: {e}")
+                logger.warning("[db] 取池连接失败，回退直连: %s", e)
         import psycopg2
         return psycopg2.connect(DATABASE_URL, connect_timeout=15)
     else:

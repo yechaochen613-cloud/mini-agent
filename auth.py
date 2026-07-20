@@ -15,6 +15,9 @@ import uuid
 import secrets
 import hashlib
 import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 from db import (connect, q, exec, fetchone, fetchall,
                 create_table_if_not_exists, USE_PG)
@@ -247,9 +250,9 @@ def _start_cleanup_scheduler(interval_sec: int = 3600) -> None:
             try:
                 n = cleanup_expired_sessions()
                 if n:
-                    print(f"[auth] 已清理 {n} 个过期会话")
+                    logger.info("[auth] 已清理 %d 个过期会话", n)
             except Exception as e:
-                print(f"[auth] 清理任务出错（已忽略）: {e}")
+                logger.warning("[auth] 清理任务出错（已忽略）: %s", e)
     threading.Thread(target=_loop, daemon=True).start()
 
 

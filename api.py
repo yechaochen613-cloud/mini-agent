@@ -25,7 +25,14 @@ import re
 import time
 import uuid
 import shutil
+import logging
 from collections import deque, defaultdict
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("api")
 from documents import (
     ingest_file, ingest_url, list_documents, list_document_summaries,
     get_document, read_document, extract_tables, extract_clauses,
@@ -105,7 +112,7 @@ def _sse(event: dict) -> str:
 def _fail(status: int, client_msg: str, exc: Exception | None = None) -> HTTPException:
     """把真实异常打到日志，但只把通用文案返回给客户端，避免泄露内部路径 / 堆栈。"""
     if exc is not None:
-        print(f"[ERR][{status}] {client_msg} -> {exc}")
+        logger.error("[%s] %s -> %s", status, client_msg, exc)
     return HTTPException(status_code=status, detail=client_msg)
 
 
@@ -236,6 +243,16 @@ def sw():
     return FileResponse(os.path.join(BASE_DIR, "sw.js"),
                         media_type="text/javascript",
                         headers={"Cache-Control": "no-cache, no-transform"})
+
+
+# 抽离出的样式表：HTML 里以 /static/styles.css?v=版本号 引用，
+# 这里按路径返回并长效缓存（immutable）。版本变化即视为新资源，
+# 避免改动 CSS 后浏览器仍跑旧缓存导致更新不可见。
+@app.get("/static/styles.css")
+def serve_styles():
+    return FileResponse(os.path.join(BASE_DIR, "styles.css"),
+                        media_type="text/css",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 @app.get("/icon.svg", response_class=FileResponse)
@@ -905,7 +922,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-20-group2-medium"
+DEPLOY_TAG = "2026-07-20-group3-lighten"
 
 
 # ===== GitHub OAuth 授权流程 =====
@@ -1030,6 +1047,11 @@ class WrongQuestionUpdate(BaseModel):
     my_answer: str | None = None
     correct_answer: str | None = None
     explanation: str | None = None
+    mastery: int | None = None
+
+
+class WrongQuestionReview(BaseModel):
+    mastery: int = 0
 
 
 class FavoriteCreate(BaseModel):
@@ -1067,6 +1089,24 @@ def update_wrong_question_route(wid: str, req: WrongQuestionUpdate):
     if not item:
         raise HTTPException(status_code=404, detail="错题不存在")
     return item
+
+
+@app.patch("/wrong-questions/{wid}/review")
+def review_wrong_question_route(wid: str, req: WrongQuestionReview):
+    """标记一次复习（艾宾浩斯复习闭环）：更新掌握度并推算下次复习时间。"""
+    from library import review_wrong_question
+    item = review_wrong_question(wid, req.mastery)
+    if not item:
+        raise HTTPException(status_code=404, detail="错题不存在")
+    return item
+
+
+@app.get("/wrong-questions/due")
+def get_due_wrong_questions():
+    """今日待复习的错题（下次复习时间已到或从未排期）。"""
+    from library import due_wrong_questions
+    due = due_wrong_questions()
+    return {"due": due, "count": len(due)}
 
 
 @app.get("/favorites")

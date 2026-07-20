@@ -26,6 +26,9 @@ import json
 import os
 import sys
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 from typing import Annotated, TypedDict, Optional
 from pydantic import Field, create_model
 
@@ -53,9 +56,9 @@ if _TUTOR_MODE:
     try:
         with open(_TUTOR_PROMPT_PATH, "r", encoding="utf-8") as _f:
             _TUTOR_PROMPT = _f.read().strip()
-        print(f"[Tutor] 家教模式已开启，加载提示词 {len(_TUTOR_PROMPT)} 字")
+        logger.info("[Tutor] 家教模式已开启，加载提示词 %d 字", len(_TUTOR_PROMPT))
     except Exception as _e:
-        print(f"[Tutor] 加载提示词失败，回退通用模式: {_e}")
+        logger.warning("[Tutor] 加载提示词失败，回退通用模式: %s", _e)
         _TUTOR_MODE = False
 
 
@@ -181,7 +184,7 @@ def _load_mcp_config():
         with open(path, "r", encoding="utf-8") as f:
             raw = json.load(f)
     except Exception as e:
-        print(f"[MCP] 读取配置失败，跳过: {e}")
+        logger.warning("[MCP] 读取配置失败，跳过: %s", e)
         return None
     servers = raw.get("mcpServers", raw) if isinstance(raw, dict) else None
     if not servers:
@@ -208,16 +211,16 @@ def load_mcp_tools():
     try:
         from langchain_mcp_adapters.client import MultiServerMCPClient
     except ImportError:
-        print("[MCP] 未安装 langchain-mcp-adapters，已跳过 MCP 工具加载。")
+        logger.info("[MCP] 未安装 langchain-mcp-adapters，已跳过 MCP 工具加载。")
         return [], None
     try:
         client = MultiServerMCPClient(cfg)
         tools = asyncio.run(client.get_tools())
         names = [t.name for t in tools]
-        print(f"[MCP] 已连接，加载 {len(tools)} 个工具: {names}")
+        logger.info("[MCP] 已连接，加载 %d 个工具: %s", len(tools), names)
         return tools, client
     except Exception as e:
-        print(f"[MCP] 连接/加载失败（已忽略，只用本地工具）: {e}")
+        logger.warning("[MCP] 连接/加载失败（已忽略，只用本地工具）: %s", e)
         return [], None
 
 
@@ -547,7 +550,7 @@ class Agent:
             # 走到步数上限仍未结束
             yield {"type": "done", "reply": last_reply or "（已达到最大步数，停止循环）", "session_id": session_id}
         except Exception as e:
-            print(f"[agent] run_stream 执行出错: {e}")
+            logger.error("[agent] run_stream 执行出错: %s", e)
             yield {"type": "error", "message": "执行出错，请稍后重试"}
 
     def _build_system(self, user_input, persona=None, style=None):
@@ -669,7 +672,7 @@ class Agent:
                     "needs_review": False, "review": None}
         except Exception as e:
             # 真实异常只打日志，不把内部报错原文回传给前端（避免泄露路径/堆栈）
-            print(f"[agent] run_trace 执行出错: {e}")
+            logger.error("[agent] run_trace 执行出错: %s", e)
             return {"reply": "（抱歉，处理出错了，请稍后重试或换种问法）", "steps": self.steps,
                     "needs_review": False, "review": None}
 
