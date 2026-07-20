@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at INTEGER,
     expires_at INTEGER);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS oauth_states (
+    token TEXT PRIMARY KEY,
+    created_at INTEGER);
 """
 
 _PG_DDL = """
@@ -50,6 +53,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at INTEGER,
     expires_at INTEGER);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS oauth_states (
+    token TEXT PRIMARY KEY,
+    created_at INTEGER);
 """
 
 
@@ -61,21 +67,37 @@ def _init_db() -> None:
 
 
 # ===== 密码哈希 =====
+# 迭代次数：从最初 10 万提升到 20 万（SHA-256 下约增加几十毫秒/次，仍在可接受范围）。
+# 哈希格式带版本前缀，便于以后再次升级；旧格式（无前缀）按 _LEGACY_ITER 兼容，
+# 登录成功时自动用新参数重算并写回（透明升级，存量用户无感）。
+PBKDF2_ITER = 200_000
+_LEGACY_ITER = 100_000
+
+
 def _hash_password(password: str) -> str:
-    """返回 'salt_hex:hash_hex'，salt 随机。"""
+    """返回 'v2|<iter>|<salt_hex>|<hash_hex>'，salt 随机。"""
     salt = secrets.token_bytes(16)
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100_000)
-    return salt.hex() + ":" + dk.hex()
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITER)
+    return f"v2|{PBKDF2_ITER}|{salt.hex()}|{dk.hex()}"
 
 
-def _verify_password(password: str, stored: str) -> bool:
+def _verify_password(password: str, stored: str):
+    """返回 (ok: bool, needs_upgrade: bool)。needs_upgrade 为 True 表示旧格式命中，应重写。"""
     try:
-        salt_hex, hash_hex = stored.split(":", 1)
-        salt = bytes.fromhex(salt_hex)
-        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100_000)
-        return secrets.compare_digest(dk.hex(), hash_hex)
+        if stored.startswith("v2|"):
+            _, it_s, salt_hex, hash_hex = stored.split("|", 3)
+            it = int(it_s)
+            salt = bytes.fromhex(salt_hex)
+        else:
+            # 旧格式：salt:hash，固定 10 万次
+            salt_hex, hash_hex = stored.split(":", 1)
+            it = _LEGACY_ITER
+            salt = bytes.fromhex(salt_hex)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, it)
+        ok = secrets.compare_digest(dk.hex(), hash_hex)
+        return ok, (not stored.startswith("v2|"))
     except Exception:
-        return False
+        return False, False
 
 
 # ===== 用户注册 / 校验 =====
@@ -106,17 +128,27 @@ def register_user(username: str, password: str) -> dict:
 
 
 def verify_user(username: str, password: str) -> dict | None:
-    """校验用户名 + 密码；成功返回用户 dict，失败返回 None。"""
+    """校验用户名 + 密码；成功返回用户 dict，失败返回 None。
+    若命中旧哈希格式，登录成功后透明用新参数重算写回（兼容升级）。"""
     username = (username or "").strip()
     with _lock:
         conn = connect()
         row = fetchone(conn, "SELECT id, pw_hash FROM users WHERE username=?", (username,))
+        if not row:
+            conn.close()
+            return None
+        uid, pw_hash = row
+        ok, upgrade = _verify_password(password, pw_hash)
+        if not ok:
+            conn.close()
+            return None
+        if upgrade:
+            try:
+                new_hash = _hash_password(password)
+                exec(conn, "UPDATE users SET pw_hash=? WHERE id=?", (new_hash, uid))
+            except Exception:
+                pass  # 重哈希失败不影响本次登录
         conn.close()
-    if not row:
-        return None
-    uid, pw_hash = row
-    if not _verify_password(password, pw_hash):
-        return None
     return {"id": uid, "username": username}
 
 
@@ -167,5 +199,60 @@ def delete_session(token: str) -> None:
         conn.close()
 
 
-# 模块加载即建表
+# ===== OAuth state 持久化（替代内存 dict：重启 / 多实例也不丢，回调校验仍可靠） =====
+def save_oauth_state(token: str) -> None:
+    """保存一个 OAuth state（GitHub 等 OAuth 回调的 CSRF 校验凭证）。"""
+    with _lock:
+        conn = connect()
+        exec(conn, "INSERT OR REPLACE INTO oauth_states(token, created_at) VALUES(?,?)",
+             (token, int(time.time())))
+        conn.close()
+
+
+def consume_oauth_state(token: str) -> bool:
+    """校验并消费一个 OAuth state：存在则删除并返回 True，否则 False（防重放/伪造）。"""
+    if not token:
+        return False
+    with _lock:
+        conn = connect()
+        row = fetchone(conn, "SELECT 1 FROM oauth_states WHERE token=?", (token,))
+        if not row:
+            conn.close()
+            return False
+        exec(conn, "DELETE FROM oauth_states WHERE token=?", (token,))
+        conn.close()
+    return True
+
+
+# ===== 过期会话 / state 清理（避免表无限膨胀） =====
+def cleanup_expired_sessions() -> int:
+    """删除过期会话及过期 OAuth state，返回清理掉的会话数。"""
+    now = int(time.time())
+    with _lock:
+        conn = connect()
+        row = fetchone(conn, "SELECT COUNT(*) FROM sessions WHERE expires_at < ?", (now,))
+        removed = row[0] if row else 0
+        exec(conn, "DELETE FROM sessions WHERE expires_at < ?", (now,))
+        # 过期 OAuth state（>10 分钟）顺手清理
+        exec(conn, "DELETE FROM oauth_states WHERE created_at < ?", (now - 600,))
+        conn.close()
+    return removed
+
+
+def _start_cleanup_scheduler(interval_sec: int = 3600) -> None:
+    """后台守护线程：每隔 interval_sec 清理一次过期会话 / state。"""
+    def _loop():
+        while True:
+            time.sleep(interval_sec)
+            try:
+                n = cleanup_expired_sessions()
+                if n:
+                    print(f"[auth] 已清理 {n} 个过期会话")
+            except Exception as e:
+                print(f"[auth] 清理任务出错（已忽略）: {e}")
+    threading.Thread(target=_loop, daemon=True).start()
+
+
+# 模块加载即建表 + 启动过期清理调度
 _init_db()
+_start_cleanup_scheduler()

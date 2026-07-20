@@ -2869,7 +2869,7 @@
         <div class="teacher-desc">${t.desc}</div>
         <div class="teacher-skills">${t.skills.map(s => `<span class="teacher-skill">${s}</span>`).join('')}</div>
         <div class="teacher-action">
-          <button class="teacher-call-btn" onclick="(function(btn){const card=btn.closest('.teacher-card');const p=card.dataset.prompt;showChatView();send(p);})(this)">召唤老师</button>
+          <button class="teacher-call-btn" onclick="(function(btn){const card=btn.closest('.teacher-card');const p=card.dataset.prompt;showChatView();send(p, card.dataset.subject);})(this)">召唤老师</button>
           <span class="teacher-stats">${t.skills.length} 个技能</span>
         </div>
       </div>
@@ -3212,7 +3212,7 @@
     };
   }
 
-  async function send(overrideText) {
+  async function send(overrideText, msgPersona) {
     if (awaitingReview) { alert('请先处理上方的待审批操作（全部通过 / 拒绝）再继续。'); return; }
     const text = (overrideText != null ? overrideText : input.value).trim();
     if (!text) return;
@@ -3306,7 +3306,7 @@
         }
         ui.bubble.innerHTML = '<em style="color:var(--text-muted)">⏳ 正在思考…</em>';
 
-        const msgBody = { message: text, max_steps: 5, session_id: sessionId, model: currentModel, persona: (pSettings||{}).persona||'tutor', style: (pSettings||{}).style||'concise' };
+        const msgBody = { message: text, max_steps: 5, session_id: sessionId, model: currentModel, persona: msgPersona || (pSettings||{}).persona||'tutor', style: (pSettings||{}).style||'concise' };
 
         // 使用非流式 /chat 端点（已验证在 Render 上稳定工作，~10s 返回）
         const resp = await fetch(`${API_BASE}/chat`, {

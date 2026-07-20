@@ -66,6 +66,66 @@ if _TUTOR_MODE:
 HUMAN_APPROVAL_TOOLS = ({"save_note"} if _TUTOR_MODE else {"save_note", "save_memory"})
 
 
+# ===== 角色人设 / 回答风格 映射（接上前端个性化设置里一直被丢弃的 persona / style 字段） =====
+# 前端 index.html 的「个性化设置」面板会随每条 /chat 请求发 persona / style，
+# 之前后端 ChatRequest 不接收 → 等于死功能。现在真正注入到 system 提示里。
+_PERSONA_INSTR = {
+    "tutor": "你的角色是「学习搭子」：像同龄好友一样陪用户一起学，语气轻松、鼓励为主，"
+             "多用生活化的类比，适当用 emoji。",
+    "strict": "你的角色是「严谨导师」：专业、准确、高标准，直指问题关键，不啰嗦，"
+              "必要时明确指出用户的错误。",
+    "funny": "你的角色是「幽默伙伴」：用段子、梗和生动比喻讲解，让学习变得有趣，"
+             "但知识点必须准确严谨。",
+    "gentle": "你的角色是「温柔陪伴」：耐心、共情，先安抚情绪再讲解，"
+              "适合用户受挫或焦虑时使用。",
+}
+# 名师·技能里「召唤老师」会把学科名作为 persona 传过来（数学/语文/...）
+_SUBJECT_TEACHERS = {"数学", "语文", "英语", "物理", "化学", "地理", "历史", "生物", "政治"}
+_STYLE_INSTR = {
+    "concise": "回答尽量简洁明了，抓重点，避免冗长。",
+    "detailed": "回答要详细讲解，包含定义、推导过程、具体例子与易错点。",
+    "step": "回答请用清晰的分步推导，让用户能一步步跟上你的思路。",
+    "example": "回答多举例子并举一反三，帮助用户把知识迁移运用到新情境。",
+}
+
+
+def _persona_line(persona):
+    if persona in _SUBJECT_TEACHERS:
+        return (
+            f"你现在是一位专业的中小学《{persona}》老师，面向 K12 学生：\n"
+            f"- 用启发式教学，先诊断学生真实的困惑点，再针对性讲解；\n"
+            f"- 鼓励学生提问，遇到错误温和纠正并说明原因；\n"
+            f"- 适当结合课标与生活实例，帮助建立学科思维。"
+        )
+    return _PERSONA_INSTR.get(persona)
+
+
+def _style_line(style):
+    return _STYLE_INSTR.get(style)
+
+
+# ===== 后台事件循环（避免每次请求都 asyncio.run 新建循环，减少开销与「循环已关闭」警告） =====
+_loop = None
+_loop_lock = threading.Lock()
+
+
+def _get_event_loop():
+    global _loop
+    if _loop is None or _loop.is_closed():
+        with _loop_lock:
+            if _loop is None or _loop.is_closed():
+                _loop = asyncio.new_event_loop()
+                t = threading.Thread(target=_loop.run_forever, daemon=True)
+                t.start()
+    return _loop
+
+
+def _run_async(coro):
+    """在线程安全的后台事件循环里运行协程并阻塞等待结果。"""
+    loop = _get_event_loop()
+    return asyncio.run_coroutine_threadsafe(coro, loop).result()
+
+
 # ---------------- 把现有工具的 JSON Schema 转换成 LangChain 需要的 pydantic 模型 ----------------
 # 这样 TOOL_SCHEMAS（tools.py 里的"说明书"）就是唯一的真相来源，不重复写参数定义。
 _TYPE_MAP = {"string": str, "integer": int, "number": float, "boolean": bool}
@@ -226,7 +286,7 @@ class Agent:
             # add_messages 是 LangGraph 的"消息归约器"：新消息自动追加，而非整体替换
             messages: Annotated[list, add_messages]
 
-        def agent_node(state):
+        def agent_node(state, config=None):
             """推理节点：注入记忆 → 调 LLM（或 mock）→ 返回模型这条消息。"""
             msgs = list(state["messages"])
             # 找出最后一条 user 消息，用于检索相关长期记忆
@@ -235,7 +295,11 @@ class Agent:
                 if isinstance(m, HumanMessage):
                     last_user = m.content
                     break
-            system_content = self._build_system(last_user)
+            # 从 LangGraph 配置里取本次请求的角色 / 风格（run_trace 注入到 configurable）
+            cfg = config or {}
+            persona = cfg.get("configurable", {}).get("persona")
+            style = cfg.get("configurable", {}).get("style")
+            system_content = self._build_system(last_user, persona=persona, style=style)
             # 每轮重新注入（带最新记忆）的 system，插到最前；它只传给 LLM，不写回 state
             if msgs and isinstance(msgs[0], SystemMessage):
                 msgs[0] = SystemMessage(content=system_content)
@@ -371,7 +435,8 @@ class Agent:
         except Exception as e:
             return f"（工具执行失败：{e}）"
 
-    def run_stream(self, session_id, user_input=None, max_steps=5, model=None):
+    def run_stream(self, session_id, user_input=None, max_steps=5, model=None,
+                   persona=None, style=None):
         """生成器：边执行边 yield 事件 dict（供 /chat/stream SSE 输出）。
 
         事件类型：
@@ -400,7 +465,7 @@ class Agent:
                 yield {"type": "token", "text": content}
         else:
             from langchain_core.messages import SystemMessage, HumanMessage
-            system = self._build_system(user_input)
+            system = self._build_system(user_input, persona=persona, style=style)
             messages = [SystemMessage(content=system), HumanMessage(content=user_input)]
             llm = self._llm_for(model or self.model)
             def call_llm(msgs):
@@ -482,13 +547,16 @@ class Agent:
             # 走到步数上限仍未结束
             yield {"type": "done", "reply": last_reply or "（已达到最大步数，停止循环）", "session_id": session_id}
         except Exception as e:
-            yield {"type": "error", "message": f"执行出错：{e}"}
+            print(f"[agent] run_stream 执行出错: {e}")
+            yield {"type": "error", "message": "执行出错，请稍后重试"}
 
-    def _build_system(self, user_input):
-        """构建 system 提示：基础人设 + 当前问题相关的长期记忆（每轮重新计算，保证记忆新鲜）。
+    def _build_system(self, user_input, persona=None, style=None):
+        """构建 system 提示：基础人设 + 角色/风格 + 当前问题相关的长期记忆。
 
         - self._system_override 不为空时（子智能体场景），直接用它作为完整 system 提示，
           但仍会追加长期记忆上下文，保证子智能体也能利用记忆。
+        - persona / style 来自前端「个性化设置」面板（及名师·技能的学科召唤），
+          用于塑造本次对话的角色与回答风格。
         """
         if self._system_override:
             base = self._system_override
@@ -512,6 +580,16 @@ class Agent:
                 "\n\n以下是你之前记住的、可能与当前对话相关的信息，请善加利用：\n"
                 + mem_ctx
             )
+        # 角色人设 + 回答风格（来自前端的 persona / style 字段）
+        extra = []
+        persona_line = _persona_line(persona)
+        if persona_line:
+            extra.append(persona_line)
+        style_line = _style_line(style)
+        if style_line:
+            extra.append(style_line)
+        if extra:
+            system_content += "\n\n【角色与回答风格要求】\n" + "\n".join(extra)
         if self.tool_schemas:
             tools_desc = "\n".join(
                 f"- {s['function']['name']}: {s['function'].get('description', '')}"
@@ -558,19 +636,21 @@ class Agent:
             return {"messages": prior + [new_msg]}
         return {"messages": [new_msg]}
 
-    def run_trace(self, session_id, user_input=None, max_steps=5, review_decision=None, model=None):
+    def run_trace(self, session_id, user_input=None, max_steps=5, review_decision=None,
+                  model=None, persona=None, style=None):
         """返回 {reply, steps} 或 {needs_review, review}。
 
         - 正常结束：{"reply": ..., "steps": [...], "needs_review": False, "review": None}
         - 需要人类审批：{"reply": "", "steps": [], "needs_review": True, "review": {...}}
         - review_decision 不为 None 时，表示人类已答复，用它唤醒（resume）被暂停的图。
         - model：单次请求临时覆盖模型（来自前端模型选择器，如 "lite"/"pro"），仅非 mock 生效。
+        - persona / style：来自前端「个性化设置」/名师召唤，注入到本次对话的 system 提示。
         """
         self.steps = []  # 每轮对话重新开始记录
         self._pending.discard(session_id)
         self._model_override = model  # None = 用默认模型
         config = {
-            "configurable": {"thread_id": session_id},
+            "configurable": {"thread_id": session_id, "persona": persona, "style": style},
             "recursion_limit": max_steps * 3 + 5,
         }
 
@@ -578,17 +658,19 @@ class Agent:
             if review_decision is not None:
                 # 人类已经答复 -> 用 Command(resume=...) 唤醒被 interrupt 暂停的图
                 # 用 ainvoke：MCP 工具是异步的，必须跑在事件循环里才能被 await
-                result = asyncio.run(
+                result = _run_async(
                     self.app.ainvoke(Command(resume=review_decision), config=config))
             else:
                 input_state = self._build_input_with_history(session_id, user_input)
-                result = asyncio.run(
+                result = _run_async(
                     self.app.ainvoke(input_state, config=config))
         except GraphRecursionError:
             return {"reply": "（已达到最大步数，停止循环）", "steps": self.steps,
                     "needs_review": False, "review": None}
         except Exception as e:
-            return {"reply": f"（执行出错或超过最大步数：{e}）", "steps": self.steps,
+            # 真实异常只打日志，不把内部报错原文回传给前端（避免泄露路径/堆栈）
+            print(f"[agent] run_trace 执行出错: {e}")
+            return {"reply": "（抱歉，处理出错了，请稍后重试或换种问法）", "steps": self.steps,
                     "needs_review": False, "review": None}
 
         # 检测是否被 interrupt 暂停（等待人类审批）
