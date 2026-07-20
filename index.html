@@ -1378,7 +1378,7 @@
 
   /* ===== 名师·技能视图 ===== */
   #teacherView { display: none; }
-  #teacherView.active { display: flex; flex-direction: column; width: 100%; max-width: 820px; margin: 0 auto; padding: 28px 20px 40px; box-sizing: border-box; animation: fadeIn .3s ease both; }
+  #teacherView.active { display: flex; flex: 1; min-height: 0; flex-direction: column; width: 100%; max-width: 820px; margin: 0 auto; padding: 28px 20px 40px; box-sizing: border-box; overflow-y: auto; animation: fadeIn .3s ease both; }
   .teacher-wrap { display: flex; flex-direction: column; gap: 18px; }
   .teacher-head { text-align: center; padding-bottom: 16px; border-bottom: 2px solid #f0edff; }
   .teacher-greet { font-size: 24px; font-weight: 800; color: #2d2a45; letter-spacing: -0.3px; }
