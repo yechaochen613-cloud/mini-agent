@@ -166,6 +166,44 @@ def update_profile(partial: dict) -> dict:
 
 
 # ============================================================
+# 按学科分诊（名师·技能联动学情档案用）
+# ============================================================
+
+def subject_triage(subject: str) -> dict:
+    """按学科「分诊」：返回该学科在学情档案中的掌握度、相关薄弱点、优势、年级/姓名。
+
+    供名师·技能召唤某科老师时注入 system 提示，让老师按学生真实水平因材施教。
+    - 没有建档 / 该科无数据时 has_profile=False，调用方据此走通用辅导。
+    - 学科名匹配做容错：如档案里写「道法」也能和「政治」对上。
+    """
+    p = get_profile()
+    subs = p.get("subjects", {}) or {}
+    # 精确匹配优先；否则在已有学科 key 里找包含/被包含关系
+    mastery = subs.get(subject)
+    if mastery is None:
+        for k, v in subs.items():
+            if subject in k or k in subject:
+                mastery = v
+                break
+    weak = p.get("weak_points", []) or []
+    # 优先取「学科名出现在薄弱点里」的条目；否则退化为最近几条薄弱点供参考
+    relevant = [w for w in weak if subject in w]
+    if not relevant:
+        relevant = weak[:5]
+    strong = p.get("strengths", []) or []
+    has = bool(p.get("name") or p.get("grade") or mastery is not None or weak or strong)
+    return {
+        "has_profile": has,
+        "name": p.get("name", ""),
+        "grade": p.get("grade", ""),
+        "subject": subject,
+        "mastery": mastery,
+        "weak_points": relevant,
+        "strengths": strong[:3],
+    }
+
+
+# ============================================================
 # 试卷记录读写
 # ============================================================
 

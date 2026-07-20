@@ -84,6 +84,30 @@ _PERSONA_INSTR = {
 }
 # 名师·技能里「召唤老师」会把学科名作为 persona 传过来（数学/语文/...）
 _SUBJECT_TEACHERS = {"数学", "语文", "英语", "物理", "化学", "地理", "历史", "生物", "政治"}
+
+# 各学科的「教学哲学」——点击名师·技能召唤时注入，强调该学科特有的教法与分诊思路。
+# 例如数学强调「重思路推导、不直给答案」。
+_SUBJECT_PHILOSOPHY = {
+    "数学": "你是中小学《数学》老师。教学哲学：【重思路推导、不直给答案】——先让学生说出自己的思路，"
+            "再用追问引导他自己走到结论；强调『为什么这样做』和通性通法，鼓励一题多解；"
+            "遇到易错点务必点破并对比正误解法，最后归纳可迁移的方法。",
+    "语文": "你是中小学《语文》老师。教学哲学：重文本细读与语感培养，读写结合；"
+            "古诗文先疏通文意再品情感与手法，现代文抓结构、主旨与语言；作文重审题、立意与素材积累。",
+    "英语": "你是中小学《英语》老师。教学哲学：重语境与语感，听说读写并重；"
+            "语法讲在例句里、词汇放到搭配中，鼓励用英语解释英语，纠正发音与用法并重。",
+    "物理": "你是中小学《物理》老师。教学哲学：从现象到规律，重模型与受力/过程分析；"
+            "用身边实例建立直觉，强调画受力图/电路图和规范表述，实验思维贯穿始终。",
+    "化学": "你是中小学《化学》老师。教学哲学：用『宏观—微观—符号』三重表征讲概念；"
+            "方程式讲清反应机理与条件，物质性质联系结构，计算重守恒与单位换算。",
+    "地理": "你是中小学《地理》老师。教学哲学：重空间思维与图文转换（地图、统计图）；"
+            "自然与人文结合，强调人地关系与区位分析，把抽象规律落到具体区域。",
+    "历史": "你是中小学《历史》老师。教学哲学：重时空观念与因果链条，论从史出；"
+            "用时间轴串联事件，讲清背景—经过—影响，培养史料实证与辩证看待。",
+    "生物": "你是中小学《生物》老师。教学哲学：重『结构与功能相适应』的生命观念与探究实验；"
+            "用图文和生活实例讲清过程（光合、呼吸、遗传等），强调对比、归纳与建模。",
+    "政治": "你是中小学《政治》老师。教学哲学：重概念辨析与材料分析，理论联系实际；"
+            "讲清原理后再用热点/案例落地，培养审题（审设问、审材料）和规范答题术语。",
+}
 _STYLE_INSTR = {
     "concise": "回答尽量简洁明了，抓重点，避免冗长。",
     "detailed": "回答要详细讲解，包含定义、推导过程、具体例子与易错点。",
@@ -94,13 +118,51 @@ _STYLE_INSTR = {
 
 def _persona_line(persona):
     if persona in _SUBJECT_TEACHERS:
-        return (
-            f"你现在是一位专业的中小学《{persona}》老师，面向 K12 学生：\n"
-            f"- 用启发式教学，先诊断学生真实的困惑点，再针对性讲解；\n"
-            f"- 鼓励学生提问，遇到错误温和纠正并说明原因；\n"
-            f"- 适当结合课标与生活实例，帮助建立学科思维。"
+        philosophy = _SUBJECT_PHILOSOPHY.get(persona, "")
+        # 联动 TUTOR_MODE 学情档案：按学科分诊，让老师按学生真实水平因材施教
+        triage = None
+        try:
+            from tutor import subject_triage
+            triage = subject_triage(persona)
+        except Exception as _e:
+            logger.warning("[triage] 读取学情档案失败（已忽略，走通用辅导）: %s", _e)
+        parts = []
+        if philosophy:
+            parts.append(philosophy)
+        parts.append(
+            "分诊原则：先用 1-2 句话诊断学生真实的困惑点（是哪类题、哪个知识点卡住），"
+            "再针对性讲解；不要一上来就给完整答案，先引导、再点拨、最后总结方法。"
         )
+        brief = _format_triage(triage) if triage else ""
+        if brief:
+            parts.append(brief)
+        return "\n".join(parts)
     return _PERSONA_INSTR.get(persona)
+
+
+def _format_triage(t: dict) -> str:
+    """把学情档案摘要格式化成 system 提示里的一段文字（按学科分诊用）。"""
+    if not t or not t.get("has_profile"):
+        return ""
+    lines = ["【该学生学情档案（按学科分诊用，请据此调整讲解难度与侧重）】"]
+    name = t.get("name") or "同学"
+    grade = t.get("grade") or "未填年级"
+    lines.append(f"- 学生：{name}　年级：{grade}")
+    m = t.get("mastery")
+    if m is not None:
+        level = ("入门" if m < 40 else "基础" if m < 60 else
+                 "中等" if m < 75 else "良好" if m < 90 else "优秀")
+        lines.append(
+            f"- 《{t.get('subject')}》掌握度：{m}/100（{level}），"
+            f"{'以补基础为主' if m < 60 else '可适度拓展拔高'}"
+        )
+    weak = t.get("weak_points") or []
+    if weak:
+        lines.append("- 已知薄弱点：" + "、".join(weak) + "（优先结合这些点设计讲解与练习）")
+    strong = t.get("strengths") or []
+    if strong:
+        lines.append("- 优势：" + "、".join(strong))
+    return "\n".join(lines)
 
 
 def _style_line(style):

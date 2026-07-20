@@ -278,6 +278,11 @@
 
       <!-- ===== 聊天视图（默认隐藏，发送后显示） ===== -->
       <div id="chatView">
+        <div class="triage-bar" id="triageBar" hidden>
+          <span class="triage-ic" id="triageIc">📚</span>
+          <span class="triage-txt" id="triageTxt"></span>
+          <button class="triage-exit" id="triageExit" title="退出学科分诊">退出 ✕</button>
+        </div>
         <main class="chat" id="chat"></main>
 
         <div class="composer-wrap">
@@ -1060,7 +1065,7 @@
         <div class="teacher-desc">${t.desc}</div>
         <div class="teacher-skills">${t.skills.map(s => `<span class="teacher-skill">${s}</span>`).join('')}</div>
         <div class="teacher-action">
-          <button class="teacher-call-btn" onclick="(function(btn){const card=btn.closest('.teacher-card');const p=card.dataset.prompt;showChatView();send(p, card.dataset.subject);})(this)">召唤老师</button>
+          <button class="teacher-call-btn" onclick="(function(btn){const card=btn.closest('.teacher-card');const subj=card.dataset.subject;const p=card.dataset.prompt;currentTeacher=subj;setTriageBadge();showChatView();send(p, subj);toast('📐 已接通'+(card.querySelector('.teacher-name').textContent)+' · 进入学科分诊');})(this)">召唤老师</button>
           <span class="teacher-stats">${t.skills.length} 个技能</span>
         </div>
       </div>
@@ -1419,6 +1424,21 @@
     };
   }
 
+  // 学科分诊模式：被某位名师「召唤」后常驻，让后续对话都保持在该学科人设下
+  let currentTeacher = null;
+
+  function setTriageBadge() {
+    const bar = document.getElementById('triageBar');
+    if (!bar) return;
+    if (!currentTeacher) { bar.hidden = true; return; }
+    const t = TEACHERS.find(x => x.subject === currentTeacher);
+    document.getElementById('triageIc').textContent = t ? t.icon : '📚';
+    document.getElementById('triageTxt').innerHTML = t
+      ? `已进入 <b>${t.name}</b> · 按学科分诊模式（结合你的学情档案因材施教）`
+      : `已进入 <b>${currentTeacher}</b> 老师 · 按学科分诊模式`;
+    bar.hidden = false;
+  }
+
   async function send(overrideText, msgPersona) {
     if (awaitingReview) { alert('请先处理上方的待审批操作（全部通过 / 拒绝）再继续。'); return; }
     const text = (overrideText != null ? overrideText : input.value).trim();
@@ -1513,7 +1533,9 @@
         }
         ui.bubble.innerHTML = '<em style="color:var(--text-muted)">⏳ 正在思考…</em>';
 
-        const msgBody = { message: text, max_steps: 5, session_id: sessionId, model: currentModel, persona: msgPersona || (pSettings||{}).persona||'tutor', style: (pSettings||{}).style||'concise' };
+        // 分诊态优先：显式传入的学科 > 常驻 currentTeacher > 个性化设置里的 persona
+        const usedPersona = msgPersona || currentTeacher || ((pSettings||{}).persona) || 'tutor';
+        const msgBody = { message: text, max_steps: 5, session_id: sessionId, model: currentModel, persona: usedPersona, style: (pSettings||{}).style||'concise' };
 
         // 使用非流式 /chat 端点（已验证在 Render 上稳定工作，~10s 返回）
         const resp = await fetch(`${API_BASE}/chat`, {
@@ -1610,6 +1632,11 @@
   document.getElementById('newChat2')?.addEventListener('click', newChat);
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
   input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; });
+
+  // 退出学科分诊：回到默认人设模式
+  document.getElementById('triageExit')?.addEventListener('click', () => {
+    currentTeacher = null; setTriageBadge(); toast('已退出学科分诊，回到默认模式');
+  });
 
   // ===== 附件面板 =====
   let docs = []; let cmp = { a: null, b: null };

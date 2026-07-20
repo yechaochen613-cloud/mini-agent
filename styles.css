@@ -1826,3 +1826,25 @@
   }
 
   /* 顶栏用户区 — 已移至侧边栏账户弹窗 */
+
+/* ===== 学科分诊模式徽章（名师·技能召唤后常驻） ===== */
+.triage-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 14px 0; padding: 8px 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 4%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 12px;
+  font-size: 13px; line-height: 1.4; color: var(--text);
+  animation: fadeIn .25s ease both;
+}
+.triage-bar[hidden] { display: none; }
+.triage-ic { font-size: 16px; }
+.triage-txt { flex: 1; }
+.triage-txt b { color: var(--accent); }
+.triage-exit {
+  flex: none; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: transparent; color: var(--text-2);
+  border-radius: 20px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+  transition: all .2s ease;
+}
+.triage-exit:hover { color: #ef4444; border-color: #ef4444; }
