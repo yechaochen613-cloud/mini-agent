@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-20-group3">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-20-subject-triage">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -157,6 +157,7 @@
       <div class="side-foot">
         <span class="avatar-sm" id="sideAvatar">🦊</span>
         <div class="user-row" id="accountBtn" role="button" tabindex="0" title="账户设置"><span id="sideName">我的账户</span><span style="color:#aaa;font-size:11px;margin-left:auto">▾</span></div>
+        <div class="side-deploy" id="sideDeploy" title="前端构建版本">build: —</div>
       </div>
     </aside>
 
@@ -3549,6 +3550,21 @@
   })();
 
   (async function init() {
+    // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
+    const FRONTEND_BUILD = '2026-07-20-subject-triage';
+    const el = document.getElementById('sideDeploy');
+    el.textContent = 'build: ' + FRONTEND_BUILD;
+    try {
+      const vr = await fetch(`${API_BASE}/version`);
+      const vj = await vr.json();
+      if (vj.deploy_tag) {
+        const match = vj.deploy_tag === FRONTEND_BUILD;
+        el.textContent = `build: ${FRONTEND_BUILD} · 后端 ${vj.deploy_tag}`;
+        el.style.color = match ? '#22c55e' : '#f59e0b';
+        el.title = match ? '前后端版本一致 ✓' : '前后端版本不一致，请硬刷新（无痕窗口）';
+        el.style.cursor = match ? 'default' : 'help';
+      }
+    } catch (e) { /* 版本检查失败不影响主流程 */ }
     const ok = await bootstrap();
     if (ok) { await ensureCurrent(); await loadConversations(); }
   })();
