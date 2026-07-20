@@ -25,7 +25,7 @@ import re
 import time
 import uuid
 import shutil
-from collections import deque
+from collections import deque, defaultdict
 from documents import (
     ingest_file, ingest_url, list_documents, list_document_summaries,
     get_document, read_document, extract_tables, extract_clauses,
@@ -49,28 +49,52 @@ UI_FILE = os.path.join(BASE_DIR, "index.html")
 
 app = FastAPI(title="Mini Tool-Calling Agent API", version="1.0")
 
-# 允许跨域，方便以后接前端页面（生产环境请把 allow_origins 改成具体域名）
+# 允许跨域：仅放行已知来源（线上域名 + 本地开发），不再 * 全开。
+# 可通过环境变量 ALLOWED_ORIGINS 覆盖（逗号分隔）。
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:8000,http://127.0.0.1:8000,https://mini-agent-rbzb.onrender.com",
+    ).split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
-# ===== 极简全局限流（防止公网暴露后被刷爆你的模型额度） =====
-# 教学版：用滑动窗口限制"每分钟最多 N 次请求"。生产建议上 Redis + 按 IP 限流。
-RATE_LIMIT = 60        # 每分钟最多请求数
-RATE_WINDOW = 60       # 窗口秒数
-_hits = deque()
+# ===== 按 IP 限流（防公网暴力破解 / 刷爆模型额度） =====
+# 教学版：内存滑动窗口，按 (IP, 桶) 计。生产建议上 Redis + 按 IP 限流。
+class _RateLimiter:
+    def __init__(self):
+        self.buckets: dict = defaultdict(deque)
 
-def _rate_ok() -> bool:
-    now = time.time()
-    while _hits and now - _hits[0] > RATE_WINDOW:
-        _hits.popleft()
-    if len(_hits) >= RATE_LIMIT:
-        return False
-    _hits.append(now)
-    return True
+    def allow(self, key: str, limit: int, window: int) -> bool:
+        now = time.time()
+        dq = self.buckets[key]
+        while dq and now - dq[0] > window:
+            dq.popleft()
+        if len(dq) >= limit:
+            return False
+        dq.append(now)
+        return True
+
+_limiter = _RateLimiter()
+
+
+def _client_ip(request: Request) -> str:
+    """尽量取到真实客户端 IP（兼容反向代理的 x-forwarded-for）。"""
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return getattr(request.client, "host", None) or "unknown"
+
+
+def _rate_ok(request: Request, bucket: str, limit: int, window: int = 60) -> bool:
+    """按 (IP, 桶) 的滑动窗口限流；超过 limit 返回 False。"""
+    return _limiter.allow(f"{_client_ip(request)}|{bucket}", limit, window)
 
 
 def _sse(event: dict) -> str:
@@ -295,8 +319,8 @@ def document_compare(req: dict):
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
-    if not _rate_ok():
+def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_user)):
+    if not _rate_ok(request, "chat", 30, 60):
         raise HTTPException(status_code=429, detail="请求太频繁，请稍后再试")
 
     session_id = req.session_id
@@ -347,10 +371,10 @@ def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
 
 
 @app.post("/chat/stream")
-def chat_stream(req: ChatRequest, user: dict = Depends(get_current_user)):
+def chat_stream(req: ChatRequest, request: Request, user: dict = Depends(get_current_user)):
     """流式对话（SSE）：边执行边吐事件，让前端实时呈现"执行步骤"与打字机式回复。
     对标 Manus 的"活着的智能体"体感。历史记录在服务端落库（用户消息 + 最终回复）。"""
-    if not _rate_ok():
+    if not _rate_ok(request, "chat", 30, 60):
         raise HTTPException(status_code=429, detail="请求太频繁，请稍后再试")
 
     session_id = req.session_id or str(uuid.uuid4())
@@ -419,6 +443,8 @@ class AuthRequest(BaseModel):
 @app.post("/auth/register")
 def auth_register(req: AuthRequest, request: Request):
     """注册新用户；成功自动登录（写入会话 Cookie）。"""
+    if not _rate_ok(request, "auth", 10, 60):
+        raise HTTPException(status_code=429, detail="操作过于频繁，请稍后再试")
     try:
         u = auth_store.register_user(req.username, req.password)
     except ValueError as e:
@@ -432,6 +458,8 @@ def auth_register(req: AuthRequest, request: Request):
 @app.post("/auth/login")
 def auth_login(req: AuthRequest, request: Request):
     """用户名 + 密码登录；成功写入会话 Cookie。"""
+    if not _rate_ok(request, "auth", 10, 60):
+        raise HTTPException(status_code=429, detail="操作过于频繁，请稍后再试")
     u = auth_store.verify_user(req.username, req.password)
     if not u:
         raise HTTPException(status_code=401, detail="用户名或密码错误")
@@ -858,7 +886,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-14-tutor-phase2"
+DEPLOY_TAG = "2026-07-20-group1-hardening"
 
 
 # ===== GitHub OAuth 授权流程 =====

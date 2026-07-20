@@ -256,5 +256,16 @@ def delete_conversation(sid: str, owner: str | None = None) -> dict:
     return {"status": "ok", "id": sid}
 
 
+def get_recent_messages(sid: str, limit: int = 20) -> list:
+    """取某会话最近 limit 条可见消息（role/text，正序），用于重启后回灌 LangGraph 上下文。
+    不校验归属——调用方（api.py 的 /chat）已通过鉴权拿到属于该用户的 session_id。"""
+    conn = connect()
+    rows = fetchall(conn,
+                    "SELECT role, text FROM messages WHERE conv_id=? "
+                    "ORDER BY id DESC LIMIT ?", (sid, limit))
+    conn.close()
+    return [{"role": r, "text": t} for r, t in reversed(rows)]
+
+
 # 模块加载即建表 + 迁移
 _init_db()

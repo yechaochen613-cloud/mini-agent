@@ -3,6 +3,8 @@
 # Agent 干活靠的就是这两样：函数负责执行，说明书负责让模型"看懂"什么时候该用、怎么传参。
 
 import json
+import ast
+import math
 import datetime
 import os
 import sys
@@ -24,12 +26,67 @@ from storage import DATA_DIR
 NOTES_FILE = os.path.join(DATA_DIR, "notes.json")
 
 
+_ALLOWED_MATH = {
+    "abs": abs, "round": round, "min": min, "max": max, "pow": pow,
+    "sqrt": math.sqrt, "log": math.log, "log10": math.log10,
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "floor": math.floor, "ceil": math.ceil,
+    "pi": math.pi, "e": math.e,
+}
+
+
+def _safe_eval(node):
+    """只允许数字、四则运算、括号、一元正负、白名单数学函数——彻底杜绝 eval 任意代码执行。"""
+    if isinstance(node, ast.Expression):
+        return _safe_eval(node.body)
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, (int, float)):
+            return node.value
+        raise ValueError("只允许数字常量")
+    if isinstance(node, ast.BinOp):
+        left, right = _safe_eval(node.left), _safe_eval(node.right)
+        op = node.op
+        if isinstance(op, ast.Add):
+            return left + right
+        if isinstance(op, ast.Sub):
+            return left - right
+        if isinstance(op, ast.Mult):
+            return left * right
+        if isinstance(op, ast.Div):
+            return left / right
+        if isinstance(op, ast.FloorDiv):
+            return left // right
+        if isinstance(op, ast.Mod):
+            return left % right
+        if isinstance(op, ast.Pow):
+            if right > 1000:
+                raise ValueError("指数过大，已拒绝")
+            return left ** right
+        raise ValueError("不支持的运算符")
+    if isinstance(node, ast.UnaryOp):
+        val = _safe_eval(node.operand)
+        if isinstance(node.op, ast.UAdd):
+            return +val
+        if isinstance(node.op, ast.USub):
+            return -val
+        raise ValueError("不支持的一元运算")
+    if isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in _ALLOWED_MATH:
+            raise ValueError("不允许调用该函数/变量")
+        args = [_safe_eval(a) for a in node.args]
+        return _ALLOWED_MATH[node.func.id](*args)
+    if isinstance(node, ast.Name):
+        if node.id in _ALLOWED_MATH:
+            return _ALLOWED_MATH[node.id]
+        raise ValueError(f"不允许的变量: {node.id}")
+    raise ValueError("不支持的表达式")
+
+
 def calculator(expression: str) -> str:
-    """计算一个四则运算表达式，例如 '23 * 4 + 1'。"""
+    """计算四则运算与常见数学函数，例如 '23 * 4 + 1' 或 'sqrt(2) + pi'。"""
     try:
-        # 注意：真实生产环境要用更安全的解析器（比如 ast 限制语法）。
-        # 这里本地学习用，已关掉危险内建函数，足够演示。
-        result = eval(expression, {"__builtins__": {}}, {})
+        tree = ast.parse(expression, mode="eval")
+        result = _safe_eval(tree)
         return f"计算结果: {result}"
     except Exception as e:
         return f"计算失败: {e}"
@@ -161,6 +218,29 @@ def web_search(query: str) -> str:
 # ===== 代码执行沙箱（让 Agent 能算数据、画图、生成文件，对标 Manus 的"会干活"） =====
 # 在受限子进程里跑 Python，带超时；stdout/stderr 回传。仅用于可信输入——这是学习项目，
 # 没有做完整的容器隔离，生产环境请换成 Docker/gVisor 等真沙箱。
+# 安全的子进程环境变量：只透传无害系统变量，剔除一切密钥（API Key / 数据库 URL / Token / 密码）。
+# 避免把 OPENAI_API_KEY、DATABASE_URL 等机密泄露给被执行的用户代码（旧实现会全量透传）。
+_SAFE_ENV_KEYS = (
+    "PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LANGUAGE",
+    "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "SYSTEMDRIVE", "PATHEXT",
+    "COMSPEC", "SHELL", "PWD", "TERM",
+)
+_SECRET_HINTS = ("KEY", "SECRET", "TOKEN", "PASSWORD", "PASSWD", "DATABASE", "CREDENTIAL", "PRIVATE")
+
+
+def _safe_subprocess_env() -> dict:
+    env: dict = {}
+    for k, v in os.environ.items():
+        if k in _SAFE_ENV_KEYS:
+            env[k] = v
+            continue
+        # 其余只允许明显无害的普通变量，任何疑似密钥的一律剔除
+        if k.isupper() and not any(h in k for h in _SECRET_HINTS):
+            env[k] = v
+    env["PYTHONPATH"] = ""
+    return env
+
+
 def run_code(code: str, timeout: int = 15) -> str:
     """在限时子进程里执行 Python 代码，返回 stdout/stderr。适合数据计算、画图、生成文件等。"""
     code = (code or "").strip()
@@ -175,7 +255,7 @@ def run_code(code: str, timeout: int = 15) -> str:
                 [sys.executable, path],
                 capture_output=True, text=True,
                 timeout=timeout, cwd=DATA_DIR,
-                env={**os.environ, "PYTHONPATH": ""},
+                env=_safe_subprocess_env(),
             )
         finally:
             try:

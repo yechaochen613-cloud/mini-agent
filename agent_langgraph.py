@@ -528,6 +528,36 @@ class Agent:
             pass
         self._pending.discard(session_id)
 
+    def _build_input_with_history(self, session_id, user_input):
+        """构造 ainvoke 的初始消息。
+
+        - 若 MemorySaver 已有该会话状态（进程内多轮上下文），只发新消息即可；
+        - 否则（服务重启后首次对话，内存检查点已清空）从 chat_history 回灌最近历史，
+          让 localStorage 里复用的旧 session_id 在新进程里仍能续上上下文。
+        """
+        new_msg = HumanMessage(content=user_input)
+        try:
+            existing = self.app.checkpointer.get_tuple(
+                {"configurable": {"thread_id": session_id}})
+        except Exception:
+            existing = None
+        if existing is not None:
+            return {"messages": [new_msg]}
+        try:
+            from chat_history import get_recent_messages
+            hist = get_recent_messages(session_id, limit=20)
+        except Exception:
+            hist = []
+        prior = []
+        for m in hist:
+            if m.get("role") == "user":
+                prior.append(HumanMessage(content=m.get("text", "")))
+            elif m.get("role") == "bot":
+                prior.append(AIMessage(content=m.get("text", "")))
+        if prior:
+            return {"messages": prior + [new_msg]}
+        return {"messages": [new_msg]}
+
     def run_trace(self, session_id, user_input=None, max_steps=5, review_decision=None, model=None):
         """返回 {reply, steps} 或 {needs_review, review}。
 
@@ -551,11 +581,9 @@ class Agent:
                 result = asyncio.run(
                     self.app.ainvoke(Command(resume=review_decision), config=config))
             else:
+                input_state = self._build_input_with_history(session_id, user_input)
                 result = asyncio.run(
-                    self.app.ainvoke(
-                        {"messages": [HumanMessage(content=user_input)]},
-                        config=config,
-                    ))
+                    self.app.ainvoke(input_state, config=config))
         except GraphRecursionError:
             return {"reply": "（已达到最大步数，停止循环）", "steps": self.steps,
                     "needs_review": False, "review": None}

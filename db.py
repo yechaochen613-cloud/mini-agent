@@ -24,9 +24,51 @@ if USE_PG and "sslmode" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL + ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
 
 
+# ===== PostgreSQL 连接池 =====
+# 集中复用连接，避免每个请求新建连接打满 PG 连接数（免费版连接数有限）。
+# SQLite 本地开发并发低，保持「每请求一连接」即可。
+_PG_POOL = None
+
+
+def _ensure_pool():
+    """懒初始化线程安全连接池（仅 PG 模式）。失败则回退直连。"""
+    global _PG_POOL
+    if _PG_POOL is not None or not USE_PG:
+        return
+    try:
+        import psycopg2
+        from psycopg2 import pool as _pgpool
+        _PG_POOL = _pgpool.ThreadedConnectionPool(1, 10, DATABASE_URL, connect_timeout=15)
+    except Exception as e:  # noqa: BLE001
+        print(f"[db] 连接池初始化失败，回退为每次新建连接: {e}")
+        _PG_POOL = None
+
+
 def connect():
-    """返回一个数据库连接（pg 或 sqlite）。"""
+    """返回一个可用连接（pg 走连接池，sqlite 直接建）。
+
+    pg 模式下会把连接实例的 .close() 重写为「归还池中」，
+    因此上层模块现有的 conn.close() 写法无需改动即可复用连接池。
+    """
     if USE_PG:
+        _ensure_pool()
+        if _PG_POOL is not None:
+            try:
+                conn = _PG_POOL.getconn()
+                if getattr(conn, "closed", 0):
+                    _PG_POOL.putconn(conn)
+                    conn = _PG_POOL.getconn()
+                _orig_close = getattr(conn, "close")
+
+                def _return_to_pool():  # noqa: ANN202
+                    try:
+                        _PG_POOL.putconn(conn)
+                    except Exception:  # noqa: BLE001
+                        pass
+                conn.close = _return_to_pool
+                return conn
+            except Exception as e:  # noqa: BLE001
+                print(f"[db] 取池连接失败，回退直连: {e}")
         import psycopg2
         return psycopg2.connect(DATABASE_URL, connect_timeout=15)
     else:
