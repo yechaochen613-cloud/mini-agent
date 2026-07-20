@@ -23,3 +23,7 @@ venv/
 
 # 本地部署钩子（不进仓库）
 .deploy_hook
+
+# 部署辅助文件（本地/其他平台用，不入主仓库）
+deploy/
+run_server.sh
