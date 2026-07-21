@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix7">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix8">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -806,19 +806,8 @@
         let data = null;
         try { data = JSON.parse(text); } catch(e) { data = { _raw: text }; }
         const reply = (data && data.reply != null) ? String(data.reply) : '';
-        // ① 写入页面标题
-        document.title = '🔴FETCH:' + text.slice(0, 200);
-        // ② 全屏黄框显示原始响应（诊断用）
-        let ov = document.getElementById('__fetch_debug');
-        if (!ov) {
-          ov = document.createElement('div');
-          ov.id = '__fetch_debug';
-          Object.assign(ov.style, {position:'fixed',top:0,left:0,right:0,background:'#ff0',color:'#c00',
-            zIndex:999999,padding:'20px',fontFamily:'monospace',fontSize:'16px',wordBreak:'break-all',
-            boxShadow:'0 4px 20px rgba(0,0,0,0.5)'});
-          document.body.appendChild(ov);
-        }
-        ov.textContent = '🔴 FETCH ' + url + ' → HTTP ' + resp.status + '\n\n原始响应 (' + text.length + ' chars):\n' + text.slice(0, 1500) + (text.length > 1500 ? '\n...截断' : '');
+        // ① 写入页面标题（轻量诊断，不影响使用）
+        document.title = 'Mini Agent';
         
         // 🔥🔥🔴 hotfix7 关键修复：直接找到最新的 bot 气泡并写入 reply
         // 延迟 300ms 等 send() 创建好 bubbleWrap DOM
@@ -837,7 +826,8 @@
               if (allBubbles.length > 0) target = allBubbles[allBubbles.length - 1];
             }
             if (target) {
-              target.innerHTML = reply;
+              // 用 renderMarkdown 渲染（和正常代码路径一致），而不是裸写原始文本
+              target.innerHTML = renderMarkdown(reply);
               target.style.border = '3px solid #22c55e'; // 绿框标记这是拦截器写的
               console.log('[hotfix7] 已直接写入 reply 到气泡, 长度:', reply.length);
             } else {
@@ -3648,7 +3638,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix7';
+    const FRONTEND_BUILD = '2026-07-21-hotfix8';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     let backendTag = null;
