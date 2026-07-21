@@ -28,6 +28,20 @@ import shutil
 import logging
 import threading
 from collections import deque, defaultdict
+from datetime import datetime, timezone
+
+# ====== 调试日志（hotfix5：记录每次 /chat 完整请求+响应） ======
+_CHAT_LOG_FILE = os.environ.get("CHAT_LOG_PATH", "/tmp/chat_requests.log")
+_CHAT_LOG_LOCK = threading.Lock()
+
+def _write_chat_log(entry: dict):
+    """追加一条 chat 请求/响应日志到文件（线程安全）。"""
+    try:
+        with _CHAT_LOG_LOCK:
+            with open(_CHAT_LOG_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+    except Exception:
+        pass  # 日志写入失败不影响主流程
 
 logging.basicConfig(
     level=logging.INFO,
@@ -363,6 +377,21 @@ def document_compare(req: dict):
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_user)):
+    # ---- hotfix5: 请求入口日志 ----
+    req_id = str(uuid.uuid4())[:8]
+    _write_chat_log({
+        "t": datetime.now(timezone.utc).isoformat(), "id": req_id,
+        "phase": "REQUEST",
+        "message": (req.message or "")[:200],
+        "session_id": req.session_id,
+        "persona": req.persona,
+        "style": req.style,
+        "max_steps": req.max_steps,
+        "model": req.model,
+        "user_id": user.get("id", "?"),
+        "cookies": dict(request.cookies),
+    })
+
     if not _rate_ok(request, "chat", 30, 60):
         raise HTTPException(status_code=429, detail="请求太频繁，请稍后再试")
 
@@ -384,6 +413,12 @@ def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_us
         reply = result["reply"]
         # 审核通过后，把最终回复落进历史（用户消息在上一轮已存）
         history.append_message(session_id, "bot", reply or "", result.get("steps", []), owner=owner)
+        _write_chat_log({
+            "t": datetime.now(timezone.utc).isoformat(), "id": req_id,
+            "phase": "RESPONSE_A (review)", "reply_type": type(reply).__name__,
+            "reply_preview": str(reply or "")[:300], "reply_repr": repr(reply)[:200],
+            "session_id": session_id,
+        })
         return ChatResponse(
             reply=reply, steps=result["steps"], session_id=session_id,
             needs_review=result.get("needs_review", False), review=result.get("review"),
@@ -411,6 +446,12 @@ def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_us
     history.append_message(session_id, "user", req.message or "", title=title, owner=owner)
     if not result.get("needs_review"):
         history.append_message(session_id, "bot", reply or "", steps, owner=owner)
+        _write_chat_log({
+            "t": datetime.now(timezone.utc).isoformat(), "id": req_id,
+            "phase": "RESPONSE_B (normal)", "reply_type": type(reply).__name__,
+            "reply_preview": str(reply or "")[:300], "reply_repr": repr(reply)[:200],
+            "session_id": session_id,
+        })
         return ChatResponse(
             reply=reply, steps=steps, session_id=session_id,
             needs_review=result.get("needs_review", False), review=result.get("review"),
@@ -937,7 +978,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-21-hotfix4"
+DEPLOY_TAG = "2026-07-21-hotfix5"
 
 
 # ===== GitHub OAuth 授权流程 =====
@@ -1187,6 +1228,20 @@ def debug_chat(req: ChatRequest):
     except Exception as e:
         logger.error("[debug_chat] 异常: %s", e, exc_info=True)
         return {"ok": False, "error": str(e)[:500], "error_type": type(e).__name__}
+
+
+@app.get("/debug/logs")
+def debug_logs(limit: int = 20):
+    """读取 /chat 请求/响应日志（hotfix5 诊断用）。"""
+    try:
+        if not os.path.exists(_CHAT_LOG_FILE):
+            return {"lines": [], "file": _CHAT_LOG_FILE, "msg": "日志文件尚不存在（尚未收到 /chat 请求）"}
+        with open(_CHAT_LOG_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        recent = [json.loads(l) for l in lines[-limit:]]
+        return {"file": _CHAT_LOG_FILE, "total_lines": len(lines), "showing": len(recent), "lines": recent}
+    except Exception as e:
+        return {"error": str(e)[:300], "error_type": type(e).__name__}
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量
