@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix11">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix12">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -1569,7 +1569,19 @@
         if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
         if (reply.trim()) {
           fullReply = reply;
-          finalize(fullReply);
+          // 🔍 hotfix12 二元隔离：先直接写 textContent（绕过 finalize/renderMd/renderMarkdown）
+          // 如果这个显示正确 → bug 在渲染链；如果显示 undefined → bug 在 DOM 目标/被覆写
+          ui.bubbleWrap?.removeAttribute('style');
+          ui.bubble.textContent = '[DIRECT] ' + reply.slice(0, 200) + '... (共' + reply.length + '字符)';
+          // 延迟 2 秒后再调用 finalize（走正常渲染路径），看哪个生效
+          setTimeout(() => {
+            alert(`🔍 POST-DIRECT-CHECK\n\nbubble textContent 长度 = ${ui.bubble?.textContent?.length}\nbubble innerHTML 长度 = ${ui.bubble?.innerHTML?.length}\nbubble 文本预览 = ${(ui.bubble?.textContent||'').slice(0,100)}\n\n即将调用 finalize()...`);
+            finalize(fullReply);
+            // finalize 后再检查一次
+            setTimeout(() => {
+              alert(`🔍 POST-FINALIZE-CHECK\n\nbubble textContent 长度 = ${ui.bubble?.textContent?.length}\nbubble innerHTML 长度 = ${ui.bubble?.innerHTML?.length}\nbubble 文本预览 = ${(ui.bubble?.textContent||'').slice(0,100)}`);
+            }, 500);
+          }, 2000);
         } else {
           fullReply = '⚠️ 后端未返回文本回复，请稍后重试。';
           finalize(fullReply);
@@ -3572,7 +3584,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix11';
+    const FRONTEND_BUILD = '2026-07-21-hotfix12';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     let backendTag = null;
