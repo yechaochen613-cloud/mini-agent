@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix2">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix3">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -1545,31 +1545,40 @@
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(msgBody),
         });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
+        // 🔴 hotfix3 诊断：无论成功失败，先把 HTTP 状态和原始响应体显示出来
+        const respText = await resp.text();
+        const httpStatus = resp.status;
+        let data = null;
+        try { data = JSON.parse(respText); } catch(e) { data = { _raw: respText.slice(0,1000) }; }
+        // 把完整诊断信息写进一个醒目的面板（直接插到聊天区）
+        const diagHtml = '<div style="background:#fee;border:2px solid #c00;color:#c00;padding:10px;margin:8px 0;font-size:13px;word-break:break-all;font-family:monospace">'
+          + '🔴 <b>API 诊断</b> | HTTP ' + httpStatus + ' | URL: ${API_BASE}/chat<br>'
+          + '<b>raw body (' + respText.length + ' chars):</b><br>'
+          + escapeHtml(respText.slice(0, 1500))
+          + (respText.length > 1500 ? '<br>... (截断)' : '')
+          + '</div>';
+
+        if (!resp.ok) throw new Error('HTTP ' + httpStatus);
         // DEBUG: 临时调试——把后端原始响应写入控制台 + 界面标题属性（F12 → 点气泡看 [data-debug]）
-        console.debug('[chat] raw response:', JSON.stringify(data).slice(0, 500));
-        if (ui.bubbleWrap) ui.bubbleWrap.setAttribute('data-debug', JSON.stringify(data).slice(0, 300));
 
         const reply = (data && data.reply != null) ? String(data.reply) : '';
         // hotfix2: 拦截字面量字符串 "undefined"（后端 LLM 异常时可能返回此值）
         if (reply.trim() === 'undefined' || reply === 'undefined') {
           console.warn('[chat] 后端返回了字面量 "undefined"，已替换为友好提示');
-          fullReply = '⚠️ 后端返回了异常值，正在诊断中…';
+          fullReply = diagHtml + '⚠️ 后端返回了字面量 "undefined"。上方红框是原始响应，请截图发给我。';
           finalize(fullReply);
           if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
           loadConversations();
           break;
         }
         if (reply.trim()) {
-          fullReply = reply;
-          finalize(reply);
+          fullReply = diagHtml + reply;
+          finalize(fullReply);
           if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
           loadConversations();
         } else {
           // 后端返回空/异常回复：把原始响应直接显示在气泡里（无需开 DevTools），方便排查根因
-          const raw = (data == null) ? '（无响应体 / 网络异常）' : JSON.stringify(data);
-          fullReply = '（后端未返回文本回复）\n\n原始响应如下，请把这段截图发给我：\n' + raw.slice(0, 800);
+          fullReply = diagHtml + '（后端未返回文本回复）\n\n原始响应如上方红框所示，请截图发给我。';
           finalize(fullReply);
           if (data && data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
           loadConversations();
@@ -1578,7 +1587,7 @@
       } catch (err) {
         const isNetwork = /Failed to fetch|Connection|NetworkError|Load failed/i.test(err.message);
         if (!isNetwork || attempt >= MAX_RETRY) {
-          ui.bubble.innerHTML = renderMarkdown('⚠️ 调用接口出错了：' + err.message + (isNetwork ? '（网络不稳定，请刷新页面后重试）' : ''));
+          ui.bubble.innerHTML = diagHtml + renderMarkdown('⚠️ 调用接口出错了：' + err.message + (isNetwork ? '（网络不稳定，请刷新页面后重试）' : ''));
           if (ui.stepsEl) { ui.stepsEl.style.display = 'none'; }
           break;
         }
@@ -3571,7 +3580,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix2';
+    const FRONTEND_BUILD = '2026-07-21-hotfix3';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     try {
