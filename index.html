@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix1">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix2">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -1552,6 +1552,15 @@
         if (ui.bubbleWrap) ui.bubbleWrap.setAttribute('data-debug', JSON.stringify(data).slice(0, 300));
 
         const reply = (data && data.reply != null) ? String(data.reply) : '';
+        // hotfix2: 拦截字面量字符串 "undefined"（后端 LLM 异常时可能返回此值）
+        if (reply.trim() === 'undefined' || reply === 'undefined') {
+          console.warn('[chat] 后端返回了字面量 "undefined"，已替换为友好提示');
+          fullReply = '⚠️ 后端返回了异常值，正在诊断中…';
+          finalize(fullReply);
+          if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
+          loadConversations();
+          break;
+        }
         if (reply.trim()) {
           fullReply = reply;
           finalize(reply);
@@ -3562,7 +3571,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix1';
+    const FRONTEND_BUILD = '2026-07-21-hotfix2';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     try {

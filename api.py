@@ -937,7 +937,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-21-hotfix1"
+DEPLOY_TAG = "2026-07-21-hotfix2"
 
 
 # ===== GitHub OAuth 授权流程 =====
@@ -1149,6 +1149,44 @@ def delete_favorite_route(fid: str):
 @app.get("/version")
 def version():
     return {"deploy_tag": DEPLOY_TAG, "status": "ok"}
+
+
+@app.post("/debug/chat")
+def debug_chat(req: ChatRequest):
+    """无需登录的诊断接口——直接调 Agent 并返回完整原始响应，用于排查 undefined 等异常。
+    ⚠️ 仅限排查使用，正式接口请用 /chat（需登录）。"""
+    try:
+        model_arg = MODEL_PRESETS.get(req.model) if req.model else None
+        t0 = time.time()
+        result = get_agent().run_trace(
+            (req.session_id or f"debug-{uuid.uuid4().hex[:8]}"),
+            req.message,
+            max_steps=req.max_steps or 3,
+            model=model_arg,
+            persona=req.persona,
+            style=req.style,
+        )
+        dt = round((time.time() - t0) * 1000)
+        reply = result.get("reply", "")
+        # 服务端兜底：字面量 "undefined" → 替换为明确错误信息
+        if reply == "undefined" or (reply and str(reply).strip() == "undefined"):
+            logger.warning("[debug_chat] 检测到字面量 'undefined' reply，已替换")
+            reply = "⚠️ [诊断] 后端返回了字面量字符串 'undefined'，请检查 Agent / LLM 输出"
+        return {
+            "ok": True,
+            "latency_ms": dt,
+            "reply": reply,
+            "reply_type": type(reply).__name__,
+            "reply_len": len(reply),
+            "reply_repr": repr(reply)[:200],
+            "steps": result.get("steps", []),
+            "needs_review": result.get("needs_review", False),
+            "raw_result_keys": list(result.keys()),
+            "result_types": {k: type(v).__name__ for k, v in result.items()},
+        }
+    except Exception as e:
+        logger.error("[debug_chat] 异常: %s", e, exc_info=True)
+        return {"ok": False, "error": str(e)[:500], "error_type": type(e).__name__}
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量

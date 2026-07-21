@@ -789,6 +789,10 @@ class Agent:
         # 进而前端收到无 reply 字段的响应而显示异常（历史版本曾表现为字面量 undefined）
         if reply is None:
             reply = ""
+        # hotfix2: 额外拦截字面量字符串 "undefined"（某些 LLM 异常返回可能包含此值）
+        if isinstance(reply, str) and reply.strip() == "undefined":
+            logger.warning("[agent] run_trace 检测到字面量 'undefined' reply，已清空")
+            reply = ""
         import logging
         logging.getLogger("agent").debug(
             "run_trace(%s) reply=%r len=%d type=%s",
