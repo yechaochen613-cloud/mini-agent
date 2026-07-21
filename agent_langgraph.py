@@ -741,8 +741,13 @@ class Agent:
                     "needs_review": False, "review": None}
         except Exception as e:
             # 真实异常只打日志，不把内部报错原文回传给前端（避免泄露路径/堆栈）
-            logger.error("[agent] run_trace 执行出错: %s", e)
-            return {"reply": "（抱歉，处理出错了，请稍后重试或换种问法）", "steps": self.steps,
+            import traceback
+            tb = traceback.format_exc()
+            logger.error("[agent] run_trace 执行出错: %s\n%s", e, tb)
+            # hotfix2: 诊断模式——把错误类型+简短信息放进 reply，方便前端展示
+            err_type = type(e).__name__
+            err_brief = str(e).split('\n')[0][:200]
+            return {"reply": f"⚠️ [{err_type}] {err_brief}（请稍后重试或换种问法）", "steps": self.steps,
                     "needs_review": False, "review": None}
 
         # 检测是否被 interrupt 暂停（等待人类审批）
