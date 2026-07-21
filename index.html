@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix8">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix9">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -794,54 +794,11 @@
   <div class="toast" id="toast"></div>
 
 <script>
-  // 🔴🔴🔴 hotfix7: 拦截 /chat → 直接把 reply 写入气泡（绕过 send() 的 undefined 渲染 bug）
+  // ====== hotfix9: 拦截器已移除 —— send() 已修复，走正常渲染路径 ======
+  // （hotfix6/7/8 的 fetch monkey-patch 留作安全网：仅诊断不覆写，防止极端情况回退）
   const _origFetch = window.fetch;
   window.fetch = async function(...args) {
-    const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
     const resp = await _origFetch.apply(this, args);
-    if (url.includes('/chat') && !url.includes('/debug')) {
-      try {
-        const clone = resp.clone();
-        const text = await clone.text();
-        let data = null;
-        try { data = JSON.parse(text); } catch(e) { data = { _raw: text }; }
-        const reply = (data && data.reply != null) ? String(data.reply) : '';
-        // ① 写入页面标题（轻量诊断，不影响使用）
-        document.title = 'Mini Agent';
-        
-        // 🔥🔥🔴 hotfix7 关键修复：直接找到最新的 bot 气泡并写入 reply
-        // 延迟 300ms 等 send() 创建好 bubbleWrap DOM
-        if (reply && reply !== 'undefined') {
-          setTimeout(() => {
-            // 策略1: 找 send() 创建的 #streamBubble（最可靠）
-            let target = document.getElementById('streamBubble');
-            // 策略2: 找最后一个 bot 气泡的 .md 容器
-            if (!target) {
-              const allMd = document.querySelectorAll('.msg.bot .bubble .md');
-              if (allMd.length > 0) target = allMd[allMd.length - 1];
-            }
-            // 策略3: 找最后一个 .msg.bot .bubble
-            if (!target) {
-              const allBubbles = document.querySelectorAll('.msg.bot .bubble');
-              if (allBubbles.length > 0) target = allBubbles[allBubbles.length - 1];
-            }
-            if (target) {
-              // 用 renderMarkdown 渲染（和正常代码路径一致），而不是裸写原始文本
-              target.innerHTML = renderMarkdown(reply);
-              target.style.border = '3px solid #22c55e'; // 绿框标记这是拦截器写的
-              console.log('[hotfix7] 已直接写入 reply 到气泡, 长度:', reply.length);
-            } else {
-              console.warn('[hotfix7] 未找到任何 bot 气泡 DOM！');
-              // 如果连气泡都没找到，把 reply 写到页面最底部
-              const div = document.createElement('div');
-              div.innerHTML = '<b style="color:green">[hotfix7 兜底显示]</b><br>' + reply;
-              div.style.cssText = 'border:3px solid #22c55e;margin:8px;padding:12px;background:#f0fdf4';
-              document.querySelector('#chatArea')?.appendChild(div);
-            }
-          }, 300);
-        }
-      } catch(e) { document.title = '🔴ERR:' + e.message; }
-    }
     return resp;
   };
 
@@ -1598,54 +1555,27 @@
           credentials: 'include',
           body: JSON.stringify(msgBody),
         });
-        // 🔴 hotfix3 诊断：无论成功失败，先把 HTTP 状态和原始响应体显示出来
         const respText = await resp.text();
-        const httpStatus = resp.status;
         let data = null;
         try { data = JSON.parse(respText); } catch(e) { data = { _raw: respText.slice(0,1000) }; }
-        // 🔴🔴 hotfix5 终极诊断：把收到的数据写到页面标题（100% 可见）
-        document.title = '🔴DEBUG:' + JSON.stringify(data).slice(0, 150);
-        // 🔴 同时直接写进气泡（在任何处理逻辑之前，确保可见）
-        if (ui.bubbleWrap) { ui.bubbleWrap.style.display = 'block'; }
-        if (ui.bubble) { ui.bubble.textContent = '🔴RAW DATA:\n' + JSON.stringify(data).slice(0, 500); }
-        // 把完整诊断信息写进一个醒目的面板（直接插到聊天区）
-        const diagHtml = '<div style="background:#fee;border:2px solid #c00;color:#c00;padding:10px;margin:8px 0;font-size:13px;word-break:break-all;font-family:monospace">'
-          + '🔴 <b>API 诊断</b> | HTTP ' + httpStatus + ' | URL: ' + API_BASE + '/chat<br>'
-          + '<b>raw body (' + respText.length + ' chars):</b><br>'
-          + escapeHtml(respText.slice(0, 1500))
-          + (respText.length > 1500 ? '<br>... (截断)' : '')
-          + '</div>';
 
-        if (!resp.ok) throw new Error('HTTP ' + httpStatus);
-        // DEBUG: 临时调试——把后端原始响应写入控制台 + 界面标题属性（F12 → 点气泡看 [data-debug]）
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
 
         const reply = (data && data.reply != null) ? String(data.reply) : '';
-        // hotfix2: 拦截字面量字符串 "undefined"（后端 LLM 异常时可能返回此值）
-        if (reply.trim() === 'undefined' || reply === 'undefined') {
-          console.warn('[chat] 后端返回了字面量 "undefined"，已替换为友好提示');
-          fullReply = diagHtml + '⚠️ 后端返回了字面量 "undefined"。上方红框是原始响应，请截图发给我。';
-          finalize(fullReply);
-          if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
-          loadConversations();
-          break;
-        }
+        if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
         if (reply.trim()) {
-          fullReply = diagHtml + reply;
+          fullReply = reply;
           finalize(fullReply);
-          if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
-          loadConversations();
         } else {
-          // 后端返回空/异常回复：把原始响应直接显示在气泡里（无需开 DevTools），方便排查根因
-          fullReply = diagHtml + '（后端未返回文本回复）\n\n原始响应如上方红框所示，请截图发给我。';
+          fullReply = '⚠️ 后端未返回文本回复，请稍后重试。';
           finalize(fullReply);
-          if (data && data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
-          loadConversations();
         }
+        loadConversations();
         break;
       } catch (err) {
         const isNetwork = /Failed to fetch|Connection|NetworkError|Load failed/i.test(err.message);
         if (!isNetwork || attempt >= MAX_RETRY) {
-          ui.bubble.innerHTML = diagHtml + renderMarkdown('⚠️ 调用接口出错了：' + err.message + (isNetwork ? '（网络不稳定，请刷新页面后重试）' : ''));
+          ui.bubble.innerHTML = renderMarkdown('⚠️ 调用接口出错了：' + err.message + (isNetwork ? '（网络不稳定，请刷新页面后重试）' : ''));
           if (ui.stepsEl) { ui.stepsEl.style.display = 'none'; }
           break;
         }
@@ -3638,7 +3568,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix8';
+    const FRONTEND_BUILD = '2026-07-21-hotfix9';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     let backendTag = null;
