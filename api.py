@@ -240,8 +240,9 @@ def root():
 @app.get("/ui", response_class=FileResponse)
 def ui():
     # 托管网页聊天界面，同源访问 /chat，无需处理跨域
-    # no-cache：每次都向服务器校验，HTML 改动即时生效，避免浏览器缓存旧版
-    return FileResponse(UI_FILE, headers={"Cache-Control": "no-cache, no-transform"})
+    # no-store：禁止 CDN/浏览器缓存 HTML，任何一次新部署都立即生效，
+    # 避免用户一直跑着旧版（此前 undefined 问题根因就是旧 HTML 在跑）
+    return FileResponse(UI_FILE, headers={"Cache-Control": "no-store, no-cache, no-transform, must-revalidate"})
 
 
 # ===== PWA 所需静态资源 =====
@@ -936,7 +937,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-20-subject-triage"
+DEPLOY_TAG = "2026-07-21-hotfix1"
 
 
 # ===== GitHub OAuth 授权流程 =====

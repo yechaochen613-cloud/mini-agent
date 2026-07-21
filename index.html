@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-20-subject-triage">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix1">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -1558,8 +1558,9 @@
           if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
           loadConversations();
         } else {
-          // 后端返回空回复（reply 为 null / undefined / 空串）：给友好兜底，而不是抛「空响应」错误
-          fullReply = '（暂时没能生成回复，请稍后重试，或换个问法再试一次）';
+          // 后端返回空/异常回复：把原始响应直接显示在气泡里（无需开 DevTools），方便排查根因
+          const raw = (data == null) ? '（无响应体 / 网络异常）' : JSON.stringify(data);
+          fullReply = '（后端未返回文本回复）\n\n原始响应如下，请把这段截图发给我：\n' + raw.slice(0, 800);
           finalize(fullReply);
           if (data && data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
           loadConversations();
@@ -3561,7 +3562,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-20-subject-triage';
+    const FRONTEND_BUILD = '2026-07-21-hotfix1';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     try {
