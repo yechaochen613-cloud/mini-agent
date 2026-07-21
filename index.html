@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix4">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix6">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -794,6 +794,33 @@
   <div class="toast" id="toast"></div>
 
 <script>
+  // 🔴🔴🔴 hotfix5 终极诊断：全局拦截所有 fetch，/chat 响应直接写进页面标题 + 全屏覆盖层
+  const _origFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+    const resp = await _origFetch.apply(this, args);
+    if (url.includes('/chat') && !url.includes('/debug')) {
+      try {
+        const clone = resp.clone();
+        const text = await clone.text();
+        // 写入页面标题（100% 可见）
+        document.title = '🔴FETCH:' + text.slice(0, 200);
+        // 写入全屏覆盖层
+        let ov = document.getElementById('__fetch_debug');
+        if (!ov) {
+          ov = document.createElement('div');
+          ov.id = '__fetch_debug';
+          Object.assign(ov.style, {position:'fixed',top:0,left:0,right:0,background:'#ff0',color:'#c00',
+            zIndex:999999,padding:'20px',fontFamily:'monospace',fontSize:'16px',wordBreak:'break-all',
+            boxShadow:'0 4px 20px rgba(0,0,0,0.5)'});
+          document.body.appendChild(ov);
+        }
+        ov.textContent = '🔴 FETCH ' + url + ' → HTTP ' + resp.status + '\n\n原始响应 (' + text.length + ' chars):\n' + text.slice(0, 1500) + (text.length > 1500 ? '\n...截断' : '');
+      } catch(e) { document.title = '🔴ERR:' + e.message; }
+    }
+    return resp;
+  };
+
   // 🔴 hotfix4：彻底注销 Service Worker，消除任何 HTML/静态资源缓存风险（诊断期间不需要离线缓存）
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister().catch(() => {})));
@@ -1552,6 +1579,11 @@
         const httpStatus = resp.status;
         let data = null;
         try { data = JSON.parse(respText); } catch(e) { data = { _raw: respText.slice(0,1000) }; }
+        // 🔴🔴 hotfix5 终极诊断：把收到的数据写到页面标题（100% 可见）
+        document.title = '🔴DEBUG:' + JSON.stringify(data).slice(0, 150);
+        // 🔴 同时直接写进气泡（在任何处理逻辑之前，确保可见）
+        if (ui.bubbleWrap) { ui.bubbleWrap.style.display = 'block'; }
+        if (ui.bubble) { ui.bubble.textContent = '🔴RAW DATA:\n' + JSON.stringify(data).slice(0, 500); }
         // 把完整诊断信息写进一个醒目的面板（直接插到聊天区）
         const diagHtml = '<div style="background:#fee;border:2px solid #c00;color:#c00;padding:10px;margin:8px 0;font-size:13px;word-break:break-all;font-family:monospace">'
           + '🔴 <b>API 诊断</b> | HTTP ' + httpStatus + ' | URL: ' + API_BASE + '/chat<br>'
@@ -3582,7 +3614,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix5';
+    const FRONTEND_BUILD = '2026-07-21-hotfix6';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     let backendTag = null;
