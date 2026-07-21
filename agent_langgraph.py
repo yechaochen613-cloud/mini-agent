@@ -789,6 +789,11 @@ class Agent:
         # 进而前端收到无 reply 字段的响应而显示异常（历史版本曾表现为字面量 undefined）
         if reply is None:
             reply = ""
+        import logging
+        logging.getLogger("agent").debug(
+            "run_trace(%s) reply=%r len=%d type=%s",
+            session_id, reply, len(reply), type(reply).__name__
+        )
         self._pending.discard(session_id)
         return {"reply": reply, "steps": self.steps, "needs_review": False, "review": None}
 

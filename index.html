@@ -1233,7 +1233,7 @@
             .replace(/`([^`]+?)`/g, '<code class="inline">$1</code>');
   }
   function renderMarkdown(src) {
-    if (src == null) src = '';
+    if (src == null || src === 'undefined' || String(src).trim() === 'undefined') src = '';
     else if (typeof src !== 'string') src = String(src);
     const lines = escapeHtml(src).split('\n');
     let html = '', para = [], inList = false;
@@ -1547,6 +1547,9 @@
         });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
+        // DEBUG: 临时调试——把后端原始响应写入控制台 + 界面标题属性（F12 → 点气泡看 [data-debug]）
+        console.debug('[chat] raw response:', JSON.stringify(data).slice(0, 500));
+        if (ui.bubbleWrap) ui.bubbleWrap.setAttribute('data-debug', JSON.stringify(data).slice(0, 300));
 
         const reply = (data && data.reply != null) ? String(data.reply) : '';
         if (reply.trim()) {
