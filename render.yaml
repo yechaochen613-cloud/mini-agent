@@ -22,6 +22,10 @@ services:
         value: "3.11"
       - key: MOCK
         value: "false"
+      # 关闭 MCP 子进程以节省内存：Render 免费实例仅 512MB，拉起 2 个 MCP server 子进程
+      # 极易在冷启动阶段 OOM，导致服务进程起不来 -> Render 显示 no-server。本地开发可删掉这行。
+      - key: ENABLE_MCP
+        value: "false"
       # 家教模式：true = 切换为 K12 私人家教人设（苏格拉底式启发 + 按学生水平/性格自适应）
       - key: TUTOR_MODE
         value: "true"

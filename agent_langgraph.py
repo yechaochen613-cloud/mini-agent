@@ -267,7 +267,14 @@ def _load_mcp_config():
 
 
 def load_mcp_tools():
-    """连接配置的 MCP server，返回 (langchain工具列表, client)。失败返回 ([], None)。"""
+    """连接配置的 MCP server，返回 (langchain工具列表, client)。失败返回 ([], None)。
+
+    可用环境变量 ENABLE_MCP=false 完全跳过（Render 免费实例 512MB 上省下 2 个子进程内存，
+    避免冷启动 OOM -> 服务 no-server）。本地开发默认开启。
+    """
+    if os.getenv("ENABLE_MCP", "true").lower() == "false":
+        logger.info("[MCP] ENABLE_MCP=false，跳过 MCP 工具加载（省内存）。")
+        return [], None
     cfg = _load_mcp_config()
     if not cfg:
         return [], None
@@ -341,9 +348,8 @@ class Agent:
             merged_schemas.append(s)
         self.tool_schemas = merged_schemas
 
-        if not mock:
-            # 预热默认模型的 LLM（按 model 名缓存，后续请求复用）
-            _ = self._llm_for(model)
+        # 注意：不再在构造时预热 LLM（_llm_for 改为首次请求按需缓存）。
+        # 这样 Agent 构造更轻、冷启动更快，避免免费实例启动阶段内存峰值过高被 OOM。
         # self.llm_with_tools 保留为「默认模型」引用，供 agent_node 在没覆盖时使用
         self.llm_with_tools = self._llm_cache.get(model)
 
