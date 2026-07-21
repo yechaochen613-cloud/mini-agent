@@ -1233,6 +1233,8 @@
             .replace(/`([^`]+?)`/g, '<code class="inline">$1</code>');
   }
   function renderMarkdown(src) {
+    if (src == null) src = '';
+    else if (typeof src !== 'string') src = String(src);
     const lines = escapeHtml(src).split('\n');
     let html = '', para = [], inList = false;
     const flush = () => { if (para.length) { html += '<p>' + para.map(inlineMd).join('<br>') + '</p>'; para = []; } };
@@ -1546,13 +1548,18 @@
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
 
-        if (data.reply) {
-          fullReply = data.reply;
-          finalize(data.reply);
+        const reply = (data && data.reply != null) ? String(data.reply) : '';
+        if (reply.trim()) {
+          fullReply = reply;
+          finalize(reply);
           if (data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
           loadConversations();
         } else {
-          throw new Error('空响应');
+          // 后端返回空回复（reply 为 null / undefined / 空串）：给友好兜底，而不是抛「空响应」错误
+          fullReply = '（暂时没能生成回复，请稍后重试，或换个问法再试一次）';
+          finalize(fullReply);
+          if (data && data.session_id) { sessionId = data.session_id; localStorage.setItem('mini_agent_sid', data.session_id); }
+          loadConversations();
         }
         break;
       } catch (err) {

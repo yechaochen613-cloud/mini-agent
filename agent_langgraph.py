@@ -762,9 +762,27 @@ class Agent:
 
         reply = ""
         for m in reversed(out):
-            if isinstance(m, AIMessage):
-                reply = m.content
+            if isinstance(m, AIMessage) and m.content:
+                c = m.content
+                if isinstance(c, str):
+                    reply = c
+                elif isinstance(c, list):
+                    # 多模态 content（list of part）：抽取其中的文本段
+                    try:
+                        reply = "\n".join(
+                            str(p.get("text", p)) for p in c if isinstance(p, dict) and p.get("type") == "text"
+                        )
+                    except Exception:
+                        reply = str(c)
+                else:
+                    reply = str(c)
+                if isinstance(reply, str):
+                    reply = reply.strip()
                 break
+        # 兜底：reply 必须是非 None 字符串，否则 Pydantic 的 str 必填字段会 500，
+        # 进而前端收到无 reply 字段的响应而显示异常（历史版本曾表现为字面量 undefined）
+        if reply is None:
+            reply = ""
         self._pending.discard(session_id)
         return {"reply": reply, "steps": self.steps, "needs_review": False, "review": None}
 
