@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix6">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix7">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -794,7 +794,7 @@
   <div class="toast" id="toast"></div>
 
 <script>
-  // 🔴🔴🔴 hotfix5 终极诊断：全局拦截所有 fetch，/chat 响应直接写进页面标题 + 全屏覆盖层
+  // 🔴🔴🔴 hotfix7: 拦截 /chat → 直接把 reply 写入气泡（绕过 send() 的 undefined 渲染 bug）
   const _origFetch = window.fetch;
   window.fetch = async function(...args) {
     const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
@@ -803,9 +803,12 @@
       try {
         const clone = resp.clone();
         const text = await clone.text();
-        // 写入页面标题（100% 可见）
+        let data = null;
+        try { data = JSON.parse(text); } catch(e) { data = { _raw: text }; }
+        const reply = (data && data.reply != null) ? String(data.reply) : '';
+        // ① 写入页面标题
         document.title = '🔴FETCH:' + text.slice(0, 200);
-        // 写入全屏覆盖层
+        // ② 全屏黄框显示原始响应（诊断用）
         let ov = document.getElementById('__fetch_debug');
         if (!ov) {
           ov = document.createElement('div');
@@ -816,6 +819,37 @@
           document.body.appendChild(ov);
         }
         ov.textContent = '🔴 FETCH ' + url + ' → HTTP ' + resp.status + '\n\n原始响应 (' + text.length + ' chars):\n' + text.slice(0, 1500) + (text.length > 1500 ? '\n...截断' : '');
+        
+        // 🔥🔥🔴 hotfix7 关键修复：直接找到最新的 bot 气泡并写入 reply
+        // 延迟 300ms 等 send() 创建好 bubbleWrap DOM
+        if (reply && reply !== 'undefined') {
+          setTimeout(() => {
+            // 策略1: 找 send() 创建的 #streamBubble（最可靠）
+            let target = document.getElementById('streamBubble');
+            // 策略2: 找最后一个 bot 气泡的 .md 容器
+            if (!target) {
+              const allMd = document.querySelectorAll('.msg.bot .bubble .md');
+              if (allMd.length > 0) target = allMd[allMd.length - 1];
+            }
+            // 策略3: 找最后一个 .msg.bot .bubble
+            if (!target) {
+              const allBubbles = document.querySelectorAll('.msg.bot .bubble');
+              if (allBubbles.length > 0) target = allBubbles[allBubbles.length - 1];
+            }
+            if (target) {
+              target.innerHTML = reply;
+              target.style.border = '3px solid #22c55e'; // 绿框标记这是拦截器写的
+              console.log('[hotfix7] 已直接写入 reply 到气泡, 长度:', reply.length);
+            } else {
+              console.warn('[hotfix7] 未找到任何 bot 气泡 DOM！');
+              // 如果连气泡都没找到，把 reply 写到页面最底部
+              const div = document.createElement('div');
+              div.innerHTML = '<b style="color:green">[hotfix7 兜底显示]</b><br>' + reply;
+              div.style.cssText = 'border:3px solid #22c55e;margin:8px;padding:12px;background:#f0fdf4';
+              document.querySelector('#chatArea')?.appendChild(div);
+            }
+          }, 300);
+        }
       } catch(e) { document.title = '🔴ERR:' + e.message; }
     }
     return resp;
@@ -3614,7 +3648,7 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix6';
+    const FRONTEND_BUILD = '2026-07-21-hotfix7';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
     let backendTag = null;
