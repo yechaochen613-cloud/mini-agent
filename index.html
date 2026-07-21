@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix3">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix4">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -794,8 +794,9 @@
   <div class="toast" id="toast"></div>
 
 <script>
+  // 🔴 hotfix4：彻底注销 Service Worker，消除任何 HTML/静态资源缓存风险（诊断期间不需要离线缓存）
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister().catch(() => {})));
   }
 
   // ===== 主题 =====
@@ -1543,6 +1544,7 @@
         // 使用非流式 /chat 端点（已验证在 Render 上稳定工作，~10s 返回）
         const resp = await fetch(`${API_BASE}/chat`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(msgBody),
         });
         // 🔴 hotfix3 诊断：无论成功失败，先把 HTTP 状态和原始响应体显示出来
@@ -1552,7 +1554,7 @@
         try { data = JSON.parse(respText); } catch(e) { data = { _raw: respText.slice(0,1000) }; }
         // 把完整诊断信息写进一个醒目的面板（直接插到聊天区）
         const diagHtml = '<div style="background:#fee;border:2px solid #c00;color:#c00;padding:10px;margin:8px 0;font-size:13px;word-break:break-all;font-family:monospace">'
-          + '🔴 <b>API 诊断</b> | HTTP ' + httpStatus + ' | URL: ${API_BASE}/chat<br>'
+          + '🔴 <b>API 诊断</b> | HTTP ' + httpStatus + ' | URL: ' + API_BASE + '/chat<br>'
           + '<b>raw body (' + respText.length + ' chars):</b><br>'
           + escapeHtml(respText.slice(0, 1500))
           + (respText.length > 1500 ? '<br>... (截断)' : '')
@@ -3580,23 +3582,45 @@
 
   (async function init() {
     // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
-    const FRONTEND_BUILD = '2026-07-21-hotfix3';
+    const FRONTEND_BUILD = '2026-07-21-hotfix4';
     const el = document.getElementById('sideDeploy');
     el.textContent = 'build: ' + FRONTEND_BUILD;
+    let backendTag = null;
     try {
       const vr = await fetch(`${API_BASE}/version`);
       const vj = await vr.json();
       if (vj.deploy_tag) {
+        backendTag = vj.deploy_tag;
         const match = vj.deploy_tag === FRONTEND_BUILD;
         el.textContent = `build: ${FRONTEND_BUILD} · 后端 ${vj.deploy_tag}`;
         el.style.color = match ? '#22c55e' : '#f59e0b';
-        el.title = match ? '前后端版本一致 ✓' : '前后端版本不一致，请硬刷新（无痕窗口）';
+        el.title = match ? '前后端版本一致 ✓' : '前后端版本不一致，正在自动刷新…';
         el.style.cursor = match ? 'default' : 'help';
+        // 🔴 hotfix4：版本不一致 → 强制硬刷新，避免浏览器一直跑旧 JS（这是之前 undefined 反复出现的根因）
+        if (!match) {
+          showVersionMismatchBanner(FRONTEND_BUILD, vj.deploy_tag);
+          setTimeout(() => location.reload(true), 2500);
+          return; // 等刷新，不再初始化旧代码
+        }
       }
     } catch (e) { /* 版本检查失败不影响主流程 */ }
     const ok = await bootstrap();
     if (ok) { await ensureCurrent(); await loadConversations(); }
   })();
+
+  // 版本不一致时显示醒目横幅，告知用户正在自动刷新
+  function showVersionMismatchBanner(fe, be) {
+    let b = document.getElementById('verBanner');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'verBanner';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#000;' +
+        'text-align:center;padding:10px 14px;font:600 14px/1.4 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+      document.body.appendChild(b);
+    }
+    b.textContent = `🔄 检测到新版本（前端 ${fe} / 后端 ${be}），正在自动刷新页面…`;
+  }
+
 </script>
 </body>
 </html>
