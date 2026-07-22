@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix16">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix17">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -307,6 +307,7 @@
             <div class="qp-chips" id="qpChips"></div>
 
             <div class="composer">
+              <button class="attach-btn" id="composerAttachBtn" title="上传附件" aria-label="上传附件" hidden>📎</button>
               <textarea id="input" rows="1" placeholder="问我一道题，或先告诉我你的年级和想学的科目…" aria-label="输入消息"></textarea>
               <button class="mic-btn" id="micBtn" title="语音输入" aria-label="语音输入"><svg class="mic-ico" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect class="bar bar1" x="3" y="7" width="2.6" height="6" rx="1.3"/><rect class="bar bar2" x="8.7" y="4" width="2.6" height="12" rx="1.3"/><rect class="bar bar3" x="14.4" y="6" width="2.6" height="8" rx="1.3"/></svg></button>
               <button class="send" id="send" title="发送" aria-label="发送">
@@ -1467,13 +1468,15 @@
   function setTriageBadge() {
     const bar = document.getElementById('triageBar');
     if (!bar) return;
-    if (!currentTeacher) { bar.hidden = true; return; }
+    const attachBtn = document.getElementById('composerAttachBtn');
+    if (!currentTeacher) { bar.hidden = true; if (attachBtn) attachBtn.hidden = true; return; }
     const t = TEACHERS.find(x => x.subject === currentTeacher);
     document.getElementById('triageIc').textContent = t ? t.icon : '📚';
     document.getElementById('triageTxt').innerHTML = t
       ? `已进入 <b>${t.name}</b> · 按学科分诊模式（结合你的学情档案因材施教）`
       : `已进入 <b>${currentTeacher}</b> 老师 · 按学科分诊模式`;
     bar.hidden = false;
+    if (attachBtn) attachBtn.hidden = false;  // 召唤老师模式才显示附件按钮
   }
 
   async function send(overrideText, msgPersona) {
@@ -1688,9 +1691,12 @@
   function toggleAttach(force) {
     const open = force === undefined ? attachPanel.hidden : force;
     attachPanel.hidden = !open;
+    document.getElementById('addBtn')?.classList.toggle('active', open);
+    document.getElementById('composerAttachBtn')?.classList.toggle('active', open);
     if (open) loadDocs();
   }
   document.getElementById('addBtn')?.addEventListener('click', () => toggleAttach());
+  document.getElementById('composerAttachBtn')?.addEventListener('click', () => toggleAttach());
   document.getElementById('attachClose').addEventListener('click', () => toggleAttach(false));
 
   // ===== 侧边栏（桌面常驻；移动端抽屉） =====
@@ -3594,7 +3600,7 @@
 
   (async function init() {
     // 部署版本自检：拉取后端 DEPLOY_TAG 比对，不一致则自动硬刷新（防止浏览器跑旧 JS）
-    const FRONTEND_BUILD = '2026-07-22-hotfix16';
+    const FRONTEND_BUILD = '2026-07-22-hotfix17';
     try {
       const vr = await fetch(`${API_BASE}/version`);
       const vj = await vr.json();
