@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix22">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix23">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -278,11 +278,6 @@
 
       <!-- ===== 聊天视图（默认隐藏，发送后显示） ===== -->
       <div id="chatView">
-        <div class="triage-bar" id="triageBar" hidden>
-          <span class="triage-ic" id="triageIc">📚</span>
-          <span class="triage-txt" id="triageTxt"></span>
-          <button class="triage-exit" id="triageExit" title="退出学科分诊">退出 ✕</button>
-        </div>
         <main class="chat" id="chat"></main>
 
         <div class="composer-wrap">
@@ -1108,6 +1103,28 @@
     });
   }
 
+  /** 进入老师模式后：只显示当前一个老师 chip */
+  function renderActiveTeacher() {
+    const scroll = document.getElementById('teacherChipsScroll');
+    if (!scroll) return;
+    const t = TEACHERS.find(x => x.subject === currentTeacher);
+    const label = t ? (t.subject + '老师') : (currentTeacher + '老师');
+    const icon = t ? t.icon : '📚';
+    scroll.innerHTML = `
+      <span class="tc-chip active" data-action="none"><span class="tc-emoji">${icon}</span>${label}</span>
+      <span class="tc-chip tc-exit" data-action="exit" title="退出学科分诊"><span class="tc-emoji">✕</span></span>
+    `;
+    scroll.querySelectorAll('.tc-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const action = chip.dataset.action;
+        if (action === 'exit') {
+          currentTeacher = null; setTriageBadge(); toast('已退出学科分诊，回到默认模式');
+        }
+        // active chip 点击无操作（仅作状态展示）
+      });
+    });
+  }
+
   function showTaskView() {
     heroView.classList.add('hidden');
     chatView.classList.remove('active');
@@ -1466,17 +1483,14 @@
   let currentTeacher = null;
 
   function setTriageBadge() {
-    const bar = document.getElementById('triageBar');
-    if (!bar) return;
     const attachBtn = document.getElementById('composerAttachBtn');
-    if (!currentTeacher) { bar.hidden = true; if (attachBtn) attachBtn.hidden = true; return; }
-    const t = TEACHERS.find(x => x.subject === currentTeacher);
-    document.getElementById('triageIc').textContent = t ? t.icon : '📚';
-    document.getElementById('triageTxt').innerHTML = t
-      ? `已进入 <b>${t.name}</b> · 按学科分诊模式（结合你的学情档案因材施教）`
-      : `已进入 <b>${currentTeacher}</b> 老师 · 按学科分诊模式`;
-    bar.hidden = false;
+    if (!currentTeacher) {
+      if (attachBtn) attachBtn.hidden = true;
+      renderTeacherChips(); // 无老师时恢复显示全部老师芯片
+      return;
+    }
     if (attachBtn) attachBtn.hidden = false;  // 召唤老师模式才显示附件按钮
+    renderActiveTeacher();
   }
 
   async function send(overrideText, msgPersona) {
@@ -1679,11 +1693,6 @@
   document.getElementById('newChat2')?.addEventListener('click', newChat);
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
   input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; });
-
-  // 退出学科分诊：回到默认人设模式
-  document.getElementById('triageExit')?.addEventListener('click', () => {
-    currentTeacher = null; setTriageBadge(); toast('已退出学科分诊，回到默认模式');
-  });
 
   // ===== 附件面板 =====
   let docs = []; let cmp = { a: null, b: null };
@@ -3600,7 +3609,7 @@
 
   (async function init() {
     // 部署版本自检：拉取后端 DEPLOY_TAG 比对，不一致则自动硬刷新（防止浏览器跑旧 JS）
-    const FRONTEND_BUILD = '2026-07-22-hotfix22';
+    const FRONTEND_BUILD = '2026-07-22-hotfix23';
     try {
       const vr = await fetch(`${API_BASE}/version`);
       const vj = await vr.json();

@@ -599,6 +599,9 @@
   .tc-chip:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); transform: translateY(-1px); }
   .tc-chip:active { transform: translateY(0); }
   .tc-chip .tc-emoji { font-size: 15px; line-height: 1; }
+  .tc-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .tc-chip.tc-exit { padding: 5px 8px; border-color: transparent; background: transparent; color: var(--text-faint); }
+  .tc-chip.tc-exit:hover { color: #dc2626; background: var(--warn-bg); border-color: var(--warn-border); }
 
   /* ===== 人工审核卡片 ===== */
   .review { margin-top: 4px; padding: 14px; border-radius: var(--r-md); background: var(--warn-bg); border: 1px solid var(--warn-border); }
