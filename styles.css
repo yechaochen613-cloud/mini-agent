@@ -278,7 +278,7 @@
   .hist-card {
     display: flex; align-items: center; gap: 8px;
     background: transparent; border: 1px solid transparent;
-    border-radius: var(--r-sm); padding: 9px 11px; cursor: pointer;
+    border-radius: var(--r-sm); padding: 9px 11px 9px 7px; cursor: pointer;
     transition: border-color .18s var(--ease), background .18s var(--ease);
   }
   .hist-card:hover { background: var(--surface-2); border-color: var(--border); }
