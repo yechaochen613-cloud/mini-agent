@@ -54,7 +54,7 @@ function toggleMode() {
       <div class="auth-logo">
         <n-icon size="30" color="#fff"><SchoolOutline /></n-icon>
       </div>
-      <h1 class="auth-title">Mini Agent</h1>
+      <h1 class="auth-title">智伴私教</h1>
       <p class="auth-sub">
         {{ mode === 'login' ? '欢迎回来，继续你的学习之旅' : '创建账户，开启智能辅导' }}
       </p>

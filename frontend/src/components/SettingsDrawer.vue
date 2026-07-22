@@ -183,7 +183,7 @@ function clearMemory() {
         </section>
 
         <div class="foot">
-          <n-tag :bordered="false" type="default" size="small">Mini Agent · 智能学习助手</n-tag>
+          <n-tag :bordered="false" type="default" size="small">智伴私教 · 智能学习助手</n-tag>
         </div>
       </div>
     </n-drawer-content>

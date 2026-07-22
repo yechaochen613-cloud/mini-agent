@@ -58,7 +58,7 @@ const isEmpty = computed(() => !props.message.text && !hasSteps.value && !(props
     <div class="avatar"><BotAvatar :size="34" /></div>
     <div class="msg-col">
       <div class="msg-head">
-        <span class="model-badge"><span class="mb-dot"></span>Mini Agent</span>
+        <span class="model-badge"><span class="mb-dot"></span>智伴私教</span>
         <span class="msg-time">{{ time }}</span>
       </div>
       <div class="bubble bot-bubble">

@@ -2,7 +2,7 @@
 import { ref, nextTick, computed } from 'vue'
 import { NIcon } from 'naive-ui'
 import { AttachOutline, SendOutline, CloseOutline } from '@vicons/ionicons5'
-import { TEACHERS, findTeacher } from '../teachers.js'
+import { findTeacher } from '../teachers.js'
 import { store } from '../store.js'
 
 const emit = defineEmits(['send', 'summon', 'clearTeacher', 'attach'])
@@ -38,10 +38,6 @@ function onKeydown(e) {
   }
 }
 
-function onSummon(t) {
-  emit('summon', t)
-}
-
 function onPickFiles(e) {
   const files = e.target.files
   if (files && files.length) emit('attach', files)
@@ -55,29 +51,15 @@ function triggerAttach() {
 
 <template>
   <div class="composer-wrap">
-    <!-- 老师芯片条 -->
-    <div class="teacher-bar">
-      <template v-if="activeTeacher">
-        <div class="tc-chip active" :style="{ '--c1': activeTeacher.color1, '--c2': activeTeacher.color2 }">
-          <n-icon size="16"><component :is="activeTeacher.icon" /></n-icon>
-          <span>{{ activeTeacher.subject }}老师</span>
-          <button class="tc-exit" @click="emit('clearTeacher')" aria-label="退出学科">
-            <n-icon size="13"><CloseOutline /></n-icon>
-          </button>
-        </div>
-      </template>
-      <template v-else>
-        <button
-          v-for="t in TEACHERS"
-          :key="t.subject"
-          class="tc-chip"
-          :style="{ '--c1': t.color1, '--c2': t.color2 }"
-          @click="onSummon(t)"
-        >
-          <n-icon size="15"><component :is="t.icon" /></n-icon>
-          <span>{{ t.subject }}老师</span>
+    <!-- 已选学科老师 -->
+    <div v-if="activeTeacher" class="teacher-bar">
+      <div class="tc-chip active" :style="{ '--c1': activeTeacher.color1, '--c2': activeTeacher.color2 }">
+        <n-icon size="16"><component :is="activeTeacher.icon" /></n-icon>
+        <span>{{ activeTeacher.subject }}老师</span>
+        <button class="tc-exit" @click="emit('clearTeacher')" aria-label="退出学科">
+          <n-icon size="13"><CloseOutline /></n-icon>
         </button>
-      </template>
+      </div>
     </div>
 
     <!-- 输入区 -->

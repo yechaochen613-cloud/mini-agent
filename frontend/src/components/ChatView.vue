@@ -154,11 +154,6 @@ async function send(text) {
   })
 }
 
-function onSummon(t) {
-  store.currentTeacher = t.subject
-  send(t.prompt)
-}
-
 function onClearTeacher() {
   store.currentTeacher = null
 }
@@ -258,10 +253,6 @@ watch(
             <span>{{ s.text }}</span>
           </button>
         </div>
-        <div class="teacher-hint">
-          <n-icon size="15"><SchoolOutline /></n-icon>
-          <span>提示：在下方选择学科老师，可获得针对性的辅导</span>
-        </div>
       </div>
     </div>
 
@@ -269,7 +260,6 @@ watch(
     <div class="chat-footer">
       <Composer
         @send="send"
-        @summon="onSummon"
         @clearTeacher="onClearTeacher"
         @attach="onAttach"
       />

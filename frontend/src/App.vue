@@ -104,7 +104,7 @@ onMounted(boot)
                 <button class="menu-btn" @click="openDrawer" aria-label="菜单">
                   <n-icon size="22"><MenuOutline /></n-icon>
                 </button>
-                <span class="mobile-title">Mini Agent</span>
+                <span class="mobile-title">智伴私教</span>
               </div>
               <n-drawer v-model:show="drawerOpen" :width="280" placement="left">
                 <n-drawer-content :native-scrollbar="false" :body-content-style="{ padding: 0 }">

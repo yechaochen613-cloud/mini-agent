@@ -77,7 +77,7 @@ function openSettings() {
         <n-icon size="22" color="#fff"><SchoolOutline /></n-icon>
       </div>
       <div class="brand-text">
-        <div class="brand-name">Mini Agent</div>
+        <div class="brand-name">智伴私教</div>
         <div class="brand-sub">智能学习助手</div>
       </div>
     </div>
