@@ -588,6 +588,16 @@
   .hint { text-align: center; font-size: 11.5px; color: var(--text-faint); margin-top: 1px; }
   .disclaimer { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 2px; opacity: .85; }
 
+  /* ===== 老师快捷条（输入框下方） ===== */
+  .teacher-chips-bar { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0 2px; }
+  .tc-label { font-size: 17px; color: var(--text-faint); font-weight: 600; line-height: 1; user-select: none; flex-shrink: 0; }
+  .tc-scroll { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 0; }
+  .tc-scroll::-webkit-scrollbar { display: none; }
+  .tc-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all .18s var(--ease); scroll-snap-align: start; flex-shrink: 0; user-select: none; }
+  .tc-chip:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); transform: translateY(-1px); }
+  .tc-chip:active { transform: translateY(0); }
+  .tc-chip .tc-emoji { font-size: 15px; line-height: 1; }
+
   /* ===== 人工审核卡片 ===== */
   .review { margin-top: 4px; padding: 14px; border-radius: var(--r-md); background: var(--warn-bg); border: 1px solid var(--warn-border); }
   .review .rhead { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--warn); font-size: 14px; }

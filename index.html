@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-21-hotfix13">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix16">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -314,6 +314,10 @@
                   <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
+            </div>
+            <div class="teacher-chips-bar" id="teacherChipsBar">
+              <span class="tc-label">＋</span>
+              <div class="tc-scroll" id="teacherChipsScroll"></div>
             </div>
             <p class="hint">回车发送 · Shift+回车换行 · 智能体会自己决定调用哪些工具</p>
             <p class="disclaimer">Mini Agent 是一个 AI 智能体，可能会出错。请在重要用途前仔细核对。</p>
@@ -1079,6 +1083,28 @@
         </div>
       </div>
     `).join('');
+  }
+
+  /** 渲染输入框下方的老师快捷芯片条（格式：科目+老师） */
+  function renderTeacherChips() {
+    const scroll = document.getElementById('teacherChipsScroll');
+    if (!scroll) return;
+    scroll.innerHTML = TEACHERS.map(t => {
+      const label = t.subject + '老师';  // 数学老师、语文老师…
+      return `<span class="tc-chip" data-subject="${t.subject}" data-prompt="${t.prompt}"><span class="tc-emoji">${t.icon}</span>${label}</span>`;
+    }).join('');
+    // 点击芯片 → 直接召唤
+    scroll.querySelectorAll('.tc-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const subj = chip.dataset.subject;
+        const prompt = chip.dataset.prompt;
+        currentTeacher = subj;
+        setTriageBadge();
+        showChatView();
+        send(prompt, subj);
+        toast('📐 已接通 ' + subj + '老师 · 进入学科分诊');
+      });
+    });
   }
 
   function showTaskView() {
@@ -3568,7 +3594,7 @@
 
   (async function init() {
     // 部署版本自检：拉取后端 DEPLOY_TAG 比对，不一致则自动硬刷新（防止浏览器跑旧 JS）
-    const FRONTEND_BUILD = '2026-07-21-hotfix13';
+    const FRONTEND_BUILD = '2026-07-22-hotfix16';
     try {
       const vr = await fetch(`${API_BASE}/version`);
       const vj = await vr.json();
@@ -3579,7 +3605,7 @@
       }
     } catch (e) { /* 版本检查失败不影响主流程 */ }
     const ok = await bootstrap();
-    if (ok) { await ensureCurrent(); await loadConversations(); }
+    if (ok) { await ensureCurrent(); await loadConversations(); renderTeacherChips(); }
   })();
 
 </script>
