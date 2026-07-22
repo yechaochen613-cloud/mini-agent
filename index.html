@@ -157,7 +157,6 @@
       <div class="side-foot">
         <span class="avatar-sm" id="sideAvatar">🦊</span>
         <div class="user-row" id="accountBtn" role="button" tabindex="0" title="账户设置"><span id="sideName">我的账户</span><span style="color:#aaa;font-size:11px;margin-left:auto">▾</span></div>
-        <div class="side-deploy" id="sideDeploy" title="前端构建版本">build: —</div>
       </div>
     </aside>
 
@@ -3568,45 +3567,20 @@
   })();
 
   (async function init() {
-    // 部署版本自检：显示前端构建号 + 拉取后端 DEPLOY_TAG 比对
+    // 部署版本自检：拉取后端 DEPLOY_TAG 比对，不一致则自动硬刷新（防止浏览器跑旧 JS）
     const FRONTEND_BUILD = '2026-07-21-hotfix13';
-    const el = document.getElementById('sideDeploy');
-    el.textContent = 'build: ' + FRONTEND_BUILD;
-    let backendTag = null;
     try {
       const vr = await fetch(`${API_BASE}/version`);
       const vj = await vr.json();
-      if (vj.deploy_tag) {
-        backendTag = vj.deploy_tag;
-        const match = vj.deploy_tag === FRONTEND_BUILD;
-        el.textContent = `build: ${FRONTEND_BUILD} · 后端 ${vj.deploy_tag}`;
-        el.style.color = match ? '#22c55e' : '#f59e0b';
-        el.title = match ? '前后端版本一致 ✓' : '前后端版本不一致，正在自动刷新…';
-        el.style.cursor = match ? 'default' : 'help';
-        // 🔴 hotfix4：版本不一致 → 强制硬刷新，避免浏览器一直跑旧 JS（这是之前 undefined 反复出现的根因）
-        if (!match) {
-          showVersionMismatchBanner(FRONTEND_BUILD, vj.deploy_tag);
-          setTimeout(() => location.reload(true), 2500);
-          return; // 等刷新，不再初始化旧代码
-        }
+      if (vj.deploy_tag && vj.deploy_tag !== FRONTEND_BUILD) {
+        console.log('[version] 前后端版本不一致，自动刷新…', FRONTEND_BUILD, '→', vj.deploy_tag);
+        setTimeout(() => location.reload(true), 2500);
+        return;
       }
     } catch (e) { /* 版本检查失败不影响主流程 */ }
     const ok = await bootstrap();
     if (ok) { await ensureCurrent(); await loadConversations(); }
   })();
-
-  // 版本不一致时显示醒目横幅，告知用户正在自动刷新
-  function showVersionMismatchBanner(fe, be) {
-    let b = document.getElementById('verBanner');
-    if (!b) {
-      b = document.createElement('div');
-      b.id = 'verBanner';
-      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#000;' +
-        'text-align:center;padding:10px 14px;font:600 14px/1.4 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)';
-      document.body.appendChild(b);
-    }
-    b.textContent = `🔄 检测到新版本（前端 ${fe} / 后端 ${be}），正在自动刷新页面…`;
-  }
 
 </script>
 </body>
