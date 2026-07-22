@@ -27,3 +27,9 @@ venv/
 # 部署辅助文件（本地/其他平台用，不入主仓库）
 deploy/
 run_server.sh
+
+# 前端依赖与构建缓存（dist/ 构建产物需提交，node_modules 不提交）
+node_modules/
+frontend/node_modules/
+frontend/dist/.vite/
+*.local

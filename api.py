@@ -13,6 +13,7 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi import File, UploadFile, Form
 
 import auth as auth_store
@@ -68,6 +69,10 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UI_FILE = os.path.join(BASE_DIR, "index.html")
+# Vue3 + Vite 构建产物目录（新版 SPA）
+DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
+DIST_INDEX = os.path.join(DIST_DIR, "index.html")
+DIST_ASSETS = os.path.join(DIST_DIR, "assets")
 
 app = FastAPI(title="Mini Tool-Calling Agent API", version="1.0")
 
@@ -253,9 +258,15 @@ def root():
 
 @app.get("/ui", response_class=FileResponse)
 def ui():
-    # 托管网页聊天界面，同源访问 /chat，无需处理跨域
-    # no-store：禁止 CDN/浏览器缓存 HTML，任何一次新部署都立即生效，
-    # 避免用户一直跑着旧版（此前 undefined 问题根因就是旧 HTML 在跑）
+    # 托管新版 Vue3 SPA；若尚未构建则回退到旧版单文件页面。
+    # no-store：禁止缓存 HTML，新部署立即生效（此前 undefined 问题根因即旧 HTML 在跑）。
+    target = DIST_INDEX if os.path.exists(DIST_INDEX) else UI_FILE
+    return FileResponse(target, headers={"Cache-Control": "no-store, no-cache, no-transform, must-revalidate"})
+
+
+@app.get("/legacy", response_class=FileResponse)
+def legacy_ui():
+    # 旧版原生页面保留作安全回退
     return FileResponse(UI_FILE, headers={"Cache-Control": "no-store, no-cache, no-transform, must-revalidate"})
 
 
@@ -978,7 +989,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-22-hotfix23"
+DEPLOY_TAG = "2026-07-22-frontend-vue"
 
 
 # ===== GitHub OAuth 授权流程 =====
@@ -1242,6 +1253,12 @@ def debug_logs(limit: int = 20):
         return {"file": _CHAT_LOG_FILE, "total_lines": len(lines), "showing": len(recent), "lines": recent}
     except Exception as e:
         return {"error": str(e)[:300], "error_type": type(e).__name__}
+
+
+# ===== 新版 SPA 打包静态资源（带内容哈希，可长效缓存） =====
+# 放在所有 API 路由之后挂载，避免覆盖业务路由。
+if os.path.isdir(DIST_ASSETS):
+    app.mount("/assets", StaticFiles(directory=DIST_ASSETS), name="spa-assets")
 
 
 # 允许通过 `python api.py` 直接启动，并支持平台注入的 PORT 环境变量
