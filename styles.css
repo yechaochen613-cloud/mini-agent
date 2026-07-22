@@ -276,9 +276,10 @@
 
   .hist-list { display: flex; flex-direction: column; gap: 4px; overflow-x: hidden; overflow-y: auto; flex: 1; padding-bottom: 6px; }
   .hist-card {
+    position: relative;
     display: flex; align-items: center; gap: 8px;
     background: transparent; border: 1px solid transparent;
-    border-radius: var(--r-sm); padding: 9px 11px 9px 7px; cursor: pointer;
+    border-radius: var(--r-sm); padding: 9px 11px 9px 5px; cursor: pointer;
     transition: border-color .18s var(--ease), background .18s var(--ease);
   }
   .hist-card:hover { background: var(--surface-2); border-color: var(--border); }
@@ -287,7 +288,8 @@
   .hist-card .hc-title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hist-card .hc-meta { font-size: 10.5px; color: var(--text-faint); margin-top: 2px; }
   .hist-card .hc-del {
-    flex: 0 0 auto; border: none; background: transparent; color: var(--text-faint);
+    position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+    border: none; background: transparent; color: var(--text-faint);
     width: 26px; height: 26px; border-radius: 7px; cursor: pointer; font-size: 12px; opacity: 0; transition: opacity .15s, color .2s, background .2s;
   }
   .hist-card:hover .hc-del { opacity: 1; }
