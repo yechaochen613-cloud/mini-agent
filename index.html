@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix17">
+  <link rel="stylesheet" href="/static/styles.css?v=2026-07-22-hotfix19">
 </head>
 <body class="logged-out">
   <!-- ===== 登录 / 注册视图（未登录时显示，强制登录） ===== -->
@@ -3600,7 +3600,7 @@
 
   (async function init() {
     // 部署版本自检：拉取后端 DEPLOY_TAG 比对，不一致则自动硬刷新（防止浏览器跑旧 JS）
-    const FRONTEND_BUILD = '2026-07-22-hotfix17';
+    const FRONTEND_BUILD = '2026-07-22-hotfix19';
     try {
       const vr = await fetch(`${API_BASE}/version`);
       const vj = await vr.json();
