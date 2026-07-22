@@ -110,7 +110,7 @@
   }
   .side-brand {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 16px 10px; min-width: 230px;
+    padding: 16px 16px 10px; min-width: 0;
   }
   .side-brand .brand-info { display: flex; align-items: center; gap: 10px; }
   .search-btn {
@@ -250,7 +250,7 @@
   .create-btn:hover { background: #6a4ae5; }
 
   /* 导航项 */
-  .side-nav { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; min-width: 230px; flex: 1; overflow-y: auto; }
+  .side-nav { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; min-width: 0; flex: 1; overflow-y: auto; overflow-x: hidden; }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
     border: none; background: transparent; color: #555;
@@ -268,7 +268,7 @@
     display: flex; justify-content: space-between; align-items: center;
   }
 
-  .side-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 6px 10px; min-width: 264px; }
+  .side-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 6px 10px; min-width: 0; }
   .side-sec-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px 4px; }
   .side-sec-head span { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--text-faint); text-transform: uppercase; }
   .side-sec-head .add-sm { border: none; background: transparent; color: var(--text-faint); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
@@ -293,7 +293,7 @@
   .hist-card:hover .hc-del { opacity: 1; }
   .hist-card .hc-del:hover { color: #dc2626; background: var(--warn-bg); }
 
-  .side-foot { border-top: 1px solid #eef0f4; padding: 10px 12px; display: flex; align-items: center; gap: 9px; min-width: 230px; flex-wrap: wrap; }
+  .side-foot { border-top: 1px solid #eef0f4; padding: 10px 12px; display: flex; align-items: center; gap: 9px; min-width: 0; flex-wrap: wrap; }
   .side-deploy { width: 100%; margin-top: 2px; font-size: 10.5px; color: var(--text-faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .2px; }
   .share-card { display: none; }
   .user-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #444; cursor: pointer; flex: 1; padding: 10px 12px; border-radius: 12px; transition: all .2s var(--ease); background: transparent; }
@@ -953,7 +953,7 @@
     .sidebar.open { transform: translateX(0); }
     .app.collapsed .sidebar { width: 280px; flex-basis: 280px; transform: translateX(-100%); }
     .drawer-backdrop { display: block; }
-    .side-brand, .side-nav, .side-section, .side-foot { min-width: 280px; }
+    .side-brand, .side-nav, .side-section, .side-foot { min-width: 0; }
   }
   @media (max-width: 640px) {
     .topbar-inner { padding: 10px 12px; gap: 8px; }
