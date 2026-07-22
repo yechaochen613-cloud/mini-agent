@@ -288,12 +288,10 @@
   .hist-card .hc-meta { font-size: 10.5px; color: var(--text-faint); margin-top: 2px; }
   .hist-card .hc-del {
     flex: 0 0 auto; border: none; background: transparent; color: var(--text-faint);
-    width: 26px; height: 26px; border-radius: 7px; cursor: pointer; font-size: 13px;
-    transition: color .2s, background .2s, transform .15s;
-    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 7px; cursor: pointer; font-size: 12px; opacity: 0; transition: opacity .15s, color .2s, background .2s;
   }
-  .hist-card .hc-del:hover { color: #dc2626; background: var(--warn-bg); transform: scale(1.15); }
-  .hist-card .hc-del:active { transform: scale(0.9); }
+  .hist-card:hover .hc-del { opacity: 1; }
+  .hist-card .hc-del:hover { color: #dc2626; background: var(--warn-bg); }
 
   .side-foot { border-top: 1px solid #eef0f4; padding: 10px 12px; display: flex; align-items: center; gap: 9px; min-width: 230px; flex-wrap: wrap; }
   .side-deploy { width: 100%; margin-top: 2px; font-size: 10.5px; color: var(--text-faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .2px; }
