@@ -56,26 +56,36 @@ export const api = {
   setAccount: (name) => ok(http.post('/account', { name })),
   clearMemory: () => ok(http.post('/memory/clear')),
 
+  // 对话（非流式兜底）
+  chat: (payload) => ok(http.post('/chat', payload)),
+
   // 版本
   version: () => ok(http.get('/version'))
 }
 
 /**
  * 流式对话（SSE）。payload: {message, session_id, model, persona, style, max_steps}
- * handlers: { onEvent(ev), onError(msg, status), onClose() }
+ * handlers: { onEvent(ev), onError(msg, status), onClose(wasOk) }
+ * options: { signal }
+ * 返回 { ok: boolean, done: boolean }
  */
-export async function streamChat(payload, handlers = {}) {
+export async function streamChat(payload, handlers = {}, options = {}) {
   let resp
   try {
     resp = await fetch('/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      credentials: 'include'
+      credentials: 'include',
+      signal: options.signal
     })
   } catch (e) {
-    handlers.onError && handlers.onError('网络异常，请检查连接', 0)
-    return
+    if (e?.name === 'AbortError') {
+      handlers.onClose && handlers.onClose(false)
+    } else {
+      handlers.onError && handlers.onError('网络异常，请检查连接', 0)
+    }
+    return { ok: false, done: false }
   }
   if (!resp.ok) {
     let msg = '请求失败'
@@ -86,32 +96,42 @@ export async function streamChat(payload, handlers = {}) {
       /* ignore */
     }
     handlers.onError && handlers.onError(msg, resp.status)
-    return
+    return { ok: false, done: false }
   }
   const reader = resp.body.getReader()
   const decoder = new TextDecoder()
   let buf = ''
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += decoder.decode(value, { stream: true })
-    let idx
-    while ((idx = buf.indexOf('\n\n')) >= 0) {
-      const raw = buf.slice(0, idx)
-      buf = buf.slice(idx + 2)
-      const line = raw
-        .split('\n')
-        .find((l) => l.startsWith('data:'))
-      if (!line) continue
-      const json = line.slice(5).trim()
-      if (!json) continue
-      try {
-        const ev = JSON.parse(json)
-        handlers.onEvent && handlers.onEvent(ev)
-      } catch (e) {
-        /* ignore malformed */
+  let gotDone = false
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      let idx
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const raw = buf.slice(0, idx)
+        buf = buf.slice(idx + 2)
+        const line = raw
+          .split('\n')
+          .find((l) => l.startsWith('data:'))
+        if (!line) continue
+        const json = line.slice(5).trim()
+        if (!json) continue
+        try {
+          const ev = JSON.parse(json)
+          if (ev.type === 'done') gotDone = true
+          handlers.onEvent && handlers.onEvent(ev)
+        } catch (e) {
+          console.warn('[streamChat] malformed SSE event:', json, e)
+        }
       }
     }
+  } catch (e) {
+    console.warn('[streamChat] read error:', e)
+    handlers.onError && handlers.onError('流式连接中断，正在兜底重试…', 0)
+    handlers.onClose && handlers.onClose(false)
+    return { ok: false, done: gotDone }
   }
-  handlers.onClose && handlers.onClose()
+  handlers.onClose && handlers.onClose(gotDone)
+  return { ok: true, done: gotDone }
 }

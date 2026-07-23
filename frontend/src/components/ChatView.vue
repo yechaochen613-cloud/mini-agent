@@ -143,15 +143,70 @@ async function send(text) {
     style: store.settings.style,
     max_steps: 6
   }
-  await streamChat(payload, {
-    onEvent: (ev) => handleEvent(ev, bot),
-    onError: (msg) => {
-      bot.streaming = false
-      streaming.value = false
-      bot.error = msg
-      message.error(msg || '网络异常')
+
+  // 先走 SSE 流式；若超时/断连/无 done，则兜底非流式 /chat
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 60000)
+  let gotDone = false
+  let finished = false
+
+  const finish = () => {
+    if (finished) return
+    finished = true
+    clearTimeout(timeoutId)
+    bot.streaming = false
+    streaming.value = false
+  }
+
+  try {
+    const { done } = await streamChat(
+      payload,
+      {
+        onEvent: (ev) => {
+          handleEvent(ev, bot)
+          if (ev.type === 'done') {
+            gotDone = true
+            clearTimeout(timeoutId)
+          }
+        },
+        onError: (msg) => {
+          finish()
+          bot.error = msg
+          message.error(msg || '网络异常')
+        }
+      },
+      { signal: controller.signal }
+    )
+    if (!done && !gotDone) {
+      // 连接正常关闭但未收到 done，兜底非流式
+      await fallbackToChat(text, bot, payload, finish)
+    } else {
+      finish()
     }
-  })
+  } catch (e) {
+    if (!gotDone) await fallbackToChat(text, bot, payload, finish)
+    else finish()
+  }
+}
+
+async function fallbackToChat(text, bot, payload, finish) {
+  if (finish) finish()
+  try {
+    const res = await api.chat(payload)
+    bot.text = res.reply || ''
+    bot.steps = res.steps || []
+    if (res.session_id) store.currentSessionId = res.session_id
+    if (res.needs_review && res.review) bot.review = res.review
+    refreshConversations()
+    scrollToBottom()
+  } catch (e) {
+    const detail = e?.response?.data?.detail || '回答生成失败，请重试'
+    bot.error = detail
+    message.error(detail)
+  } finally {
+    bot.streaming = false
+    streaming.value = false
+  }
 }
 
 function onClearTeacher() {
