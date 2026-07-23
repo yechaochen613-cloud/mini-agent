@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, nextTick, computed } from 'vue'
+import { ref, watch, onMounted, nextTick, computed, reactive } from 'vue'
 import { useMessage, NIcon } from 'naive-ui'
 import {
   SunnyOutline,
@@ -129,7 +129,7 @@ function handleEvent(ev, bot) {
 async function send(text) {
   if (streaming.value) return
   messages.value.push({ role: 'user', text, time: nowTime() })
-  const bot = { role: 'bot', text: '', steps: [], reasoning: '', streaming: true, time: nowTime() }
+  const bot = reactive({ role: 'bot', text: '', steps: [], reasoning: '', streaming: true, time: nowTime() })
   messages.value.push(bot)
   botMsg.value = bot
   streaming.value = true
