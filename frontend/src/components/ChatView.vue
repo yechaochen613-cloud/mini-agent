@@ -144,61 +144,15 @@ async function send(text) {
     max_steps: 6
   }
 
-  // 先走 SSE 流式；若超时/断连/无 done，则兜底非流式 /chat
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 60000)
-  let gotDone = false
-  let finished = false
-
-  const finish = () => {
-    if (finished) return
-    finished = true
-    clearTimeout(timeoutId)
-    bot.streaming = false
-    streaming.value = false
-  }
-
-  try {
-    const { done } = await streamChat(
-      payload,
-      {
-        onEvent: (ev) => {
-          handleEvent(ev, bot)
-          if (ev.type === 'done') {
-            gotDone = true
-            clearTimeout(timeoutId)
-          }
-        },
-        onError: (msg) => {
-          finish()
-          bot.error = msg
-          message.error(msg || '网络异常')
-        }
-      },
-      { signal: controller.signal }
-    )
-    if (!done && !gotDone) {
-      // 连接正常关闭但未收到 done，兜底非流式
-      await fallbackToChat(text, bot, payload, finish)
-    } else {
-      finish()
-    }
-  } catch (e) {
-    if (!gotDone) await fallbackToChat(text, bot, payload, finish)
-    else finish()
-  }
-}
-
-async function fallbackToChat(text, bot, payload, finish) {
-  if (finish) finish()
   try {
     const res = await api.chat(payload)
-    bot.text = res.reply || ''
     bot.steps = res.steps || []
     if (res.session_id) store.currentSessionId = res.session_id
     if (res.needs_review && res.review) bot.review = res.review
     refreshConversations()
     scrollToBottom()
+    // 前端模拟打字机，避免非流式一次全弹出的生硬感
+    await typewriter(bot, res.reply || '')
   } catch (e) {
     const detail = e?.response?.data?.detail || '回答生成失败，请重试'
     bot.error = detail
@@ -206,7 +160,40 @@ async function fallbackToChat(text, bot, payload, finish) {
   } finally {
     bot.streaming = false
     streaming.value = false
+    scrollToBottom()
   }
+}
+
+function typewriter(bot, fullText) {
+  return new Promise((resolve) => {
+    if (!fullText) {
+      resolve()
+      return
+    }
+    const total = fullText.length
+    // 短答案直接展示；长答案按字数分段加速
+    if (total <= 60) {
+      bot.text = fullText
+      scrollToBottom()
+      resolve()
+      return
+    }
+    let i = 0
+    const step = total > 1200 ? 12 : total > 600 ? 6 : 3
+    const baseDelay = total > 1200 ? 8 : total > 600 ? 14 : 22
+    const tick = () => {
+      const next = Math.min(i + step, total)
+      bot.text = fullText.slice(0, next)
+      i = next
+      scrollToBottom()
+      if (i < total) {
+        setTimeout(tick, baseDelay)
+      } else {
+        resolve()
+      }
+    }
+    tick()
+  })
 }
 
 function onClearTeacher() {
