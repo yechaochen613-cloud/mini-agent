@@ -26,6 +26,7 @@ import {
 } from '@vicons/ionicons5'
 import { api } from '../api.js'
 import { isDark } from '../theme.js'
+import StudyPlanCard from './StudyPlanCard.vue'
 
 use([
   CanvasRenderer,
@@ -182,12 +183,6 @@ async function genPlan() {
   }
 }
 
-function fmtPlan(p) {
-  if (typeof p === 'string') return p
-  if (Array.isArray(p)) return p.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('\n')
-  return JSON.stringify(p, null, 2)
-}
-
 onMounted(load)
 </script>
 
@@ -238,7 +233,7 @@ onMounted(load)
                 生成
               </n-button>
             </template>
-            <div v-if="plan" class="plan-text">{{ fmtPlan(plan) }}</div>
+            <StudyPlanCard v-if="plan" :plan="plan" />
             <div v-else class="plan-empty">点击「生成」基于学情档案制定专属提升计划</div>
           </n-card>
         </n-grid-item>
@@ -310,14 +305,6 @@ onMounted(load)
 }
 .charts {
   margin-top: 16px;
-}
-.plan-text {
-  font-size: 13.5px;
-  line-height: 1.7;
-  color: var(--text);
-  white-space: pre-wrap;
-  max-height: 220px;
-  overflow: auto;
 }
 .plan-empty {
   font-size: 13px;
