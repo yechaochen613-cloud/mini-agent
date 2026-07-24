@@ -819,6 +819,7 @@ class ProfileUpdate(BaseModel):
     weak_points: list = []
     strengths: list = []
     goals: list = []
+    replace: bool = False
 
 
 class PaperAnalyze(BaseModel):
@@ -839,10 +840,16 @@ def get_profile_route():
 
 @app.post("/profile")
 def update_profile_route(req: ProfileUpdate):
-    """局部更新学情档案。"""
+    """更新学情档案。replace=True 时整体覆盖（前端编辑用），否则去重追加（agent 无感累积用）。"""
     from tutor import update_profile
-    partial = {k: v for k, v in req.dict().items() if v not in (None, "", [], {})}
-    return {"profile": update_profile(partial)}
+    raw = req.dict()
+    replace = bool(raw.get("replace", False))
+    if replace:
+        # 覆盖模式：允许空值（支持清空标签/科目），仅排除未显式传入的 None
+        partial = {k: v for k, v in raw.items() if k == "replace" or v is not None}
+    else:
+        partial = {k: v for k, v in raw.items() if k == "replace" or v not in (None, "", [], {})}
+    return {"profile": update_profile(partial, replace=replace)}
 
 
 @app.get("/papers")
@@ -989,7 +996,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-24-studyplan-cards"
+DEPLOY_TAG = "2026-07-24-profile-card"
 
 
 # ===== GitHub OAuth 授权流程 =====

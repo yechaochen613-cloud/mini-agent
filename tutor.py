@@ -136,26 +136,40 @@ def save_profile(data: dict) -> dict:
     return data
 
 
-def update_profile(partial: dict) -> dict:
-    """局部合并更新档案（薄弱点去重追加，掌握度取较新值）。"""
+def update_profile(partial: dict, replace: bool = False) -> dict:
+    """更新学情档案。
+
+    replace=False（默认，agent 调用）：薄弱点/优势去重追加，掌握度取较新值，
+        goals 整体替换——保持「无感累积」语义，不会误删已有信息。
+    replace=True（前端档案编辑）：weak_points/strengths/goals/subjects 整体覆盖，
+        支持学生主动删除/修正某条标签或掌握度。
+    """
     cur = get_profile()
     for k, v in (partial or {}).items():
         if k == "subjects" and isinstance(v, dict):
+            if replace:
+                cur["subjects"] = {}
             for subj, lvl in v.items():
                 try:
                     cur["subjects"][subj] = int(lvl)
                 except Exception:
                     pass
         elif k == "weak_points" and isinstance(v, list):
-            for w in v:
-                ws = str(w).strip()
-                if ws and ws not in cur["weak_points"]:
-                    cur["weak_points"].append(ws)
+            if replace:
+                cur["weak_points"] = [str(x).strip() for x in v if str(x).strip()]
+            else:
+                for w in v:
+                    ws = str(w).strip()
+                    if ws and ws not in cur["weak_points"]:
+                        cur["weak_points"].append(ws)
         elif k == "strengths" and isinstance(v, list):
-            for s in v:
-                ss = str(s).strip()
-                if ss and ss not in cur["strengths"]:
-                    cur["strengths"].append(ss)
+            if replace:
+                cur["strengths"] = [str(x).strip() for x in v if str(x).strip()]
+            else:
+                for s in v:
+                    ss = str(s).strip()
+                    if ss and ss not in cur["strengths"]:
+                        cur["strengths"].append(ss)
         elif k == "goals" and isinstance(v, list):
             cur["goals"] = [str(x).strip() for x in v if str(x).strip()]
         elif k in ("name", "grade"):

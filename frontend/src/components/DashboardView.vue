@@ -27,6 +27,7 @@ import {
 import { api } from '../api.js'
 import { isDark } from '../theme.js'
 import StudyPlanCard from './StudyPlanCard.vue'
+import ProfileCard from './ProfileCard.vue'
 
 use([
   CanvasRenderer,
@@ -48,6 +49,7 @@ const bySubject = ref([]) // {subject, count, mastery}
 const due = ref(0)
 const plan = ref(null)
 const planLoading = ref(false)
+const profile = ref({})
 
 const axisColor = computed(() => (isDark.value ? '#86868b' : '#6e6e73'))
 const splitColor = computed(() => (isDark.value ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'))
@@ -138,16 +140,18 @@ const statCards = computed(() => [
 async function load() {
   loading.value = true
   try {
-    const [wq, dueRes, fav] = await Promise.all([
+    const [wq, dueRes, fav, pRes] = await Promise.all([
       api.wrongQuestions(),
       api.dueWrongQuestions(),
-      api.favorites()
+      api.favorites(),
+      api.profile()
     ])
     const list = wq.wrong_questions || []
     stats.value.wrong = list.length
     due.value = dueRes.count || 0
     stats.value.due = dueRes.count || 0
     stats.value.favorites = (fav.favorites || []).length
+    profile.value = pRes.profile || {}
 
     const map = {}
     list.forEach((q) => {
@@ -197,6 +201,9 @@ onMounted(load)
     </header>
 
     <n-spin :show="loading">
+      <!-- 学情档案 -->
+      <ProfileCard :profile="profile" @updated="profile = $event" class="pc-slot" />
+
       <!-- 统计卡 -->
       <n-grid cols="4" :x-gap="14" :y-gap="14" responsive="screen" item-responsive>
         <n-grid-item v-for="(c, i) in statCards" :key="i" span="4 m:1">
@@ -305,6 +312,9 @@ onMounted(load)
 }
 .charts {
   margin-top: 16px;
+}
+.pc-slot {
+  margin-bottom: 16px;
 }
 .plan-empty {
   font-size: 13px;
