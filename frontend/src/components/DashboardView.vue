@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useMessage, NIcon, NGrid, NGridItem, NCard, NButton, NSpin } from 'naive-ui'
+import { useMessage, NIcon, NGrid, NGridItem, NCard, NButton, NSpin, NEmpty } from 'naive-ui'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -219,17 +219,20 @@ onMounted(load)
       <n-grid cols="2" :x-gap="16" :y-gap="16" responsive="screen" item-responsive class="charts">
         <n-grid-item span="2 m:1">
           <n-card title="学科掌握度" :bordered="true">
-            <v-chart :option="radarOption" autoresize style="height: 280px" />
+            <v-chart v-if="bySubject.length" :option="radarOption" autoresize style="height: 280px" />
+            <n-empty v-else description="暂无错题数据" style="padding: 64px 0" />
           </n-card>
         </n-grid-item>
         <n-grid-item span="2 m:1">
           <n-card title="错题分布" :bordered="true">
-            <v-chart :option="barOption" autoresize style="height: 280px" />
+            <v-chart v-if="bySubject.length" :option="barOption" autoresize style="height: 280px" />
+            <n-empty v-else description="暂无错题数据" style="padding: 64px 0" />
           </n-card>
         </n-grid-item>
         <n-grid-item span="2 m:1">
           <n-card title="复习安排" :bordered="true">
-            <v-chart :option="pieOption" autoresize style="height: 280px" />
+            <v-chart v-if="stats.wrong" :option="pieOption" autoresize style="height: 280px" />
+            <n-empty v-else description="暂无复习安排" style="padding: 64px 0" />
           </n-card>
         </n-grid-item>
         <n-grid-item span="2 m:1">
