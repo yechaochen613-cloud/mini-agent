@@ -21,15 +21,18 @@ import {
   AddOutline,
   TrashOutline,
   CheckmarkDoneOutline,
-  ReaderOutline
+  ReaderOutline,
+  RefreshOutline
 } from '@vicons/ionicons5'
 import { api } from '../api.js'
+import { switchView } from '../store.js'
 
 const message = useMessage()
 
 const loading = ref(true)
 const wrong = ref([])
 const favorites = ref([])
+const dueCount = ref(0)
 
 // 错题弹窗
 const showWQ = ref(false)
@@ -44,9 +47,10 @@ const savingFav = ref(false)
 async function load() {
   loading.value = true
   try {
-    const [w, f] = await Promise.all([api.wrongQuestions(), api.favorites()])
+    const [w, f, dRes] = await Promise.all([api.wrongQuestions(), api.favorites(), api.dueWrongQuestions()])
     wrong.value = w.wrong_questions || []
     favorites.value = f.favorites || []
+    dueCount.value = dRes.count || 0
   } catch (e) {
     message.error('加载失败')
   } finally {
@@ -144,10 +148,16 @@ onMounted(load)
         </template>
         <div class="tab-head">
           <span class="count">{{ wrong.length }} 条</span>
-          <n-button type="primary" size="small" @click="openWQ">
-            <template #icon><n-icon :component="AddOutline" /></template>
-            添加错题
-          </n-button>
+          <div class="th-actions">
+            <n-button v-if="dueCount" type="warning" size="small" @click="switchView('review')">
+              <template #icon><n-icon :component="RefreshOutline" /></template>
+              开始今日复习 {{ dueCount }}
+            </n-button>
+            <n-button type="primary" size="small" @click="openWQ">
+              <template #icon><n-icon :component="AddOutline" /></template>
+              添加错题
+            </n-button>
+          </div>
         </div>
 
         <div v-if="loading" class="sk-list">
@@ -296,6 +306,10 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   margin: 6px 0 16px;
+}
+.th-actions {
+  display: flex;
+  gap: 8px;
 }
 .count {
   font-size: 13px;

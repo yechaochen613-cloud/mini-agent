@@ -7,6 +7,7 @@ import {
   PeopleOutline,
   BarChartOutline,
   LibraryOutline,
+  RefreshOutline,
   CreateOutline,
   SettingsOutline,
   LogOutOutline,
@@ -24,7 +25,8 @@ const navItems = [
   { key: 'chat', label: '对话', icon: ChatbubbleOutline },
   { key: 'teachers', label: '名师', icon: PeopleOutline },
   { key: 'dashboard', label: '学情看板', icon: BarChartOutline },
-  { key: 'library', label: '学习库', icon: LibraryOutline }
+  { key: 'library', label: '学习库', icon: LibraryOutline },
+  { key: 'review', label: '复习', icon: RefreshOutline }
 ]
 
 const initial = computed(() => (store.user?.username || '?').slice(0, 1).toUpperCase())

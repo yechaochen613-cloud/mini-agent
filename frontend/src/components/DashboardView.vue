@@ -22,9 +22,11 @@ import {
   ReaderOutline,
   AlarmOutline,
   SchoolOutline,
-  AddOutline
+  AddOutline,
+  RefreshOutline
 } from '@vicons/ionicons5'
 import { api } from '../api.js'
+import { switchView } from '../store.js'
 import { isDark } from '../theme.js'
 import StudyPlanCard from './StudyPlanCard.vue'
 import ProfileCard from './ProfileCard.vue'
@@ -215,6 +217,13 @@ onMounted(load)
         </n-grid-item>
       </n-grid>
 
+      <!-- 今日复习行动条 -->
+      <div v-if="stats.due" class="review-cta">
+        <div class="rc-ic"><n-icon size="18"><RefreshOutline /></n-icon></div>
+        <div class="rc-text">今日有 <b>{{ stats.due }}</b> 道错题待复习，间隔复习能显著巩固记忆</div>
+        <n-button type="primary" size="small" @click="switchView('review')">去复习</n-button>
+      </div>
+
       <!-- 图表区 -->
       <n-grid cols="2" :x-gap="16" :y-gap="16" responsive="screen" item-responsive class="charts">
         <n-grid-item span="2 m:1">
@@ -315,6 +324,32 @@ onMounted(load)
 }
 .charts {
   margin-top: 16px;
+}
+.review-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+.rc-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rc-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text);
 }
 .pc-slot {
   margin-bottom: 16px;
