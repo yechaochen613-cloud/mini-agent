@@ -8,13 +8,15 @@ import {
   RadarChart,
   BarChart,
   PieChart,
-  LineChart
+  LineChart,
+  HeatmapChart
 } from 'echarts/charts'
 import {
   TitleComponent,
   TooltipComponent,
   LegendComponent,
-  GridComponent
+  GridComponent,
+  VisualMapComponent
 } from 'echarts/components'
 import {
   BarChartOutline,
@@ -37,10 +39,12 @@ use([
   BarChart,
   PieChart,
   LineChart,
+  HeatmapChart,
   TitleComponent,
   TooltipComponent,
   LegendComponent,
-  GridComponent
+  GridComponent,
+  VisualMapComponent
 ])
 
 const message = useMessage()
@@ -48,6 +52,7 @@ const message = useMessage()
 const loading = ref(true)
 const stats = ref({ wrong: 0, due: 0, subjects: 0, favorites: 0 })
 const bySubject = ref([]) // {subject, count, mastery}
+const allWQ = ref([]) // 完整错题列表（用于趋势/热力计算）
 const due = ref(0)
 const plan = ref(null)
 const planLoading = ref(false)
@@ -132,6 +137,159 @@ const pieOption = computed(() => {
   }
 })
 
+const MASTERY_LABELS = ['生疏', '薄弱', '一般', '良好', '扎实', '熟练']
+
+// 近 30 天学习节奏：录入错题数 + 完成复习数（基于真实 created_at / last_review_at）
+const lineOption = computed(() => {
+  const days = 30
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const labels = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    labels.push(`${d.getMonth() + 1}/${d.getDate()}`)
+  }
+  const added = new Array(days).fill(0)
+  const reviewed = new Array(days).fill(0)
+  const idxOf = (ts) => {
+    if (!ts) return -1
+    const dt = new Date(ts * 1000)
+    dt.setHours(0, 0, 0, 0)
+    const diff = Math.round((today - dt) / 86400000)
+    return diff >= 0 && diff < days ? days - 1 - diff : -1
+  }
+  allWQ.value.forEach((q) => {
+    const ca = q.created_at ? new Date(String(q.created_at).replace(' ', 'T')).getTime() / 1000 : 0
+    const ai = idxOf(ca)
+    if (ai >= 0) added[ai]++
+    const ri = idxOf(q.last_review_at)
+    if (ri >= 0) reviewed[ri]++
+  })
+  return {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['录入错题', '完成复习'], bottom: 0, textStyle: { color: axisColor.value }, icon: 'roundRect' },
+    grid: { left: 8, right: 16, top: 24, bottom: 36, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      boundaryGap: false,
+      axisLabel: { color: axisColor.value, fontSize: 10, interval: 4 },
+      axisLine: { lineStyle: { color: splitColor.value } }
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: { color: axisColor.value },
+      splitLine: { lineStyle: { color: splitColor.value } }
+    },
+    series: [
+      {
+        name: '录入错题',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: added,
+        itemStyle: { color: accent.value },
+        areaStyle: { color: accent.value + '22' },
+        lineStyle: { width: 2 }
+      },
+      {
+        name: '完成复习',
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        data: reviewed,
+        itemStyle: { color: '#ff9f0a' },
+        areaStyle: { color: '#ff9f0a22' },
+        lineStyle: { width: 2 }
+      }
+    ]
+  }
+})
+
+// 薄弱点分布：学科 × 掌握度等级 矩阵热力图（越红=该学科在该等级错题越多=越薄弱）
+const heatLabelColor = computed(() => (isDark.value ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.72)'))
+const heatOption = computed(() => {
+  const subs = bySubject.value.map((s) => s.subject)
+  const cnt = {}
+  let max = 1
+  allWQ.value.forEach((q) => {
+    const s = q.subject || '其他'
+    const lvl = Math.max(0, Math.min(5, Number(q.mastery || 0)))
+    const k = `${s}|${lvl}`
+    cnt[k] = (cnt[k] || 0) + 1
+    if (cnt[k] > max) max = cnt[k]
+  })
+  const data = []
+  subs.forEach((s, yi) => {
+    for (let lvl = 0; lvl <= 5; lvl++) {
+      data.push([lvl, yi, cnt[`${s}|${lvl}`] || 0])
+    }
+  })
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      position: 'top',
+      formatter: (p) => `${subs[p.data[1]]} · ${MASTERY_LABELS[p.data[0]]}：<b>${p.data[2]}</b> 道`
+    },
+    grid: { left: 8, right: 16, top: 8, bottom: 56, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: MASTERY_LABELS,
+      splitArea: { show: true },
+      axisLabel: { color: axisColor.value, fontSize: 11 },
+      axisLine: { lineStyle: { color: splitColor.value } }
+    },
+    yAxis: {
+      type: 'category',
+      data: subs,
+      splitArea: { show: true },
+      axisLabel: { color: axisColor.value, fontSize: 11 },
+      axisLine: { lineStyle: { color: splitColor.value } }
+    },
+    visualMap: {
+      min: 0,
+      max,
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      itemWidth: 12,
+      itemHeight: 88,
+      textStyle: { color: axisColor.value },
+      inRange: { color: ['#f2f2f7', '#ffd60a', '#ff9f0a', '#ff453a'] }
+    },
+    series: [
+      {
+        type: 'heatmap',
+        data,
+        label: { show: true, color: heatLabelColor.value, fontSize: 11 },
+        itemStyle: { borderColor: 'rgba(255,255,255,0.45)', borderWidth: 1, borderRadius: 4 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } }
+      }
+    ]
+  }
+})
+
+// 近 30 天是否有任何录入/复习活动（决定是否显示折线，否则空态）
+const hasTrend = computed(() => {
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0)
+  return allWQ.value.some((q) => {
+    const ca = q.created_at ? new Date(String(q.created_at).replace(' ', 'T')).getTime() : 0
+    if (ca) {
+      const dt = new Date(ca); dt.setHours(0, 0, 0, 0)
+      if (Math.round((t0 - dt) / 86400000) < 30) return true
+    }
+    if (q.last_review_at) {
+      const dt = new Date(q.last_review_at * 1000); dt.setHours(0, 0, 0, 0)
+      if (Math.round((t0 - dt) / 86400000) < 30) return true
+    }
+    return false
+  })
+})
+
 const statCards = computed(() => [
   { label: '错题总数', value: stats.value.wrong, icon: BarChartOutline },
   { label: '待复习', value: stats.value.due, icon: AlarmOutline },
@@ -149,6 +307,7 @@ async function load() {
       api.profile()
     ])
     const list = wq.wrong_questions || []
+    allWQ.value = list
     stats.value.wrong = list.length
     due.value = dueRes.count || 0
     stats.value.due = dueRes.count || 0
@@ -242,6 +401,20 @@ onMounted(load)
           <n-card title="复习安排" :bordered="true">
             <v-chart v-if="stats.wrong" :option="pieOption" autoresize style="height: 280px" />
             <n-empty v-else description="暂无复习安排" style="padding: 64px 0" />
+          </n-card>
+        </n-grid-item>
+        <n-grid-item span="2 m:1">
+          <n-card title="近 30 天学习节奏" :bordered="true">
+            <template #header-extra><span class="card-hint">录入 vs 复习</span></template>
+            <v-chart v-if="hasTrend" :option="lineOption" autoresize style="height: 280px" />
+            <n-empty v-else description="近 30 天暂无学习记录" style="padding: 64px 0" />
+          </n-card>
+        </n-grid-item>
+        <n-grid-item span="2 m:1">
+          <n-card title="薄弱点分布" :bordered="true">
+            <template #header-extra><span class="card-hint">学科 × 掌握度</span></template>
+            <v-chart v-if="bySubject.length" :option="heatOption" autoresize style="height: 280px" />
+            <n-empty v-else description="暂无错题数据" style="padding: 64px 0" />
           </n-card>
         </n-grid-item>
         <n-grid-item span="2 m:1">
@@ -359,6 +532,11 @@ onMounted(load)
   color: var(--text-tertiary);
   padding: 20px 0;
   text-align: center;
+}
+.card-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 860px) {
