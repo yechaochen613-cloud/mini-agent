@@ -21,6 +21,7 @@ import time
 import threading
 import datetime
 import uuid
+import difflib
 
 from db import connect, q, exec, fetchall, fetchone, create_table_if_not_exists
 from documents import get_document
@@ -161,20 +162,14 @@ def update_profile(partial: dict, replace: bool = False) -> dict:
             if replace:
                 cur["weak_points"] = [str(x).strip() for x in v if str(x).strip()]
             else:
-                for w in v:
-                    ws = str(w).strip()
-                    if ws and ws not in cur["weak_points"]:
-                        cur["weak_points"].append(ws)
+                cur["weak_points"] = _merge_tags(cur.get("weak_points"), v)
         elif k == "strengths" and isinstance(v, list):
             if replace:
                 cur["strengths"] = [str(x).strip() for x in v if str(x).strip()]
             else:
-                for s in v:
-                    ss = str(s).strip()
-                    if ss and ss not in cur["strengths"]:
-                        cur["strengths"].append(ss)
+                cur["strengths"] = _merge_tags(cur.get("strengths"), v)
         elif k == "goals" and isinstance(v, list):
-            cur["goals"] = [str(x).strip() for x in v if str(x).strip()]
+            cur["goals"] = _merge_tags(cur.get("goals"), v)
         elif k in ("name", "grade"):
             cur[k] = str(v or "")
     # 同步试卷计数
@@ -572,24 +567,52 @@ def _merge_max_subjects(cur: dict, new: dict) -> None:
         subs[subj] = lvl if prev is None else max(int(prev), lvl)
 
 
+def _norm_tag(s: str) -> str:
+    """归一化标签：去空白与常见标点，便于比较近义表达。"""
+    return re.sub(r"[\s，。、；：,.!！?？（）()\-_]", "", str(s).lower())
+
+
+def _tag_redundant(a: str, b: str) -> bool:
+    """两条标签是否表达同一含义（完全相同 / 互为子串 / 相似度≥0.8）。"""
+    na, nb = _norm_tag(a), _norm_tag(b)
+    if not na or not nb:
+        return False
+    if na == nb:
+        return True
+    if na in nb or nb in na:
+        return True
+    return difflib.SequenceMatcher(None, na, nb).ratio() >= 0.8
+
+
+def _merge_tags(existing: list, candidates: list) -> list:
+    """追加标签并去重：近义变体合并，保留更长/更完整的那条。"""
+    out = list(existing or [])
+    for c in (candidates or []):
+        cs = str(c).strip()
+        if not cs:
+            continue
+        merged = False
+        for i, e in enumerate(out):
+            if _tag_redundant(cs, e):
+                # 保留信息量更大（归一化后更长）的一条
+                if len(_norm_tag(cs)) > len(_norm_tag(e)):
+                    out[i] = cs
+                merged = True
+                break
+        if not merged:
+            out.append(cs)
+    return out
+
+
 def ingest_learner_insights(insights: dict) -> dict:
     """把被动抽取的学情洞察合并进档案：掌握度取 max、标签去重追加、年级仅空缺时补。"""
     if not insights:
         return get_profile()
     cur = get_profile()
     _merge_max_subjects(cur, insights.get("subjects", {}))
-    for w in (insights.get("weak_points") or []):
-        ws = str(w).strip()
-        if ws and ws not in cur["weak_points"]:
-            cur["weak_points"].append(ws)
-    for s in (insights.get("strengths") or []):
-        ss = str(s).strip()
-        if ss and ss not in cur["strengths"]:
-            cur["strengths"].append(ss)
-    for g in (insights.get("goals") or []):
-        gs = str(g).strip()
-        if gs and gs not in cur["goals"]:
-            cur["goals"].append(gs)
+    cur["weak_points"] = _merge_tags(cur.get("weak_points"), insights.get("weak_points"))
+    cur["strengths"] = _merge_tags(cur.get("strengths"), insights.get("strengths"))
+    cur["goals"] = _merge_tags(cur.get("goals"), insights.get("goals"))
     gh = str(insights.get("grade_hint", "") or "").strip()
     if gh and not cur.get("grade"):
         cur["grade"] = gh
