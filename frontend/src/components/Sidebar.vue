@@ -13,7 +13,8 @@ import {
   SettingsOutline,
   LogOutOutline,
   TrashOutline,
-  TimeOutline
+  TimeOutline,
+  DiamondOutline
 } from '@vicons/ionicons5'
 import { store, switchView, openConversation, newChat, refreshConversations } from '../store.js'
 import { api } from '../api.js'
@@ -146,18 +147,27 @@ function openSettings() {
       <div v-else class="hist-empty">还没有对话记录</div>
     </div>
 
+    <!-- 升级会员 CTA -->
+    <button class="upgrade-cta" @click="store.showUpgrade = true">
+      <n-icon size="16"><DiamondOutline /></n-icon>
+      <span class="up-label">升级会员</span>
+      <span class="up-tag">PRO</span>
+    </button>
+
     <!-- 底部用户区 -->
     <div class="side-foot">
-      <div class="user-chip" @click="openSettings">
-        <div class="avatar">{{ initial }}</div>
-        <div class="u-name">{{ store.user?.username }}</div>
+      <div class="foot-row">
+        <div class="user-chip" @click="openSettings">
+          <div class="avatar">{{ initial }}</div>
+          <div class="u-name">{{ store.user?.username }}</div>
+        </div>
+        <button class="foot-btn" title="设置" @click="openSettings">
+          <n-icon size="18"><SettingsOutline /></n-icon>
+        </button>
+        <button class="foot-btn" title="退出登录" @click="emit('logout')">
+          <n-icon size="18"><LogOutOutline /></n-icon>
+        </button>
       </div>
-      <button class="foot-btn" title="设置" @click="openSettings">
-        <n-icon size="18"><SettingsOutline /></n-icon>
-      </button>
-      <button class="foot-btn" title="退出登录" @click="emit('logout')">
-        <n-icon size="18"><LogOutOutline /></n-icon>
-      </button>
     </div>
   </div>
 </template>
@@ -330,11 +340,50 @@ function openSettings() {
 }
 .side-foot {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   padding: 10px 6px 4px;
   border-top: 1px solid var(--border);
   margin-top: 8px;
+}
+.upgrade-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: linear-gradient(135deg, #6a5cff, #0071e3);
+  box-shadow: 0 6px 18px rgba(106, 92, 255, 0.35);
+  transition: transform 0.16s, box-shadow 0.16s, filter 0.16s;
+}
+.upgrade-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 22px rgba(106, 92, 255, 0.45);
+}
+.upgrade-cta:active {
+  transform: scale(0.98);
+}
+.up-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.foot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .user-chip {
   flex: 1;

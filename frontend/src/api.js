@@ -59,6 +59,13 @@ export const api = {
   // 对话（非流式兜底）
   chat: (payload) => ok(http.post('/chat', payload)),
 
+  // 语音识别：上传录音 blob，返回 { text }
+  stt: (blob) => {
+    const fd = new FormData()
+    fd.append('audio', blob, 'rec.webm')
+    return ok(http.post('/stt', fd))
+  },
+
   // 版本
   version: () => ok(http.get('/version'))
 }

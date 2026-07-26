@@ -24,6 +24,7 @@ import LibraryView from './components/LibraryView.vue'
 import ReviewMode from './components/ReviewMode.vue'
 import ReportView from './components/ReportView.vue'
 import SettingsDrawer from './components/SettingsDrawer.vue'
+import UpgradeModal from './components/UpgradeModal.vue'
 
 const drawerOpen = ref(false)
 
@@ -126,6 +127,7 @@ onMounted(boot)
             </div>
 
             <SettingsDrawer v-model:show="store.showSettings" />
+            <UpgradeModal v-model:show="store.showUpgrade" />
           </n-loading-bar-provider>
         </n-notification-provider>
       </n-dialog-provider>

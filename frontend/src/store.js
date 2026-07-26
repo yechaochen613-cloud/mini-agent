@@ -10,6 +10,7 @@ export const store = reactive({
   currentSessionId: null,
   currentTeacher: null, // 学科名 or null
   showSettings: false,
+  showUpgrade: false,
   loadNonce: 0, // 每次切换/加载会话自增，通知 ChatView 重新拉取
   pendingPrompt: null, // 召唤老师后待发送的提示
   settings: {
