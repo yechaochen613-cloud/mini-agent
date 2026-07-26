@@ -10,7 +10,7 @@
 #        -H "Content-Type: application/json" \
 #        -d '{"message": "帮我算 99*3，再记一条笔记：今天用 FastAPI 包了 Agent"}'
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -387,7 +387,7 @@ def document_compare(req: dict):
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_user)):
+def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_user), background_tasks: BackgroundTasks = None):
     # ---- hotfix5: 请求入口日志 ----
     req_id = str(uuid.uuid4())[:8]
     _write_chat_log({
@@ -457,6 +457,13 @@ def chat(req: ChatRequest, request: Request, user: dict = Depends(get_current_us
     history.append_message(session_id, "user", req.message or "", title=title, owner=owner)
     if not result.get("needs_review"):
         history.append_message(session_id, "bot", reply or "", steps, owner=owner)
+        # P2-1 被动学情采集：用户已收到回复，后台异步无感抽取并合并进档案（失败静默）
+        try:
+            if background_tasks is not None:
+                from tutor import maybe_extract_profile
+                background_tasks.add_task(maybe_extract_profile, session_id)
+        except Exception:
+            pass
         _write_chat_log({
             "t": datetime.now(timezone.utc).isoformat(), "id": req_id,
             "phase": "RESPONSE_B (normal)", "reply_type": type(reply).__name__,
@@ -996,7 +1003,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-26-report-pdf"
+DEPLOY_TAG = "2026-07-26-passive-profile"
 
 
 # ===== GitHub OAuth 授权流程 =====

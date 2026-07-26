@@ -17,11 +17,14 @@ import os
 import re
 import json
 import base64
+import time
+import threading
 import datetime
 import uuid
 
 from db import connect, q, exec, fetchall, fetchone, create_table_if_not_exists
 from documents import get_document
+from chat_history import get_recent_messages
 
 
 # ===== 学情档案默认结构 =====
@@ -521,3 +524,93 @@ def make_study_plan(goal: str = "", days: int = 14) -> str:
             "tips": [raw[:300] or "（生成计划失败，请稍后重试）"],
         }
     return json.dumps(plan, ensure_ascii=False)
+
+
+# ============================================================
+# P2-1 被动学情采集：对话后无感抽取 → 写档案
+# ============================================================
+
+_EXTRACT_SYSTEM = (
+    "你是一位学情抽取器。给定一段学生与 AI 家教的对话记录，请抽取可写入学情档案的洞察。\n"
+    "【只输出一个 JSON 对象】，不要任何解释文字。结构：\n"
+    "{\n"
+    "  \"subjects\": { \"学科名\": 掌握度0-100的整数 },   // 仅当对话明确反映出学生对某学科的掌握水平时填写，否则不填\n"
+    "  \"weak_points\": [\"薄弱知识点/易错类型\"],           // 对话暴露的学生不懂/易错点，2-5 条；无则不填\n"
+    "  \"strengths\": [\"优势知识点\"],                      // 对话体现的学生擅长点，0-3 条\n"
+    "  \"goals\": [\"学生表达的学习目标\"],                  // 学生明确说的目标，0-3 条\n"
+    "  \"grade_hint\": \"\"                                 // 若对话透露年级（如『我初三』）填如『初三』，否则空串\n"
+    "}\n"
+    "规则：只抽取对话【明确体现】的信息，不臆测；掌握度仅在能合理推断时给出"
+    "（学生说自己完全不会某章→给低分；熟练解题→给高分）；学科名用通用名（数学/语文/英语/物理/化学…）。"
+)
+
+_EXTRACT_LOCK = threading.Lock()
+_LAST_EXTRACT_TS = [0.0]          # 模块级共享，单实例节流
+_EXTRACT_MIN_INTERVAL = 45        # 秒：全局最小抽取间隔，避免风暴与抖动
+
+
+def extract_learner_insights(history_text: str) -> dict:
+    """用轻量模型从对话文本抽取学情洞察，返回结构化 dict；解析失败返回 {}。"""
+    if not history_text or not history_text.strip():
+        return {}
+    raw = ask_llm(_EXTRACT_SYSTEM, history_text, temperature=0.0, max_tokens=800)
+    return _extract_json(raw)
+
+
+def _merge_max_subjects(cur: dict, new: dict) -> None:
+    """被动采集：掌握度取较高值，避免被单次对话拉低。"""
+    subs = cur.get("subjects")
+    if not isinstance(subs, dict):
+        subs = {}
+        cur["subjects"] = subs
+    for subj, lvl in (new or {}).items():
+        try:
+            lvl = int(lvl)
+        except Exception:
+            continue
+        prev = subs.get(subj)
+        subs[subj] = lvl if prev is None else max(int(prev), lvl)
+
+
+def ingest_learner_insights(insights: dict) -> dict:
+    """把被动抽取的学情洞察合并进档案：掌握度取 max、标签去重追加、年级仅空缺时补。"""
+    if not insights:
+        return get_profile()
+    cur = get_profile()
+    _merge_max_subjects(cur, insights.get("subjects", {}))
+    for w in (insights.get("weak_points") or []):
+        ws = str(w).strip()
+        if ws and ws not in cur["weak_points"]:
+            cur["weak_points"].append(ws)
+    for s in (insights.get("strengths") or []):
+        ss = str(s).strip()
+        if ss and ss not in cur["strengths"]:
+            cur["strengths"].append(ss)
+    for g in (insights.get("goals") or []):
+        gs = str(g).strip()
+        if gs and gs not in cur["goals"]:
+            cur["goals"].append(gs)
+    gh = str(insights.get("grade_hint", "") or "").strip()
+    if gh and not cur.get("grade"):
+        cur["grade"] = gh
+    cur["papers_count"] = len(list_papers_raw())
+    return save_profile(cur)
+
+
+def maybe_extract_profile(session_id: str) -> None:
+    """被 /chat 的后台任务调用：节流后读取最近对话、抽取并合并进档案。全程容错静默。"""
+    if not session_id:
+        return
+    now = time.time()
+    with _EXTRACT_LOCK:
+        if now - _LAST_EXTRACT_TS[0] < _EXTRACT_MIN_INTERVAL:
+            return  # 节流：太频繁就跳过本轮
+        _LAST_EXTRACT_TS[0] = now
+    try:
+        msgs = get_recent_messages(session_id, limit=16)
+        text = "\n".join(f"[{m.get('role', '')}] {m.get('text', '')}" for m in msgs if m.get("text"))
+        insights = extract_learner_insights(text)
+        if insights:
+            ingest_learner_insights(insights)
+    except Exception:
+        pass  # 无感采集：任何失败都静默，绝不影响用户主流程
