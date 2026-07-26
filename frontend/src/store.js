@@ -4,7 +4,7 @@ import { api } from './api.js'
 // 轻量全局状态（跨组件共享）
 export const store = reactive({
   user: null, // { username, id }
-  view: 'chat', // chat | teachers | dashboard | library | review
+  view: 'chat', // chat | teachers | dashboard | library | review | report
   conversations: [],
   conversationsLoading: false,
   currentSessionId: null,

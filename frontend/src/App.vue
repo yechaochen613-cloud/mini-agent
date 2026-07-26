@@ -22,6 +22,7 @@ import TeacherPanel from './components/TeacherPanel.vue'
 import DashboardView from './components/DashboardView.vue'
 import LibraryView from './components/LibraryView.vue'
 import ReviewMode from './components/ReviewMode.vue'
+import ReportView from './components/ReportView.vue'
 import SettingsDrawer from './components/SettingsDrawer.vue'
 
 const drawerOpen = ref(false)
@@ -120,6 +121,7 @@ onMounted(boot)
                 <DashboardView v-else-if="store.view === 'dashboard'" />
                 <LibraryView v-else-if="store.view === 'library'" />
                 <ReviewMode v-else-if="store.view === 'review'" />
+                <ReportView v-else-if="store.view === 'report'" />
               </main>
             </div>
 
@@ -187,6 +189,55 @@ onMounted(boot)
   .mobile-title {
     font-weight: 600;
     font-size: 16px;
+  }
+}
+</style>
+
+<!-- 全局打印样式：导出 PDF 时仅保留报告正文 -->
+<style>
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  /* 隐藏应用外壳 */
+  .sidebar,
+  .mobile-topbar,
+  .mobile-only,
+  .no-print,
+  .n-drawer {
+    display: none !important;
+  }
+  .app-shell {
+    display: block !important;
+  }
+  .main-area {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  /* 报告容器铺满 */
+  .report-wrap {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .report-document {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .rp-section {
+    page-break-inside: avoid;
+  }
+  .rp-wq {
+    page-break-inside: avoid;
   }
 }
 </style>
