@@ -4,7 +4,6 @@ import { useMessage, NIcon } from 'naive-ui'
 import {
   SunnyOutline,
   MoonOutline,
-  ContrastOutline,
   SparklesOutline,
   DocumentTextOutline,
   SchoolOutline,
@@ -12,7 +11,7 @@ import {
 } from '@vicons/ionicons5'
 import { store, refreshConversations } from '../store.js'
 import { api, streamChat } from '../api.js'
-import { themeMode, setTheme } from '../theme.js'
+import { themeMode, setTheme, isDark } from '../theme.js'
 import { TEACHERS } from '../teachers.js'
 import MessageBubble from './MessageBubble.vue'
 import Composer from './Composer.vue'
@@ -32,11 +31,7 @@ const title = computed(() => {
   return c?.title || '对话'
 })
 
-const themeIcon = computed(() => {
-  if (themeMode.value === 'dark') return MoonOutline
-  if (themeMode.value === 'light') return SunnyOutline
-  return ContrastOutline
-})
+const themeIcon = computed(() => (isDark.value ? MoonOutline : SunnyOutline))
 
 const suggestions = [
   { icon: SchoolOutline, text: '帮我讲解一道数学题' },
@@ -241,8 +236,7 @@ function onReview(decision) {
 }
 
 function cycleTheme() {
-  const next = themeMode.value === 'light' ? 'dark' : themeMode.value === 'dark' ? 'system' : 'light'
-  setTheme(next)
+  setTheme(themeMode.value === 'dark' ? 'light' : 'dark')
 }
 
 function onSuggestion(text) {
@@ -261,7 +255,7 @@ watch(
     <!-- 顶部条 -->
     <header class="chat-header">
       <div class="ch-title">{{ title }}</div>
-      <button class="theme-toggle" :title="`主题：${themeMode}`" @click="cycleTheme">
+      <button class="theme-toggle" :title="isDark ? '切换为浅色模式' : '切换为深色模式'" @click="cycleTheme">
         <n-icon size="19"><component :is="themeIcon" /></n-icon>
       </button>
     </header>
