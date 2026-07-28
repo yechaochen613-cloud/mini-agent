@@ -1003,7 +1003,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-26-theme-toggle-one-click"
+DEPLOY_TAG = "2026-07-28-rag-autoretrieve"
 
 
 # ===== GitHub OAuth 授权流程 =====

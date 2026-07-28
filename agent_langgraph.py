@@ -652,6 +652,21 @@ class Agent:
                 "\n\n以下是你之前记住的、可能与当前对话相关的信息，请善加利用：\n"
                 + mem_ctx
             )
+
+        # RAG（方案A·关键词检索，零新依赖）：自动召回与用户问题相关的文档片段并注入上下文，
+        # 让普通对话也能直接吃知识库，不依赖 LLM 主动调用搜索工具。命中才注入，避免噪声。
+        if user_input:
+            try:
+                rag = TOOL_FUNCTIONS.get("search_uploaded_documents")
+                if rag:
+                    hit = rag(user_input, top_k=4)
+                    if hit and hit.startswith("跨文档检索"):
+                        system_content += (
+                            "\n\n以下是与用户问题相关的已上传文档片段，回答时优先参考，"
+                            "并在引用处自然注明来源（如「根据《文档名》…」）：\n" + hit
+                        )
+            except Exception:
+                pass
         # 角色人设 + 回答风格（来自前端的 persona / style 字段）
         extra = []
         persona_line = _persona_line(persona)
