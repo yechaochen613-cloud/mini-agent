@@ -558,6 +558,8 @@ def _summarize(doc):
         "tables": len(doc["tables"]), "chunks": len(doc["chunks"]),
         "clauses": len(doc["clauses"]), "headings": len(doc["structure"]),
         "notes": doc.get("notes", ""), "ocr": doc.get("ocr", False),
+        "refs": doc.get("refs", 0),
+        "size": doc.get("size"),
     }
 
 
@@ -602,6 +604,54 @@ def delete_document(doc_id):
         except Exception:
             pass
     return True
+
+
+def retrieve_for_injection(query, top_k=4):
+    """结构化检索：返回与问题最相关的文档片段列表（含 doc_id），用于对话前注入上下文。
+    无文档或无命中返回 []。"""
+    docs = _load_docs()
+    if not docs:
+        return []
+    q = _doc_vec(query)
+    scored = []
+    for doc in docs.values():
+        for ch in doc["chunks"]:
+            s = _cosine(q, _doc_vec(ch["text"]))
+            if s > 0:
+                scored.append((s, doc["id"], doc["name"], ch))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    if not scored:
+        return []
+    # 关键词向量相似度分布偏低，用较松的阈值
+    thr = 0.04
+    top = [x for x in scored if x[0] >= thr][:top_k]
+    if not top:
+        top = scored[:top_k]
+    out = []
+    for s, did, name, ch in top:
+        bc = " > ".join(ch.get("headings", [])[-3:]) if ch.get("headings") else ""
+        out.append({
+            "doc_id": did,
+            "doc_name": name,
+            "score": round(s, 3),
+            "headings": bc,
+            "text": ch["text"][:600].replace("\n", " "),
+        })
+    return out
+
+
+def increment_doc_refs(doc_ids):
+    """知识库「被引用次数」+1（用于前端展示）。去重后批量累加，静默容错。"""
+    if not doc_ids:
+        return
+    docs = _load_docs()
+    changed = False
+    for did in set(doc_ids):
+        if did in docs:
+            docs[did]["refs"] = docs[did].get("refs", 0) + 1
+            changed = True
+    if changed:
+        _save_docs(docs)
 
 
 def read_document(doc_id, max_chars=4000):

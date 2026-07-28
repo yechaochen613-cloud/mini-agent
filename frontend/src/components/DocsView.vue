@@ -1,12 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { NIcon, NEmpty, NPopconfirm, useMessage } from 'naive-ui'
 import {
   FolderOutline,
   LinkOutline,
   CloudUploadOutline,
   TrashOutline,
-  DocumentOutline
+  DocumentOutline,
+  SearchOutline
 } from '@vicons/ionicons5'
 import { api } from '../api.js'
 
@@ -17,12 +18,21 @@ const loading = ref(false)
 const urlText = ref('')
 const importingUrl = ref(false)
 const fileInputRef = ref(null)
+const searchText = ref('')
+const isDragging = ref(false)
+let dragCounter = 0
 
 const TYPE_LABEL = {
   pdf: 'PDF', docx: 'Word', xlsx: 'Excel', pptx: 'PPT',
   csv: 'CSV', html: '网页', md: 'Markdown', txt: '文本',
   json: 'JSON', image: '图片'
 }
+
+const filteredDocs = computed(() => {
+  const q = searchText.value.trim().toLowerCase()
+  if (!q) return docs.value
+  return docs.value.filter((d) => (d.name || '').toLowerCase().includes(q))
+})
 
 async function loadDocs() {
   loading.value = true
@@ -41,6 +51,18 @@ function fmtSize(n) {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
   return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
+
+async function handleFiles(files) {
+  if (!files || !files.length) return
+  try {
+    const res = await api.upload(Array.from(files))
+    const n = res.uploaded || 0
+    message.success(`已上传 ${n} 篇文档，已加入知识库`)
+    await loadDocs()
+  } catch (err) {
+    message.error('文档上传失败')
+  }
 }
 
 async function onImportUrl() {
@@ -69,17 +91,31 @@ function triggerFile() {
 
 async function onPickFiles(e) {
   const files = e.target.files
-  if (!files || !files.length) return
-  try {
-    const res = await api.upload(Array.from(files))
-    const n = res.uploaded || 0
-    message.success(`已上传 ${n} 篇文档，已加入知识库`)
-    await loadDocs()
-  } catch (err) {
-    message.error('文档上传失败')
-  } finally {
-    e.target.value = ''
+  await handleFiles(files)
+  e.target.value = ''
+}
+
+function onDragEnter(e) {
+  e.preventDefault()
+  dragCounter++
+  isDragging.value = true
+}
+
+function onDragLeave(e) {
+  e.preventDefault()
+  dragCounter--
+  if (dragCounter <= 0) {
+    dragCounter = 0
+    isDragging.value = false
   }
+}
+
+function onDrop(e) {
+  e.preventDefault()
+  dragCounter = 0
+  isDragging.value = false
+  const files = e.dataTransfer?.files
+  handleFiles(files)
 }
 
 async function onDelete(id) {
@@ -107,8 +143,15 @@ onMounted(loadDocs)
       </div>
     </header>
 
-    <!-- 导入区 -->
-    <section class="kb-import kb-glass">
+    <!-- 导入区（支持拖拽） -->
+    <section
+      class="kb-import kb-glass"
+      :class="{ 'drag-over': isDragging }"
+      @dragenter="onDragEnter"
+      @dragleave="onDragLeave"
+      @dragover.prevent
+      @drop="onDrop"
+    >
       <div class="import-row">
         <n-icon size="18" class="import-ico"><LinkOutline /></n-icon>
         <input
@@ -123,7 +166,7 @@ onMounted(loadDocs)
         </button>
       </div>
       <div class="import-row alt">
-        <span class="import-hint">或上传本地文件：PDF / Word / Excel / PPT / CSV / Markdown / 图片 等</span>
+        <span class="import-hint">或把文件拖到这里 / 点击选择：PDF · Word · Excel · PPT · CSV · Markdown · 图片 等</span>
         <button class="upload-btn" @click="triggerFile">
           <n-icon size="16"><CloudUploadOutline /></n-icon>
           <span>选择文件</span>
@@ -137,17 +180,32 @@ onMounted(loadDocs)
           @change="onPickFiles"
         />
       </div>
+      <div v-if="isDragging" class="drop-hint">松手即可上传到知识库</div>
     </section>
+
+    <!-- 工具栏：搜索 + 计数 -->
+    <div class="kb-toolbar">
+      <div class="search-box">
+        <n-icon size="16" class="search-ico"><SearchOutline /></n-icon>
+        <input
+          v-model="searchText"
+          class="search-input"
+          type="text"
+          placeholder="按文档名搜索…"
+        />
+      </div>
+      <span class="kb-count">{{ filteredDocs.length }} 篇</span>
+    </div>
 
     <!-- 列表 -->
     <section class="kb-list">
       <n-empty
-        v-if="!loading && docs.length === 0"
-        description="知识库还是空的，先上传或导入一些资料吧"
+        v-if="!loading && filteredDocs.length === 0"
+        :description="searchText ? '没有匹配的文档' : '知识库还是空的，先上传或导入一些资料吧'"
         class="kb-empty"
       />
       <div v-else class="doc-grid">
-        <div v-for="d in docs" :key="d.id" class="doc-row kb-glass">
+        <div v-for="d in filteredDocs" :key="d.id" class="doc-row kb-glass">
           <div class="doc-icon"><n-icon size="20"><DocumentOutline /></n-icon></div>
           <div class="doc-main">
             <div class="doc-name" :title="d.name">{{ d.name }}</div>
@@ -156,6 +214,7 @@ onMounted(loadDocs)
               <span>{{ d.chunks }} 块</span>
               <span>{{ d.chars }} 字</span>
               <span v-if="d.size">· {{ fmtSize(d.size) }}</span>
+              <span v-if="d.refs" class="refs">· 被引用 {{ d.refs }} 次</span>
             </div>
           </div>
           <n-popconfirm
@@ -217,11 +276,27 @@ onMounted(loadDocs)
 }
 
 .kb-import {
+  position: relative;
   padding: 16px 18px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.kb-import.drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: var(--accent-soft);
+}
+.drop-hint {
+  position: absolute;
+  inset: auto 0 8px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--accent);
+  font-weight: 600;
+  pointer-events: none;
 }
 .import-row {
   display: flex;
@@ -299,6 +374,49 @@ onMounted(loadDocs)
   display: none;
 }
 
+.kb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 320px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.search-ico {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.kb-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .kb-empty {
   padding: 70px 0;
 }
@@ -344,6 +462,7 @@ onMounted(loadDocs)
   margin-top: 4px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 12px;
   color: var(--text-secondary);
@@ -353,6 +472,10 @@ onMounted(loadDocs)
   border-radius: 999px;
   background: var(--bg-hover);
   color: var(--text-secondary);
+  font-weight: 600;
+}
+.doc-meta .refs {
+  color: var(--accent);
   font-weight: 600;
 }
 .doc-del {
@@ -385,6 +508,9 @@ onMounted(loadDocs)
   }
   .upload-btn {
     justify-content: center;
+  }
+  .search-box {
+    max-width: none;
   }
 }
 </style>
