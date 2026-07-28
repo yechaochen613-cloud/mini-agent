@@ -21,6 +21,7 @@ import ChatView from './components/ChatView.vue'
 import TeacherPanel from './components/TeacherPanel.vue'
 import DashboardView from './components/DashboardView.vue'
 import LibraryView from './components/LibraryView.vue'
+import DocsView from './components/DocsView.vue'
 import ReviewMode from './components/ReviewMode.vue'
 import ReportView from './components/ReportView.vue'
 import SettingsDrawer from './components/SettingsDrawer.vue'
@@ -121,6 +122,7 @@ onMounted(boot)
                 <TeacherPanel v-else-if="store.view === 'teachers'" />
                 <DashboardView v-else-if="store.view === 'dashboard'" />
                 <LibraryView v-else-if="store.view === 'library'" />
+                <DocsView v-else-if="store.view === 'docs'" />
                 <ReviewMode v-else-if="store.view === 'review'" />
                 <ReportView v-else-if="store.view === 'report'" />
               </main>

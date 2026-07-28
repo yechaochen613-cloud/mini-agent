@@ -588,6 +588,22 @@ def get_document(doc_id):
     return docs.get(doc_id)
 
 
+def delete_document(doc_id):
+    """从文档库删除指定文档（dict.pop + 存盘），并清理 uploads 下的源文件。返回是否删除成功。"""
+    docs = _load_docs()
+    if doc_id not in docs:
+        return False
+    doc = docs.pop(doc_id)
+    _save_docs(docs)
+    src = doc.get("path")
+    if src and os.path.exists(src):
+        try:
+            os.remove(src)
+        except Exception:
+            pass
+    return True
+
+
 def read_document(doc_id, max_chars=4000):
     doc = get_document(doc_id)
     if not doc:

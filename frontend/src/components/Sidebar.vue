@@ -7,6 +7,7 @@ import {
   PeopleOutline,
   BarChartOutline,
   LibraryOutline,
+  FolderOutline,
   RefreshOutline,
   CreateOutline,
   DocumentTextOutline,
@@ -28,6 +29,7 @@ const navItems = [
   { key: 'teachers', label: '名师', icon: PeopleOutline },
   { key: 'dashboard', label: '学情看板', icon: BarChartOutline },
   { key: 'library', label: '学习库', icon: LibraryOutline },
+  { key: 'docs', label: '知识库', icon: FolderOutline },
   { key: 'review', label: '复习', icon: RefreshOutline },
   { key: 'report', label: '报告', icon: DocumentTextOutline }
 ]

@@ -52,7 +52,7 @@ logger = logging.getLogger("api")
 from documents import (
     ingest_file, ingest_url, list_documents, list_document_summaries,
     get_document, read_document, extract_tables, extract_clauses,
-    search_documents, compare_documents,
+    search_documents, compare_documents, delete_document,
 )
 import chat_history as history
 from storage import UPLOAD_DIR, DATA_DIR
@@ -384,6 +384,15 @@ def document_compare(req: dict):
     b = req.get("b", "")
     topic = req.get("topic")
     return {"result": compare_documents(a, b, topic=topic)}
+
+
+@app.delete("/documents/{doc_id}")
+def document_delete(doc_id: str):
+    """删除指定文档（含清理 uploads 源文件）。不存在返回 404。"""
+    ok = delete_document(doc_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {"deleted": doc_id, "ok": True}
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -1003,7 +1012,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-28-rag-autoretrieve"
+DEPLOY_TAG = "2026-07-28-kb-manage"
 
 
 # ===== GitHub OAuth 授权流程 =====

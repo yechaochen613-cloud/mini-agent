@@ -30,6 +30,10 @@ export const api = {
     if (url) fd.append('url', url)
     return ok(http.post('/upload', fd))
   },
+  // 文档库列表
+  documents: () => ok(http.get('/documents')),
+  // 删除文档
+  deleteDocument: (id) => ok(http.delete(`/documents/${id}`)),
 
   // 学情档案
   profile: () => ok(http.get('/profile')),
