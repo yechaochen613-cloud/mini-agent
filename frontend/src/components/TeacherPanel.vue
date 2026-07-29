@@ -11,14 +11,14 @@ import { summonTeacher } from '../store.js'
       <div class="ph-icon"><n-icon size="22" color="var(--accent)"><PeopleOutline /></n-icon></div>
       <div>
         <h1 class="ph-title">名师分诊台</h1>
-        <p class="ph-sub">选择学科老师，进入针对性的辅导对话</p>
+        <p class="ph-sub">选择学科名师，进入针对性的辅导对话——每位老师都有专属性格与教学风格</p>
       </div>
     </header>
 
     <div class="teacher-grid">
       <div
         v-for="t in TEACHERS"
-        :key="t.subject"
+        :key="t.id"
         class="teacher-card"
         :style="{ '--c1': t.color1, '--c2': t.color2 }"
         v-motion="{
@@ -29,16 +29,25 @@ import { summonTeacher } from '../store.js'
         <div class="tc-top">
           <div class="tc-avatar"><n-icon size="24" color="#1d1d1f"><component :is="t.icon" /></n-icon></div>
           <div class="tc-info">
-            <div class="tc-name">{{ t.name }}</div>
-            <div class="tc-tags">
-              <span v-for="tag in t.tags" :key="tag" class="tc-tag">{{ tag }}</span>
+            <div class="tc-name">
+              {{ t.name }}
+              <span class="tc-subject">{{ t.subject }}</span>
             </div>
+            <div class="tc-personality">{{ t.personality }}</div>
           </div>
         </div>
-        <div class="tc-desc">{{ t.desc }}</div>
+
+        <div class="tc-bio">{{ t.bio }}</div>
+
+        <div class="tc-row">
+          <span class="tc-label">教学风格</span>
+          <span class="tc-style">{{ t.style }}</span>
+        </div>
+
         <div class="tc-skills">
           <span v-for="s in t.skills" :key="s" class="tc-skill">{{ s }}</span>
         </div>
+
         <button class="tc-call" @click="summonTeacher(t)">
           <span>召唤老师</span>
           <n-icon size="16"><ArrowForwardOutline /></n-icon>
@@ -82,7 +91,7 @@ import { summonTeacher } from '../store.js'
 }
 .teacher-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 16px;
   max-width: 1180px;
 }
@@ -115,29 +124,57 @@ import { summonTeacher } from '../store.js'
   justify-content: center;
   flex-shrink: 0;
 }
+.tc-info {
+  min-width: 0;
+}
 .tc-name {
   font-size: 16px;
   font-weight: 700;
-}
-.tc-tags {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 5px;
+  align-items: baseline;
+  gap: 7px;
 }
-.tc-tag {
+.tc-subject {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.tc-personality {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1d1d1f;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  border-radius: 7px;
+  padding: 2px 9px;
+  width: fit-content;
+}
+.tc-bio {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.62;
+  margin: 14px 0 10px;
+}
+.tc-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+.tc-label {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text-tertiary);
   font-size: 11px;
-  color: var(--text-secondary);
-  background: var(--bg-hover);
-  border-radius: 6px;
-  padding: 1px 7px;
+  padding-top: 1px;
 }
-.tc-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 14px 0;
-  flex: 1;
+.tc-style {
+  color: var(--text);
 }
 .tc-skills {
   display: flex;

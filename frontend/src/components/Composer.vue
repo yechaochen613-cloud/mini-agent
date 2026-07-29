@@ -162,7 +162,7 @@ onBeforeUnmount(stopVoice)
     <div v-if="activeTeacher" class="teacher-bar">
       <div class="tc-chip active" :style="{ '--c1': activeTeacher.color1, '--c2': activeTeacher.color2 }">
         <n-icon size="16"><component :is="activeTeacher.icon" /></n-icon>
-        <span>{{ activeTeacher.subject }}老师</span>
+        <span>{{ activeTeacher.name }}</span>
         <button class="tc-exit" @click="emit('clearTeacher')" aria-label="退出学科">
           <n-icon size="13"><CloseOutline /></n-icon>
         </button>

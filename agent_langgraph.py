@@ -48,6 +48,8 @@ from langchain_core.tools import StructuredTool
 from tools import TOOL_FUNCTIONS, TOOL_SCHEMAS
 from memory import relevant_context
 from documents import retrieve_for_injection, increment_doc_refs
+# 具体名师人设（九大学科虚拟名师）：召唤老师时 persona 传名师 id，这里查表注入丰满人设
+from teachers import get_teacher_by_id
 
 # ===== 家教模式（TUTOR_MODE）：开启后把系统人设切换为 K12 私教 =====
 # 提示词放在 prompts/tutor.md，启动时一次性读取缓存。
@@ -119,6 +121,24 @@ _STYLE_INSTR = {
 
 
 def _persona_line(persona):
+    # ★ 名师 id 优先：注入具体名师人设（含该学科教学哲学），而非抽象学科标签
+    t = get_teacher_by_id(persona)
+    if t:
+        parts = [t["system_prompt"]]
+        parts.append(
+            "分诊原则：先用 1-2 句话诊断学生真实的困惑点（是哪类题、哪个知识点卡住），"
+            "再针对性讲解；不要一上来就给完整答案，先引导、再点拨、最后总结方法。"
+        )
+        try:
+            from tutor import subject_triage
+            triage = subject_triage(t["subject"])
+            brief = _format_triage(triage) if triage else ""
+            if brief:
+                parts.append(brief)
+        except Exception as _e:
+            logger.warning("[triage] 读取学情档案失败（已忽略）: %s", _e)
+        return "\n".join(parts)
+    # 兼容旧逻辑：学科名 → 抽象学科哲学（前端若仍以学科名召唤时走此分支）
     if persona in _SUBJECT_TEACHERS:
         philosophy = _SUBJECT_PHILOSOPHY.get(persona, "")
         # 联动 TUTOR_MODE 学情档案：按学科分诊，让老师按学生真实水平因材施教

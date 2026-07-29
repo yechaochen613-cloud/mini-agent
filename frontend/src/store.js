@@ -44,7 +44,8 @@ export function newChat() {
 }
 
 export function summonTeacher(teacher) {
-  store.currentTeacher = teacher.subject
+  // 存名师 id（传给后端 persona 时命中 teachers.py 的具体人设），不再存学科名
+  store.currentTeacher = teacher.id
   store.pendingPrompt = teacher.prompt
   store.view = 'chat'
   store.loadNonce++
