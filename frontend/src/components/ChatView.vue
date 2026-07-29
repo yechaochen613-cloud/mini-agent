@@ -12,7 +12,7 @@ import {
 import { store, refreshConversations } from '../store.js'
 import { api, streamChat } from '../api.js'
 import { themeMode, setTheme, isDark } from '../theme.js'
-import { TEACHERS } from '../teachers.js'
+import { TEACHERS, findTeacher } from '../teachers.js'
 import MessageBubble from './MessageBubble.vue'
 import Composer from './Composer.vue'
 import BotAvatar from './BotAvatar.vue'
@@ -73,11 +73,26 @@ async function loadConversation() {
   }
   loadingHist.value = false
   scrollToBottom()
-  // 召唤老师后的待发提示
+  // 召唤老师后的待发提示（兼容旧入口）
   if (store.pendingPrompt) {
     const p = store.pendingPrompt
     store.pendingPrompt = null
     send(p)
+  }
+
+  // 召唤具体名师后，自动以老师身份插入开场白（老师先说）
+  if (store.teacherGreetingPending) {
+    store.teacherGreetingPending = false
+    const teacher = findTeacher(store.currentTeacher)
+    if (teacher?.greeting) {
+      messages.value.push({
+        role: 'bot',
+        text: teacher.greeting,
+        time: nowTime(),
+        streaming: false
+      })
+      scrollToBottom()
+    }
   }
 }
 

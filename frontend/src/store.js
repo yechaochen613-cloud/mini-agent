@@ -8,11 +8,12 @@ export const store = reactive({
   conversations: [],
   conversationsLoading: false,
   currentSessionId: null,
-  currentTeacher: null, // 学科名 or null
+  currentTeacher: null, // 名师 id or null
   showSettings: false,
   showUpgrade: false,
   loadNonce: 0, // 每次切换/加载会话自增，通知 ChatView 重新拉取
-  pendingPrompt: null, // 召唤老师后待发送的提示
+  pendingPrompt: null, // 待发送的提示
+  teacherGreetingPending: false, // 召唤老师后需要自动插入老师开场白
   settings: {
     model: localStorage.getItem('ma_model') || '1.0',
     persona: localStorage.getItem('ma_persona') || 'tutor',
@@ -44,9 +45,11 @@ export function newChat() {
 }
 
 export function summonTeacher(teacher) {
-  // 存名师 id（传给后端 persona 时命中 teachers.py 的具体人设），不再存学科名
+  // 存名师 id（传给后端 persona 时命中 teachers.py 的具体人设），并开启新对话
+  store.currentSessionId = null
   store.currentTeacher = teacher.id
-  store.pendingPrompt = teacher.prompt
+  store.pendingPrompt = null
+  store.teacherGreetingPending = true
   store.view = 'chat'
   store.loadNonce++
 }
