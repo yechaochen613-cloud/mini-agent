@@ -944,7 +944,7 @@ def diagnose_route(req: DiagnosisGenerate):
     except HTTPException:
         raise
     except Exception as e:
-        raise _fail(500, "生成诊断卷失败，请稍后重试", e)
+        raise _fail(500, f"生成诊断卷失败：{type(e).__name__}: {str(e)[:400]}", None)
 
 
 @app.post("/diagnose/submit")
