@@ -75,6 +75,9 @@ export const api = {
   diagnose: (subject, grade, count) => ok(http.post('/diagnose', { subject, grade, count })),
   submitDiagnosis: (payload) => ok(http.post('/diagnose/submit', payload)),
 
+  // 针对性练习（Phase 2：薄弱点 → 练习 + 名师讲解）
+  practice: (payload) => ok(http.post('/practice', payload)),
+
   // 版本
   version: () => ok(http.get('/version'))
 }

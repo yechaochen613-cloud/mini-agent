@@ -918,6 +918,13 @@ class DiagnosisSubmit(BaseModel):
     answers: list = []     # [{id, choice}] 用户作答
 
 
+class PracticeGenerate(BaseModel):
+    subject: str = "数学"
+    grade: str = "八年级"
+    focus_points: list = []   # 薄弱点（知识点 id 或名称）；为空则自动取档案薄弱点
+    count: int = 6
+
+
 @app.get("/curriculum")
 def curriculum_route(subject: str = "数学", grade: str = "八年级"):
     """获取知识点图谱（章节→知识点）。当前仅开放：数学·八年级。"""
@@ -958,6 +965,21 @@ def diagnose_submit_route(req: DiagnosisSubmit):
         return result
     except Exception as e:
         raise _fail(500, "批改诊断失败，请稍后重试", e)
+
+
+@app.post("/practice")
+def practice_route(req: PracticeGenerate):
+    """生成针对性练习（薄弱点巩固 + 名师讲解）。focus_points 为空则自动取档案薄弱点。"""
+    from exercises import generate_practice
+    try:
+        data = generate_practice(req.subject, req.grade, req.focus_points, req.count)
+        if not data:
+            raise _fail(400, f"暂不支持 {req.subject}{req.grade} 的练习，当前仅开放数学·八年级")
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _fail(500, "生成练习失败，请稍后重试", e)
 
 
 # ===== 定时任务（Schedules） =====
@@ -1068,7 +1090,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-30-phase1-diagnosis-fix3"
+DEPLOY_TAG = "2026-07-30-phase2-practice-v1"
 
 
 # ===== GitHub OAuth 授权流程 =====

@@ -25,6 +25,7 @@ import DocsView from './components/DocsView.vue'
 import ReviewMode from './components/ReviewMode.vue'
 import ReportView from './components/ReportView.vue'
 import DiagnosisView from './components/DiagnosisView.vue'
+import PracticeView from './components/PracticeView.vue'
 import SettingsDrawer from './components/SettingsDrawer.vue'
 import UpgradeModal from './components/UpgradeModal.vue'
 
@@ -127,6 +128,7 @@ onMounted(boot)
                 <ReviewMode v-else-if="store.view === 'review'" />
                 <ReportView v-else-if="store.view === 'report'" />
                 <DiagnosisView v-else-if="store.view === 'diagnosis'" />
+                <PracticeView v-else-if="store.view === 'practice'" />
               </main>
             </div>
 
