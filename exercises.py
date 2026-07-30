@@ -49,8 +49,13 @@ def generate_diagnosis(subject: str, grade: str, count: int = 12, seed=None) -> 
 
 
 def _try_llm(subject: str, grade: str, chosen: list) -> list:
-    """用大模型按抽样知识点出题；任何异常/解析失败返回空（交由兜底）。"""
-    if _mock():
+    """用大模型按抽样知识点出题；任何异常/解析失败返回空（交由兜底）。
+
+    与 api.py 的 Agent 一致：只要配置了真实密钥就走真模型，忽略 MOCK 开关，
+    保证线上（即便 MOCK=true）也能用 LLM 生成有变化的题目；无密钥/失败则回退兜底。
+    """
+    _real_cfg = bool(os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_BASE_URL"))
+    if _mock() and not _real_cfg:
         return []
     try:
         topics = "\n".join(f"- id:{p['id']} 知识点:{p['name']}" for p in chosen)
