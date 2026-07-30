@@ -904,6 +904,62 @@ def study_plan_route(req: PlanCreate):
         raise _fail(500, "生成计划失败，请稍后重试", e)
 
 
+# ===== 诊断闭环（Phase 1：数学·八年级） =====
+class DiagnosisGenerate(BaseModel):
+    subject: str = "数学"
+    grade: str = "八年级"
+    count: int = 12
+
+
+class DiagnosisSubmit(BaseModel):
+    subject: str = "数学"
+    grade: str = "八年级"
+    questions: list = []   # 回传生成时的题目（含 answer），用于本地判分
+    answers: list = []     # [{id, choice}] 用户作答
+
+
+@app.get("/curriculum")
+def curriculum_route(subject: str = "数学", grade: str = "八年级"):
+    """获取知识点图谱（章节→知识点）。当前仅开放：数学·八年级。"""
+    from curriculum import get_curriculum, list_supported
+    supported = list_supported()
+    if (subject, grade) not in {(s["subject"], s["grade"]) for s in supported}:
+        return {"supported": supported, "chapters": [], "points_count": 0}
+    chapters = get_curriculum(subject, grade)
+    pts = sum(len(c.get("points", [])) for c in chapters)
+    return {"supported": supported, "chapters": chapters, "points_count": pts}
+
+
+@app.post("/diagnose")
+def diagnose_route(req: DiagnosisGenerate):
+    """生成诊断卷（LLM 出题，离线用内置题库兜底）。"""
+    from exercises import generate_diagnosis
+    from curriculum import list_supported
+    try:
+        data = generate_diagnosis(req.subject, req.grade, req.count)
+        if not data:
+            sup = "、".join(f"{s['subject']}{s['grade']}" for s in list_supported())
+            raise _fail(400, f"暂不支持 {req.subject}{req.grade} 的诊断，当前仅开放：{sup}")
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _fail(500, "生成诊断卷失败，请稍后重试", e)
+
+
+@app.post("/diagnose/submit")
+def diagnose_submit_route(req: DiagnosisSubmit):
+    """提交诊断作答：本地判分 + 聚合薄弱点画像并写回学情档案。"""
+    from exercises import grade_diagnosis
+    try:
+        result = grade_diagnosis(
+            req.subject, req.grade, req.questions, req.answers, write_profile=True
+        )
+        return result
+    except Exception as e:
+        raise _fail(500, "批改诊断失败，请稍后重试", e)
+
+
 # ===== 定时任务（Schedules） =====
 class ScheduleCreate(BaseModel):
     title: str = "定时任务"
@@ -1012,7 +1068,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-29-teacher-greeting-v2"
+DEPLOY_TAG = "2026-07-30-phase1-diagnosis"
 
 
 # ===== GitHub OAuth 授权流程 =====

@@ -70,6 +70,11 @@ export const api = {
     return ok(http.post('/stt', fd))
   },
 
+  // 诊断闭环（Phase 1：数学·八年级）
+  curriculum: (subject, grade) => ok(http.get('/curriculum', { params: { subject, grade } })),
+  diagnose: (subject, grade, count) => ok(http.post('/diagnose', { subject, grade, count })),
+  submitDiagnosis: (payload) => ok(http.post('/diagnose/submit', payload)),
+
   // 版本
   version: () => ok(http.get('/version'))
 }

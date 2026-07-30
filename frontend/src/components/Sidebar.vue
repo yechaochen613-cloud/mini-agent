@@ -11,6 +11,7 @@ import {
   RefreshOutline,
   CreateOutline,
   DocumentTextOutline,
+  ClipboardOutline,
   SettingsOutline,
   LogOutOutline,
   TrashOutline,
@@ -31,7 +32,8 @@ const navItems = [
   { key: 'library', label: '学习库', icon: LibraryOutline },
   { key: 'docs', label: '知识库', icon: FolderOutline },
   { key: 'review', label: '复习', icon: RefreshOutline },
-  { key: 'report', label: '报告', icon: DocumentTextOutline }
+  { key: 'report', label: '报告', icon: DocumentTextOutline },
+  { key: 'diagnosis', label: '诊断', icon: ClipboardOutline }
 ]
 
 const initial = computed(() => (store.user?.username || '?').slice(0, 1).toUpperCase())
