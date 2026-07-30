@@ -4,6 +4,7 @@
 # 离线/MOCK 或解析失败时用 curriculum 内置 quiz 兜底，保证闭环始终可用。
 # 判分纯本地（答案比对），不依赖模型；薄弱点画像写回 tutor 学情档案。
 
+import os
 import random
 
 from curriculum import get_curriculum, get_all_points, sample_points, SUPPORTED, list_supported

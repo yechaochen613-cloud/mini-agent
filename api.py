@@ -944,7 +944,7 @@ def diagnose_route(req: DiagnosisGenerate):
     except HTTPException:
         raise
     except Exception as e:
-        raise _fail(500, f"生成诊断卷失败：{type(e).__name__}: {str(e)[:400]}", None)
+        raise _fail(500, "生成诊断卷失败，请稍后重试", e)
 
 
 @app.post("/diagnose/submit")
@@ -1068,7 +1068,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-30-phase1-diagnosis-llm"
+DEPLOY_TAG = "2026-07-30-phase1-diagnosis-fix2"
 
 
 # ===== GitHub OAuth 授权流程 =====
