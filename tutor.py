@@ -336,7 +336,10 @@ def _vision_describe(doc: dict) -> str:
 
 
 def _extract_json(text: str):
-    """从模型输出里尽量解析出 JSON（兼容 ```json 围栏 / 前后多余文字）。"""
+    """从模型输出里尽量解析出 JSON（兼容 ```json 围栏 / 前后多余文字 / 顶层数组）。
+
+    返回 dict 或 list；解析失败返回 {}（保持历史调用方对 dict 的预期）。
+    """
     if not text:
         return {}
     t = text.strip()
@@ -344,14 +347,21 @@ def _extract_json(text: str):
     m = re.search(r"```(?:json)?\s*([\s\S]*?)```", t, re.I)
     if m:
         t = m.group(1).strip()
-    # 取第一个 { 到最后一个 } 之间的内容
     s, e = t.find("{"), t.rfind("}")
+    sa, ea = t.find("["), t.rfind("]")
+    # 顶层数组优先（模型直接返回 [...] 的情况）
+    if sa != -1 and (s == -1 or sa <= s):
+        try:
+            return json.loads(t[sa:ea + 1])
+        except Exception:
+            pass
+    # 否则取第一个 { 到最后一个 } 之间的对象
     if s != -1 and e != -1 and e > s:
-        t = t[s:e + 1]
-    try:
-        return json.loads(t)
-    except Exception:
-        return {}
+        try:
+            return json.loads(t[s:e + 1])
+        except Exception:
+            return {}
+    return {}
 
 
 # ============================================================
