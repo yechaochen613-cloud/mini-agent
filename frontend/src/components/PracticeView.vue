@@ -39,6 +39,7 @@ const answers = reactive({}) // { [questionId]: choiceIndex }
 const focusSel = reactive({}) // 选中的薄弱点：{ [pointName]: true }
 const weakFromProfile = ref([]) // 诊断档案里的薄弱点（用于展示）
 const showManual = ref(false)
+const savedToProfile = ref(false) // 本次练习结果是否已写回学情档案（双向画像）
 
 const isAnswered = (q) => answers[q.id] !== undefined && answers[q.id] !== null
 const answeredCount = computed(() => questions.value.filter((q) => isAnswered(q)).length)
@@ -141,12 +142,30 @@ function finish() {
     message.warning(`还有 ${total.value - answeredCount.value} 题未作答`)
     return
   }
+  // 双向画像：把本次各知识点作答结果写回学情档案（失败静默，不阻断总结）
+  savedToProfile.value = false
+  const results = summary.value.perTopic.map((m) => ({
+    topic: m.topic,
+    right: m.right,
+    total: m.total
+  }))
+  if (results.length) {
+    api
+      .submitPractice({ subject: subject.value, grade: grade.value, results })
+      .then(() => {
+        savedToProfile.value = true
+      })
+      .catch(() => {
+        /* 写回失败不影响本地总结展示 */
+      })
+  }
   phase.value = 'summary'
 }
 
 function restart() {
   questions.value = []
   for (const k of Object.keys(answers)) delete answers[k]
+  savedToProfile.value = false
   phase.value = 'setup'
   // 保留已选薄弱点，方便再练一轮
 }
@@ -379,6 +398,10 @@ function accuracyColor(a) {
             共 {{ summary.total }} 题，答对 {{ summary.correct }} 题。
             <template v-if="focusList.length">本次针对 <b>{{ focusList.length }}</b> 个薄弱点巩固。</template>
           </p>
+          <div class="rm-saved" v-if="savedToProfile">
+            <n-icon size="14"><CheckmarkCircleOutline /></n-icon>
+            本次巩固进度已记入学情档案
+          </div>
           <div class="rm-weak" v-if="focusList.length">
             <span class="rm-k">练习目标</span>
             <n-tag
@@ -936,6 +959,18 @@ function accuracyColor(a) {
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0 0 14px;
+}
+.rm-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--success);
+  background: rgba(52, 199, 89, 0.12);
+  padding: 5px 11px;
+  border-radius: 9px;
+  margin-bottom: 14px;
 }
 .rm-weak {
   display: flex;

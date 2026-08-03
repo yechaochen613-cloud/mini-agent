@@ -925,6 +925,12 @@ class PracticeGenerate(BaseModel):
     count: int = 6
 
 
+class PracticeSubmit(BaseModel):
+    subject: str = "数学"
+    grade: str = "八年级"
+    results: list = []   # [{topic, right, total}] 本次练习各知识点作答结果（用于写回练习巩固度）
+
+
 @app.get("/curriculum")
 def curriculum_route(subject: str = "数学", grade: str = "八年级"):
     """获取知识点图谱（章节→知识点）。当前仅开放：数学·八年级。"""
@@ -980,6 +986,20 @@ def practice_route(req: PracticeGenerate):
         raise
     except Exception as e:
         raise _fail(500, "生成练习失败，请稍后重试", e)
+
+
+@app.post("/practice/submit")
+def practice_submit_route(req: PracticeSubmit):
+    """提交练习结果：把各知识点作答合并进学情档案的『练习巩固度』（双向画像）。
+
+    与诊断写回的 weak_points 分离，不污染诊断快照；诊断仍是权威薄弱点来源。
+    """
+    from tutor import record_practice_mastery
+    try:
+        profile = record_practice_mastery(req.results)
+        return {"ok": True, "profile": profile}
+    except Exception as e:
+        raise _fail(500, "保存练习结果失败，请稍后重试", e)
 
 
 # ===== 定时任务（Schedules） =====
@@ -1090,7 +1110,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-07-30-phase2-practice-v1"
+DEPLOY_TAG = "2026-08-03-phase3-bidirectional-v1"
 
 
 # ===== GitHub OAuth 授权流程 =====

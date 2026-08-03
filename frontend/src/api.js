@@ -77,6 +77,7 @@ export const api = {
 
   // 针对性练习（Phase 2：薄弱点 → 练习 + 名师讲解）
   practice: (payload) => ok(http.post('/practice', payload)),
+  submitPractice: (payload) => ok(http.post('/practice/submit', payload)),
 
   // 版本
   version: () => ok(http.get('/version'))

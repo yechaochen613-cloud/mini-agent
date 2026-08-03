@@ -35,7 +35,8 @@ DEFAULT_PROFILE = {
     "subjects": {},      # {学科: 掌握度0-100}，如 {"数学": 72, "英语": 85}
     "weak_points": [],   # 薄弱点标签列表，如 ["二次函数", "阅读理解"]
     "strengths": [],     # 优势标签
-    "goals": [],         # 学习目标
+    "goals": [],
+    "practice_mastery": {},  # 练习巩固度（双向画像）：{知识点: {attempts, correct, last_pct, ts}}，与诊断 weak_points 分离         # 学习目标
     "papers_count": 0,   # 已分析试卷数
     "updated_at": "",
 }
@@ -173,6 +174,47 @@ def update_profile(partial: dict, replace: bool = False) -> dict:
         elif k in ("name", "grade"):
             cur[k] = str(v or "")
     # 同步试卷计数
+    cur["papers_count"] = len(list_papers_raw())
+    return save_profile(cur)
+
+
+def record_practice_mastery(records: list) -> dict:
+    """把一次练习的结果合并进档案的「练习巩固度」（双向画像）。
+
+    records: [{topic: 知识点名称, right: 答对题数, total: 该知识点练习题数}, ...]
+    累加 attempts/correct，重算 last_pct（累计正确率），更新 ts；
+    与诊断写回的 weak_points 完全分离，保持诊断画像纯净。
+    空记录直接返回当前档案（幂等）。
+    """
+    if not records:
+        return get_profile()
+    cur = get_profile()
+    pm = cur.get("practice_mastery")
+    if not isinstance(pm, dict):
+        pm = {}
+        cur["practice_mastery"] = pm
+    now = _now()
+    for r in (records or []):
+        if not isinstance(r, dict):
+            continue
+        topic = str(r.get("topic") or "").strip()
+        if not topic:
+            continue
+        try:
+            right = int(r.get("right", 0))
+            total = int(r.get("total", 0))
+        except Exception:
+            continue
+        if total <= 0:
+            continue
+        d = pm.get(topic)
+        if not isinstance(d, dict):
+            d = {"attempts": 0, "correct": 0, "last_pct": 0, "ts": ""}
+            pm[topic] = d
+        d["attempts"] += total
+        d["correct"] += right
+        d["last_pct"] = round(100 * d["correct"] / d["attempts"]) if d["attempts"] else 0
+        d["ts"] = now
     cur["papers_count"] = len(list_papers_raw())
     return save_profile(cur)
 

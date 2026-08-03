@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useMessage, NIcon, NButton, NDrawer, NDrawerContent, NInput, NSlider, NTag, NDynamicTags, NSpace, NEmpty, NScrollbar } from 'naive-ui'
-import { PersonOutline, SchoolOutline, DocumentTextOutline, CreateOutline, AddOutline, TrashOutline, RibbonOutline, WarningOutline, FlagOutline } from '@vicons/ionicons5'
+import { PersonOutline, SchoolOutline, DocumentTextOutline, CreateOutline, AddOutline, TrashOutline, RibbonOutline, WarningOutline, FlagOutline, BarChartOutline } from '@vicons/ionicons5'
 import { api } from '../api.js'
 
 const props = defineProps({
@@ -64,6 +64,19 @@ const displaySubjects = computed(() => {
   const s = props.profile?.subjects || {}
   return Object.entries(s).map(([name, level]) => ({ name, level: Number(level) || 0 }))
     .sort((a, b) => b.level - a.level)
+})
+
+// 展示用：练习巩固度（双向画像）——按累计正确率升序，最弱靠前
+const displayPractice = computed(() => {
+  const pm = props.profile?.practice_mastery || {}
+  return Object.entries(pm)
+    .map(([topic, d]) => ({
+      topic,
+      pct: Number(d?.last_pct) || 0,
+      attempts: Number(d?.attempts) || 0,
+      correct: Number(d?.correct) || 0
+    }))
+    .sort((a, b) => a.pct - b.pct)
 })
 
 async function save() {
@@ -135,6 +148,21 @@ async function save() {
             <div class="pc-fill" :style="{ width: s.level + '%', background: masteryColor(s.level) }"></div>
           </div>
         </div>
+      </div>
+
+      <!-- 练习巩固度（双向画像） -->
+      <div v-if="displayPractice.length" class="pc-section">
+        <div class="pc-stitle"><n-icon size="15" color="var(--accent)"><BarChartOutline /></n-icon>练习巩固度</div>
+        <div v-for="m in displayPractice" :key="m.topic" class="pc-mastery">
+          <div class="pc-mrow">
+            <span class="pc-mname">{{ m.topic }}</span>
+            <span class="pc-mval" :style="{ color: masteryColor(m.pct) }">{{ m.pct }}%<i class="pc-mcnt">· {{ m.correct }}/{{ m.attempts }}</i></span>
+          </div>
+          <div class="pc-track">
+            <div class="pc-fill" :style="{ width: m.pct + '%', background: masteryColor(m.pct) }"></div>
+          </div>
+        </div>
+        <div class="pc-note">数据来自「针对性练习」作答，与诊断薄弱点互补</div>
       </div>
 
       <!-- 薄弱点 / 优势 -->
@@ -262,6 +290,8 @@ async function save() {
 .pc-mval { font-weight: 700; font-variant-numeric: tabular-nums; }
 .pc-track { height: 7px; border-radius: 999px; background: var(--border); overflow: hidden; }
 .pc-fill { height: 100%; border-radius: 999px; transition: width 0.6s cubic-bezier(0.16,1,0.3,1); }
+.pc-mcnt { font-style: normal; font-weight: 500; font-size: 11px; color: var(--text-tertiary); margin-left: 6px; }
+.pc-note { margin-top: 10px; font-size: 11px; color: var(--text-tertiary); line-height: 1.5; }
 .pc-tagwrap { display: flex; flex-wrap: wrap; gap: 8px; }
 .pc-goals { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.9; }
 .pc-foot { margin-top: 16px; font-size: 11px; color: var(--text-tertiary); }
