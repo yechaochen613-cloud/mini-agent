@@ -1110,7 +1110,7 @@ def run_sub_agent(sid: str, req: SubAgentRun):
 
 
 # 部署版本标识（用于验证线上是否拉取到最新代码）
-DEPLOY_TAG = "2026-08-03-phase3-bidirectional-v1"
+DEPLOY_TAG = "2026-08-04-phase4-learn-home-v1"
 
 
 # ===== GitHub OAuth 授权流程 =====

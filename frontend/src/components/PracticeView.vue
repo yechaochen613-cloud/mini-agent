@@ -20,7 +20,7 @@ import {
   BarChartOutline
 } from '@vicons/ionicons5'
 import { api } from '../api.js'
-import { switchView } from '../store.js'
+import { switchView, store } from '../store.js'
 
 const message = useMessage()
 
@@ -29,9 +29,10 @@ const subject = ref('数学')
 const grade = ref('八年级')
 const count = ref(6)
 
-const supported = ref([{ subject: '数学', grade: '八年级' }])
 const chapters = ref([])
 const pointsCount = ref(0)
+
+const subjectLabel = `${subject.value} · ${grade.value}`
 
 const generating = ref(false)
 const questions = ref([])
@@ -73,12 +74,18 @@ const summary = computed(() => {
   }
 })
 
-onMounted(loadSetup)
+onMounted(async () => {
+  await loadSetup()
+  // 从诊断结果页跳转来：自动选入薄弱点后直接进入练习，减少一次点击
+  if (store.practiceAutoStart) {
+    store.practiceAutoStart = false
+    await startPractice()
+  }
+})
 
 async function loadSetup() {
   try {
     const data = await api.curriculum(subject.value, grade.value)
-    supported.value = data.supported || supported.value
     pointsCount.value = data.points_count || 0
     chapters.value = data.chapters || []
     // 解析档案薄弱点，自动选入与知识点图谱匹配的项
@@ -101,12 +108,6 @@ async function loadSetup() {
   } catch (e) {
     /* ignore */
   }
-}
-
-function selectSubjectGrade(s, g) {
-  subject.value = s
-  grade.value = g
-  loadSetup()
 }
 
 function toggleFocus(name) {
@@ -217,17 +218,9 @@ function accuracyColor(a) {
     <section v-if="phase === 'setup'" class="glass-card setup">
       <div class="setup-block">
         <div class="block-label">学科 · 年级</div>
-        <div class="chip-row">
-          <button
-            v-for="s in supported"
-            :key="s.subject + s.grade"
-            class="chip"
-            :class="{ active: subject === s.subject && grade === s.grade }"
-            @click="selectSubjectGrade(s.subject, s.grade)"
-          >
-            <n-icon size="16"><SchoolOutline /></n-icon>
-            <span>{{ s.subject }} · {{ s.grade }}</span>
-          </button>
+        <div class="subj-badge">
+          <n-icon size="15"><SchoolOutline /></n-icon>
+          <span>{{ subjectLabel }}</span>
         </div>
       </div>
 
@@ -583,6 +576,19 @@ function accuracyColor(a) {
 }
 .hint b {
   color: var(--accent);
+}
+.subj-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 600;
 }
 
 .manual-toggle {

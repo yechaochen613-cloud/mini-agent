@@ -16,10 +16,11 @@ import {
   CheckmarkDoneOutline,
   RefreshOutline,
   BarChartOutline,
-  SchoolOutline
+  SchoolOutline,
+  BookOutline
 } from '@vicons/ionicons5'
 import { api } from '../api.js'
-import { switchView } from '../store.js'
+import { switchView, store } from '../store.js'
 
 const message = useMessage()
 
@@ -28,7 +29,6 @@ const subject = ref('数学')
 const grade = ref('八年级')
 const count = ref(12)
 
-const supported = ref([{ subject: '数学', grade: '八年级' }])
 const pointsCount = ref(0)
 
 const generating = ref(false)
@@ -41,22 +41,17 @@ const answeredCount = computed(() => Object.keys(answers).filter((k) => answers[
 const total = computed(() => questions.value.length)
 const allAnswered = computed(() => total.value > 0 && answeredCount.value === total.value)
 
+const subjectLabel = `${subject.value} · ${grade.value}`
+
 onMounted(loadCurriculum)
 
 async function loadCurriculum() {
   try {
     const data = await api.curriculum(subject.value, grade.value)
-    supported.value = data.supported || supported.value
     pointsCount.value = data.points_count || 0
   } catch (e) {
     /* ignore */
   }
-}
-
-function selectSubjectGrade(s, g) {
-  subject.value = s
-  grade.value = g
-  loadCurriculum()
 }
 
 async function startDiagnosis() {
@@ -103,6 +98,12 @@ function restart() {
   phase.value = 'setup'
 }
 
+function goPractice() {
+  // 诊断结果页主 CTA：直接进入针对性练习（薄弱点已自动选入）
+  store.practiceAutoStart = true
+  switchView('practice')
+}
+
 function masteryColor(pct) {
   if (pct >= 85) return 'var(--success)'
   if (pct >= 60) return 'var(--accent)'
@@ -146,17 +147,9 @@ function levelText(score) {
     <section v-if="phase === 'setup'" class="glass-card setup">
       <div class="setup-block">
         <div class="block-label">学科 · 年级</div>
-        <div class="chip-row">
-          <button
-            v-for="s in supported"
-            :key="s.subject + s.grade"
-            class="chip"
-            :class="{ active: subject === s.subject && grade === s.grade }"
-            @click="selectSubjectGrade(s.subject, s.grade)"
-          >
-            <n-icon size="16"><SchoolOutline /></n-icon>
-            <span>{{ s.subject }} · {{ s.grade }}</span>
-          </button>
+        <div class="subj-badge">
+          <n-icon size="15"><SchoolOutline /></n-icon>
+          <span>{{ subjectLabel }}</span>
         </div>
         <p class="hint" v-if="pointsCount">
           本次诊断覆盖 <b>{{ pointsCount }}</b> 个核心知识点，将从中抽取 {{ count }} 题。
@@ -306,9 +299,13 @@ function levelText(score) {
       </div>
 
       <div class="result-actions">
-        <button class="primary-btn magnetic" @click="switchView('dashboard')">
-          <n-icon size="18"><BarChartOutline /></n-icon>
-          <span>查看学情看板</span>
+        <button class="primary-btn magnetic" @click="goPractice">
+          <n-icon size="18"><BookOutline /></n-icon>
+          <span>针对薄弱点练习</span>
+        </button>
+        <button class="ghost-btn lg" @click="switchView('dashboard')">
+          <n-icon size="16"><BarChartOutline /></n-icon>
+          <span>学情看板</span>
         </button>
         <button class="ghost-btn lg" @click="restart">
           <n-icon size="16"><RefreshOutline /></n-icon>
@@ -442,6 +439,19 @@ function levelText(score) {
 }
 .hint b {
   color: var(--accent);
+}
+.subj-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 600;
 }
 
 .primary-btn {

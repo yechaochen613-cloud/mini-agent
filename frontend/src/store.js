@@ -4,13 +4,14 @@ import { api } from './api.js'
 // 轻量全局状态（跨组件共享）
 export const store = reactive({
   user: null, // { username, id }
-  view: 'chat', // chat | teachers | dashboard | library | review | report | docs | diagnosis | practice
+  view: 'chat', // chat | teachers | dashboard | library | review | report | docs | learn | diagnosis | practice
   conversations: [],
   conversationsLoading: false,
   currentSessionId: null,
   currentTeacher: null, // 名师 id or null
   showSettings: false,
   showUpgrade: false,
+  practiceAutoStart: false, // 诊断结果页「针对薄弱点练习」置位，PracticeView 挂载后自动开始
   loadNonce: 0, // 每次切换/加载会话自增，通知 ChatView 重新拉取
   pendingPrompt: null, // 待发送的提示
   teacherGreetingPending: false, // 召唤老师后需要自动插入老师开场白
